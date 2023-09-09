@@ -1,0 +1,243 @@
+
+Set up fastFill
+    [] spawn creeps
+    [] set up role
+
+Set up soldier/healer duos
+    [] Kill an invader quad squad
+    [] Include ranged parts
+    [] Duo Movement
+    [] Spawn as Duo 
+
+[] Explorers:
+    [] Write role.scout.js
+        [x] Record unexplored room data.
+        [x] Find closest unexplored room.
+        [x] Navigate to target room.
+        [x] Prevent traveling through 'unsafe to travel' rooms.
+        [x] Set some sort of range limit on how far the scout can travel from home
+        [] Log scout report, which rooms it targeted. Output report on death.
+        [x] Re-write search pattern to search nearest room closest to homeroom first
+        [] Test
+    [x] Update spawnCreeps.js
+        [x] Determine if an explorer is needed.
+            - If there is an observer, there is no need for Explorers
+            - Only spawn explorers after RCL 3
+        [x] Spawn an explorer.
+        [x] Test
+    []  write expansionManager.js
+        [x] shifts first entered explorer data when neigbors length > 100 (11x11)
+        [] Finds attack targets
+        [x] finds long distance harvest targets
+    [x] Convert scout data to heap memory
+        [x] role.scout.js
+        [x] expansionManager.js   
+
+
+Autobuild:
+    [] Towers:
+        [x] Move towers to near ramparts
+        [] Issue with some walls that midpoint isnt getting mapped to
+        [] Towers are too close to some walls
+    [] Fix issue where island of spawns are placed away from base
+    [] Controller link still being placed near other structures.
+
+    [x] Consider adding even more dynamic extension placements
+    [x] Place link and containers at fastFill for level 6
+    [x] Set proper placement levels for labs
+    [x] Move controller link away from any structures besides road
+
+re-organize roles:
+    [x] Implement decentralized role.x.js task management
+    [x] roleFiller
+    [x] roleWallbuilder
+    [x] roleBuilder
+    [x] roleUpgrader
+    [] roleHauler
+        [x] Add extractor pickup and delivery to storage
+        [x] Add prototype for Tombstones
+        [] Hauler finds closest task, not just transfer when there is free capacity.
+            -Currently hauler is picking up any amount from a tombstone (could be 10E and directly bringing that to storage.)
+    [x] roleMiner
+        [x] convert to heap memory usage
+        [x] add mineral extraction to tasks
+        [x] Update source prototypes
+    [x] roleMaintainer
+        [x] repairs all structures besides walls and ramparts 
+        [x] if there are none - repairs walls and ramparts
+    [x] roleWorker
+        -booting role
+    [] remote roles
+        [x] rHauler
+        [x] rMiner
+        [x] rWorker
+            [x] update role.remoteWorker.js to new structure
+            [x] Dont allow standing on container.
+            [x] add tasks for dismanteling unmapped structures.
+        [] scout
+            [] Primary role is to travel
+            [] List all possible rooms to explore and pick the closest one.
+            [] if there are none, pick the oldest explored room.
+            [] roomWatcher updates scouting data as needed. This can be done for any visible room
+        [x] soldier
+        [] reserver
+        [] claimer
+        
+   
+
+ExpansionManager:
+    [] Checks all visible rooms 
+    [] Updates expansion data every x ticks
+    [] Find potential new rooms
+    [] Find outposts
+    [] Find attack targets every tick
+        [] Determines if militia is needed in home room
+        [] Tracks enemy attack parts to determine size of soldier body.
+
+    Outposts:
+        [x] First declare outposts in rooms connected to home room
+        [] Once those are set up, build outposts in rooms connected to outpost rooms - Then thats it.
+        [x] Implement better pathfinding for roads to outposts.
+            [x] Roads need to have the same x or y coordinate from room to room (depending on if they are a top/bottom exit or left/right exit)
+        [] Simplify status/process for actually adding expanded outposts in expansionManager
+        [] Reserve outposts for higher revenue
+
+Towers:
+    [x] If towers are not causing damage, ignore target until it moves closer.
+    [] Test.
+
+Defense:
+    [] roomViewer reports hostiles
+    [] Spawn soliders to defend outposts based on requests
+    [] Evacuate outposts while hostiles (with attack parts) are occupying room
+
+Spawning:
+    [] Organize bodypart sorting
+    [] Re-organize spawnCreeps
+        [x] Store target counts in heap every x turns
+        [x] Set room bootup requirements
+            [] test
+        [] Store target body configs in heap
+    [x] Reset heap every x ticks
+    [] Only update heap targets/bodies as needed to save CPU
+    [x] Add extractor check for roleMiner
+    [] Spawn order - Spawn 1 of each needed role first
+        [] Can spawn all required fillers first,
+            Then all required miners first,
+            Then all required soldiers first
+    [] Switch to spawn queue
+
+tasks:
+    [x] create task.js
+    [x] implement tasks into main
+    [x] Clear tasks for dead creaps
+    [] Clear paths when clearing tasks
+    [x] Add multi-task support
+        [x] Move tasks to creepTasks[home][creep.name].task
+        [x] Add management for creepTasks[home][creep.name].taskQueue
+        [] Consider filling task queue for:
+            [] Filler
+            [] worker
+            [] Builder
+            [] Hauler
+            [] Remotes
+
+Prototypes:
+    [] Implement task.js functionality for forecasting
+    [] Implement source prototypes for new task system.
+
+Labs:
+    [] Research Labs
+    [] Fill Labs
+    [] Make materials
+    [] Empty Labs
+
+Calcualte builder body:
+
+    [] Write function that generates a body for each role
+        [] Builder
+        [] Upgrader
+        [] Filler
+        [] Miner
+        [] Soldier
+        [] Transporter
+        [] Hub
+        [] 
+        [] wallBuilder
+        [] Remote workers
+            [] miners
+            [] Haulers
+
+
+Example
+    https://discord.com/channels/860665589738635336/866441713383637032/1004523576755499079
+
+    I'm trying to naively brute-force body combinations for builders. Anybody want to check my work?
+
+    function test(workParts = 1, moveParts = 1, carryParts = 1, distance = 300, workToBeDone = 3000) {
+    const carryCapacity = carryParts * 50;
+    const buildPower = workParts * 5;
+    const trips = Math.ceil(workToBeDone / buildPower / carryCapacity);
+    const speed = Math.min(1, moveParts / (workParts + carryParts / 2));
+    const travelTime = ((distance * 2) / speed) * trips;
+    const workTime = (carryCapacity / buildPower) * trips;
+
+    const time = travelTime + workTime;
+    const costPerTick = (workParts * 100 + moveParts * 50 + carryParts * 50) / 1500;
+
+    return [
+        costPerTick * time,
+        `${workParts}W/${moveParts}M/${carryParts}C: ${time.toFixed(0)} @ ${costPerTick.toFixed(2)}`
+    ];
+    }
+
+    function permute(i) {
+    return [test(i, 1, 1), test(i, i, 1), test(i, 1, i), test(1, i, i), test(i, i + 1, 1), test(1, i + 1, i)];
+    }
+
+    const results = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].flatMap(i => permute(i + 1)).reduce((a, b) => (a[0] < b[0] ? a : b));
+
+    console.log(results[1]);
+
+
+    Results:
+
+    distance: 10 6W/7M/1C: 43 @ 0.67
+    distance: 20 6W/7M/1C: 83 @ 0.67
+    distance: 30 6W/7M/1C: 123 @ 0.67
+    distance: 40 6W/7M/1C: 163 @ 0.67
+    distance: 50 6W/7M/1C: 203 @ 0.67
+    distance: 60 1W/4M/4C: 480 @ 0.33
+    distance: 70 1W/4M/4C: 540 @ 0.33
+    distance: 80 1W/4M/4C: 600 @ 0.33
+    distance: 90 1W/4M/4C: 660 @ 0.33
+    distance: 100 1W/4M/4C: 720 @ 0.33
+    distance: 110 1W/4M/4C: 780 @ 0.33
+    distance: 120 1W/6M/6C: 600 @ 0.47
+    distance: 130 1W/6M/6C: 640 @ 0.47
+    distance: 140 1W/6M/6C: 680 @ 0.47
+    distance: 150 1W/6M/6C: 720 @ 0.47
+    distance: 160 1W/6M/6C: 760 @ 0.47
+    distance: 170 1W/6M/6C: 800 @ 0.47
+    distance: 180 1W/6M/6C: 840 @ 0.47
+    distance: 190 1W/6M/6C: 880 @ 0.47
+    that's optimizing for (minion cost per tick * build time) at varying distances
+
+
+Tasks:
+
+known bugs:
+    [] Creeps in W37S1 try and path through terrain walls. Add check for this
+    [] Remote pathfinding:
+        [] Remote creeps running into/through enemy creep 
+        [] Remote workers taking the long way when a faster path is available.
+        [] Remote haulers (possibly all remotes or all creeps) re-finding a path every turn.
+    scouting:
+        [] Scout from W37N1 fails to path to left room ?
+            [] duplicate
+            [] Scouts mark rooms as hostile and regular workers dont move to room because rooms never get marked as not hostile. 
+
+    prototypes:
+        [] source.assignedCreeps().length < source.maxCreeps() not working with 1 miner assigned.
+To update controller level:
+storage.db['rooms.objects'].update({ _id: '5fe40774411d32f' },{ $set: { level: 3 }})

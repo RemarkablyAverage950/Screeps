@@ -1,0 +1,42 @@
+Forecast quantities for tasks
+    -check for valid quantities assigning a build task
+    -check forecast when assigning refill tasks
+
+implement pathfinding
+    -transporters
+    -miners
+ 
+check on forecasting withdraw requests - we had a transport creep get stuck trying to withdraw from an empty mining container
+
+Set up long distance harvesting
+
+Set up room security system (turning on safe mode)
+
+double check transport only increased on full mining/mineral container
+
+new autobuild:
+    - autobuild walls/ramparts
+
+    -Observations:
+      
+
+Clear path from dead creeps.
+
+Set up links
+
+Set up fastFill
+    -spawn creeps
+    -set up tasks
+
+Set up hubManager(creep)
+    -spawn creep
+    -set up tasks
+
+known bugs:
+    -Creep still not getting distributed task
+        -setting moving to false fixes
+
+
+
+To update controller level:
+storage.db['rooms.objects'].update({ _id: 'cdbf0773313f0a9' },{ $set: { level: 6 }})

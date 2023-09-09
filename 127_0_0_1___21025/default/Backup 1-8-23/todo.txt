@@ -1,0 +1,7 @@
+work on transporter activities
+    -transporter seems to be getting a new task assigned every time the prereqs are gathered and creep.memory.prereqs are cleared.
+
+Forecast store quantities when creeps get assigned a withdraw task
+
+To update controller level:
+storage.db['rooms.objects'].update({ _id: '24b307748aeaa42' },{ $set: { level: 3 }})

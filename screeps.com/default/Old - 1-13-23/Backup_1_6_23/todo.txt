@@ -1,0 +1,62 @@
+1. (done) create transport role
+    -picks up tombstones
+    -picks up free resources
+    -brings resources from containers or links to destination structure (storage, upgrader container)
+
+2. (done) autobuild upgrader container
+
+3. autobuild upgrader link
+    -replaces container
+
+4. (done) autobuild storage
+
+5. implement soldiers
+
+6. (done)implement long distance harvesting
+    - finds targets based on flag
+    - automatically define in spawn memory
+    or
+    - send explorer to find ld harverst rooms
+
+7. autobuild long distance inbound link
+
+8. autobuild roads to exits
+    -possibility for required flags
+
+9. (done) autobuild ramparts
+
+10. implement wallbuilder
+
+11. consider autobuilding walls
+
+12. (in progress)implement claimer
+    - finds targets based on flag
+    - automatically define in spawn memory
+
+13. implement reserver
+    -finds targets based on flag
+    - automatically define in spawn memory
+
+14. autobuild extractor
+
+15. configure autobuild based on base type (bunker, free, etc)
+
+16. implement healer
+
+17. implement squads of 2 (soldier, healer)
+    -research best squad configuration
+
+18. implement squads of 4 (ranged, healer, healer, healer?)
+    -research best squad configuration
+
+19. finish autobuilding bunker roads
+
+20. (done) implemnt automatic setting of requried role counts
+
+21. set base types - (free/bunker/stamp/dynamic)
+
+22. set up autobuild for different base types
+
+23. (done) implement long distance builders
+
+12-22-22 rank 706
