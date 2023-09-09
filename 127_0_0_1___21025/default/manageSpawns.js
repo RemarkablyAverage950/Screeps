@@ -26,11 +26,12 @@ const SPAWN_TIMER_SET_VALUE = 10;
  * @param {Creep[]} creeps Creeps belonging to the room.
  */
 function manageSpawns(room, creeps) {
-    //console.log('A')
+
     // Check if spawns are available
-    const availableSpawns = room.find(FIND_MY_SPAWNS).filter(s => s.spawning != 'null');
+    const availableSpawns = room.find(FIND_MY_SPAWNS).filter(s => s.spawning === null);
+    console.log('availableSpawns',availableSpawns.map(s=> s.name))
     if (availableSpawns.length === 0) return;
-    //console.log('B')
+
     let spawnQueue = MEMORY.ROOMS[room.name].spawnQueue;
     console.log('starting tick', Game.time, 'with spawnQueue', spawnQueue.map(q => q.role))
 
@@ -42,7 +43,6 @@ function manageSpawns(room, creeps) {
     } else if (spawnQueue.length === 0) {
 
         spawnQueue = getSpawnQueue(room, creeps, false, spawnQueue);
-        //console.log('Generated spawn Queue of length ' + spawnQueue.length + ' for ' + room.name);
 
     } else {
 
@@ -56,7 +56,7 @@ function manageSpawns(room, creeps) {
         MEMORY.ROOMS[room.name].spawnTimer = SPAWN_TIMER_SET_VALUE;
         return;
     }
-    //console.log('spawnTimer', MEMORY.ROOMS[room.name].spawnTimer)
+    console.log('spawnTimer', MEMORY.ROOMS[room.name].spawnTimer)
     //console.log('new spawnQueue', spawnQueue.map(q => q.role))
 
     for (let spawn of availableSpawns) {
@@ -130,9 +130,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     const targetWorkerCount = getTargetCount.worker(minerCount, fillerCount);
     const targetMinerCount = getTargetCount.miner(room);
     const targetFillerCount = getTargetCount.filler();
-    console.log('live Counts', workerCount, minerCount, fillerCount)
 
-    console.log('Entering getSpawnQueue with', existingSpawnQueue.map(q => q.role))
     for (let order of existingSpawnQueue) {
 
         const role = order.role;
@@ -153,9 +151,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
     };
 
-
-
-    console.log('worker:', workerCount, '/', targetWorkerCount, workerCount < targetWorkerCount, 'miner:', minerCount, '/', targetMinerCount, minerCount < targetMinerCount, 'filler:', fillerCount, '/', targetFillerCount, fillerCount < targetFillerCount)
+    //console.log('worker:', workerCount, '/', targetWorkerCount, workerCount < targetWorkerCount, 'miner:', minerCount, '/', targetMinerCount, minerCount < targetMinerCount, 'filler:', fillerCount, '/', targetFillerCount, fillerCount < targetFillerCount)
 
     let body = [];
     let options = undefined;
@@ -173,7 +169,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
                 },
             }
 
-        } else if (!body) {
+        } else if (body.length === 0) {
             body = getBody.worker(energyBudget)
 
             options = {
@@ -184,7 +180,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
             }
 
         }
-
+        console.log('Worker body generated',body)
         spawnQueue.push(new SpawnOrder('worker', 1, body, options));
         workerCount++;
 
@@ -193,7 +189,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     body = [];
     while (minerCount < targetMinerCount) {
 
-        if (!body) {
+        if (body.length === 0) {
             body = getBody.miner(energyBudget)
             options = {
                 memory: {
@@ -201,6 +197,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
                     home: room.name,
                 },
             }
+            console.log('Miner body generated',body)
         }
 
         spawnQueue.push(new SpawnOrder('miner', 2, body, options));
@@ -211,7 +208,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     body = [];
     while (fillerCount < targetFillerCount) {
 
-        if (!body) {
+        if (body.length === 0) {
             body = getBody.filler(energyBudget, room)
             options = {
                 memory: {
@@ -219,6 +216,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
                     home: room.name,
                 },
             }
+            console.log('Filler body generated',body)
         }
 
         spawnQueue.push(new SpawnOrder('filler', 3, body, options));
@@ -279,6 +277,7 @@ const getBody = {
 
         let cost = 150;
         let workCount = 1;
+        let body = [];
 
         while (cost + 100 <= budget) {
             workCount++;
