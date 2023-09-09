@@ -1,14 +1,28 @@
-const manageSpawns = require('manageSpawns')
+const manageSpawns = require('manageSpawns');
+let MEMORY = require('memory');
 
 
 module.exports.loop = function () {
 
+
+    // Remove dead creeps from memory.
+    for (let name in Memory.creeps) {
+        if (!Game.creeps[name]) {
+            const room = Memory.creeps[name].home
+            delete Memory.creeps[name];
+        }
+    }
+
+
     const myRooms = getMyRooms()
 
-    for(const roomName of myRooms){
+
+    for (const roomName of myRooms) {
 
         const room = Game.rooms[roomName];
+        const creeps = Object.values(Game.creeps).filter(c=> c.memory.home === roomName);
 
+        manageMemory(room,creeps);
         manageSpawns(room);
 
     }
@@ -32,6 +46,24 @@ function getMyRooms() {
     };
 
     return myRooms;
+}
+
+/**
+ * Initializes and maintains heap memory.
+ * @param {Room} room 
+ */
+function manageMemory(room) {
+    
+    if (!MEMORY.ROOMS[room.name]) {
+        MEMORY.ROOMS[room.name] = {
+            spawnQueue: [],
+            spawnTimer: 0,
+        }
+
+        console.log('Initialized MEMORY for '+room.name)
+
+    }
+
 }
 
 
