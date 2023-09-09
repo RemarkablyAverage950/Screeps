@@ -10,6 +10,8 @@ module.exports.loop = function () {
         if (!Game.creeps[name]) {
             const room = Memory.creeps[name].home
             delete Memory.creeps[name];
+
+            console.log('Cleared memory for '+name)
         }
     }
 
@@ -23,7 +25,7 @@ module.exports.loop = function () {
         const creeps = Object.values(Game.creeps).filter(c=> c.memory.home === roomName);
 
         manageMemory(room,creeps);
-        manageSpawns(room);
+        manageSpawns(room,creeps);
 
     }
 
