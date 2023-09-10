@@ -1,0 +1,8 @@
+Sources:
+
+    initialize when initializing room memory:
+    Store in MEMORY.rooms[room].sources[source_id] = {
+        maxCreeps: number,
+        container: structure_id
+        miner: 0 or 1 (signifying miner name ending in 0 or 1 is assigned to this sources)
+    }

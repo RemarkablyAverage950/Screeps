@@ -32,12 +32,12 @@ function manageSpawns(room, creeps) {
     console.log('availableSpawns',availableSpawns.map(s=> s.name))
     if (availableSpawns.length === 0) return;
 
-    let spawnQueue = MEMORY.ROOMS[room.name].spawnQueue;
+    let spawnQueue = MEMORY.rooms[room.name].spawnQueue;
     console.log('starting tick', Game.time, 'with spawnQueue', spawnQueue.map(q => q.role))
 
-    if (MEMORY.ROOMS[room.name].spawnTimer > 0) {
+    if (MEMORY.rooms[room.name].spawnTimer > 0) {
 
-        MEMORY.ROOMS[room.name].spawnTimer -= 1;
+        MEMORY.rooms[room.name].spawnTimer -= 1;
         spawnQueue.push(...getSpawnQueue(room, creeps, true, spawnQueue));
 
     } else if (spawnQueue.length === 0) {
@@ -50,13 +50,13 @@ function manageSpawns(room, creeps) {
 
     }
 
-    MEMORY.ROOMS[room.name].spawnQueue = spawnQueue;
+    MEMORY.rooms[room.name].spawnQueue = spawnQueue;
 
     if (spawnQueue.length === 0) {
-        MEMORY.ROOMS[room.name].spawnTimer = SPAWN_TIMER_SET_VALUE;
+        MEMORY.rooms[room.name].spawnTimer = SPAWN_TIMER_SET_VALUE;
         return;
     }
-    console.log('spawnTimer', MEMORY.ROOMS[room.name].spawnTimer)
+    console.log('spawnTimer', MEMORY.rooms[room.name].spawnTimer)
     //console.log('new spawnQueue', spawnQueue.map(q => q.role))
 
     for (let spawn of availableSpawns) {
@@ -87,7 +87,7 @@ function manageSpawns(room, creeps) {
                     if (ret == 0) {
                         // Successful
                         spawnQueue.splice(i, 1)
-                        MEMORY.ROOMS[room.name].spawnQueue = spawnQueue;
+                        MEMORY.rooms[room.name].spawnQueue = spawnQueue;
                         break;
 
                     } else if (ret != -6) {

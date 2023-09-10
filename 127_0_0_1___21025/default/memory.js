@@ -1,5 +1,5 @@
 let MEMORY = {
-    ROOMS: {}
+    rooms: {}
 };
 
 module.exports = MEMORY;
