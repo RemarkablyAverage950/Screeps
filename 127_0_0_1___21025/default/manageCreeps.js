@@ -11,6 +11,17 @@ class Task {
     };
 };
 
+class BuildTask extends Task {
+    /**
+     * @constructor
+     * @param {string} id 
+     */
+    constructor(id) {
+        super('BUILD');
+        this.id = id;
+    };
+};
+
 class HarvestTask extends Task {
     /**
      * @constructor
@@ -99,7 +110,7 @@ function manageCreeps(room, creeps) {
 
         if (!taskValid) {
             assignTask(room, creep)
-            console.log('Assigned task', JSON.stringify(MEMORY.rooms[room.name].creeps[creep.name].task), 'to', creep.name)
+            //console.log('Assigned task', JSON.stringify(MEMORY.rooms[room.name].creeps[creep.name].task), 'to', creep.name)
         }
 
         executeTask(room, creep);
@@ -164,8 +175,9 @@ function assignTask(room, creep) {
             };
 
         };
-    }else if (role === 'upgrader'){
-        availableTasks = getRoleTasks.upgrader(room, creep)
+    } else if (role === 'upgrader') {
+
+        availableTasks = getRoleTasks.upgrader(room, creep);
 
         // Best task is closest
 
@@ -173,15 +185,34 @@ function assignTask(room, creep) {
 
         for (const t of availableTasks) {
 
-            let object = Game.getObjectById(t.id)
+            let object = Game.getObjectById(t.id);
 
-            const distance = creep.pos.getRangeTo(object)
+            const distance = creep.pos.getRangeTo(object);
             if (distance < minDistance) {
                 minDistance = distance;
                 task = t;
-            }
+            };
 
-        }
+        };
+    } else if (role === 'builder') {
+
+        availableTasks = getRoleTasks.builder(room, creep);
+
+        // Best task is closest
+
+        let minDistance = Infinity;
+
+        for (const t of availableTasks) {
+
+            let object = Game.getObjectById(t.id);
+
+            const distance = creep.pos.getRangeTo(object);
+            if (distance < minDistance) {
+                minDistance = distance;
+                task = t;
+            };
+
+        };
     }
 
     if (!task) {
@@ -189,7 +220,7 @@ function assignTask(room, creep) {
     }
 
     MEMORY.rooms[room.name].creeps[creep.name].task = task;
-    creep.say('Assigned ' + task.type + ' from ' + task.id)
+    creep.say(task.type)
 
 }
 
@@ -211,6 +242,20 @@ function executeTask(room, creep) {
     }
 
     switch (task.type) {
+
+        case 'BUILD':
+            if (creep.build(target) != 0) {
+                creep.moveTo(target, {
+                    visualizePathStyle: {
+                        fill: 'transparent',
+                        stroke: '#fff',
+                        lineStyle: 'dashed',
+                        strokeWidth: .15,
+                        opacity: .1
+                    }
+                })
+            }
+            break;
 
         case 'HARVEST':
 
@@ -274,6 +319,37 @@ function executeTask(room, creep) {
 
 const getRoleTasks = {
 
+    /**
+     * 
+     * @param {Room} room 
+     * @param {Creep} creep 
+     * @returns {Task[]}
+     */
+    builder: function (room, creep) {
+        let tasks = [];
+
+        if (creep.store.getFreeCapacity() > 0) {
+
+            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY));
+            tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY));
+
+        };
+
+        if (creep.store[RESOURCE_ENERGY] > 0) {
+
+            tasks.push(...getTasks.build(room));
+
+        };
+
+        return tasks;
+    },
+
+    /**
+     * 
+     * @param {Room} room 
+     * @param {Creep} creep 
+     * @returns {Task[]}
+     */
     filler: function (room, creep) {
         let tasks = [];
 
@@ -289,8 +365,8 @@ const getRoleTasks = {
             tasks.push(...getTasks.fill(room, creep));
 
             if (tasks.length === 0) {
-                console.log('Implement park task')
-                //tasks.push(...getTasks.park(room, creep));
+                // console.log('Implement park task')
+                // tasks.push(...getTasks.park(room, creep));
             };
 
         };
@@ -370,6 +446,20 @@ const getRoleTasks = {
 
 const getTasks = {
 
+
+    build: function (room) {
+
+        const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
+        let tasks = [];
+
+        for (let site of sites) {
+            tasks.push(new BuildTask(site.id))
+        };
+
+        return tasks;
+
+    },
+
     /**
      * 
      * @param {Room} room 
@@ -377,7 +467,7 @@ const getTasks = {
      * @returns {TransferTask[]}
      */
     fill: function (room, creep) {
-        console.log('Looing for fill tasks for ', creep.name)
+
         const structures = room.find(FIND_STRUCTURES);
         const heldEnergy = creep.store[RESOURCE_ENERGY];
         let tasks = [];
@@ -388,7 +478,6 @@ const getTasks = {
 
                 const forecast = s.forecast(RESOURCE_ENERGY);
                 const capacity = s.store.getCapacity(RESOURCE_ENERGY);
-                console.log('forecast:', forecast, 'capacity', capacity)
 
                 if (forecast < capacity) {
 
@@ -439,12 +528,23 @@ const getTasks = {
 
         for (let r of dropped) {
             const forecast = r.forecast();
-            if (r.resourceType === resourceType && forecast > 0) {
+            if (r.resourceType === resourceType && forecast > capacity) {
 
                 tasks.push(new PickupTask(r.id, Math.min(forecast, capacity)));
 
             };
         };
+        
+        if(tasks.length === 0){
+            for (let r of dropped) {
+                const forecast = r.forecast();
+                if (r.resourceType === resourceType && forecast > 0) {
+    
+                    tasks.push(new PickupTask(r.id, Math.min(forecast, capacity)));
+    
+                };
+            };
+        }
 
         return tasks;
 
@@ -546,6 +646,16 @@ function validateTask(room, creep) {
     }
 
     switch (task.type) {
+
+        case 'BUILD':
+            if (!target) {
+                return false;
+            };
+            if (creep.store[RESOURCE_ENERGY] === 0) {
+                return false;
+            };
+
+            break;
 
         case 'HARVEST':
 

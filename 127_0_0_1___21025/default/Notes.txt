@@ -1,8 +1,6 @@
-Sources:
+When generating a body for a worker, we are not counting the amount of work to be done at each distance.
+This means that it averages the work needed for each site at every site.
 
-    initialize when initializing room memory:
-    Store in MEMORY.rooms[room].sources[source_id] = {
-        maxCreeps: number,
-        container: structure_id
-        miner: 0 or 1 (signifying miner name ending in 0 or 1 is assigned to this sources)
-    }
+We should take into account the fact that heavy construction needed further could mean we need more carry parts etc.
+
+Also, need to make miners stand on their container.

@@ -226,8 +226,10 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     if (onlyEssential) return spawnQueue;
 
     let upgraderCount = creepsCount['upgrader'] || 0;
+    let builderCount = creepsCount['builder'] || 0;
 
     const targetUpgraderCount = getTargetCount.upgrader(room);
+    const targetBuilderCount = getTargetCount.builder(room);
 
     for (let order of existingSpawnQueue) {
 
@@ -236,6 +238,10 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         if (role === 'upgrader') {
 
             upgraderCount++;
+
+        } else if (role === 'builder') {
+
+            builderCount++;
 
         };
 
@@ -252,11 +258,29 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
                     home: room.name,
                 },
             };
-            
+
         };
 
-        spawnQueue.push(new SpawnOrder('upgrader', 4, body, options));
+        spawnQueue.push(new SpawnOrder('upgrader', 5, body, options));
         upgraderCount++;
+    };
+
+    body = [];
+    while (builderCount < targetBuilderCount) {
+
+        if (body.length === 0) {
+            body = getBody.builder(energyBudget, room);
+            options = {
+                memory: {
+                    role: 'builder',
+                    home: room.name,
+                },
+            };
+
+        };
+
+        spawnQueue.push(new SpawnOrder('builder', 4, body, options));
+        builderCount++;
     };
 
 
@@ -276,6 +300,100 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         claim: 600,
 */
 const getBody = {
+
+    /**
+     * 
+     * @param {number} budget
+     * @param {Room} room 
+     * @returns {BodyPartConstant[]}
+     */
+    builder: function (budget, room) {
+        /*
+            Most effecient builder will complete all existing construction sites using the least amount of spawn cost.
+            More than one builder can be used to complete construction.
+        */
+
+        const sources = room.find(FIND_SOURCES);
+        const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
+        let averageDistance = 0;
+        let totalWork = 0;
+
+        for (let site of sites) {
+            totalWork = site.progressTotal - site.progress;
+        };
+
+        if (!room.storage) {
+
+            for (let source of sources) {
+                for (let site of sites) {
+                    averageDistance += source.pos.getRangeTo(site);
+                }
+            };
+
+            averageDistance /= (sources.length * sites.length);
+
+        };
+
+        let bestBody = [];
+        let minCost = Infinity;
+
+        for (let workParts = 1; workParts < 40; workParts++) {
+            for (let carryParts = 1; carryParts < 40; carryParts++) {
+                for (let moveParts = 1; moveParts < 40; moveParts++) {
+
+                    if (workParts + carryParts + moveParts > 50) {
+                        continue;
+                    };
+
+                    const cost = (workParts * 100) + (carryParts * 50) + (moveParts * 50);
+
+                    if (cost > budget) {
+                        continue;
+                    }
+
+                    const workPerTrip = carryParts * 250;
+                    const workTime = workPerTrip / (workParts * 5);
+
+                    const moveTimeEmpty = workParts / (2 * moveParts);
+                    const moveTimeFull = (workParts + carryParts) / (2 * moveParts);
+                    const travelTimePerTrip = (averageDistance * moveTimeEmpty) + (averageDistance * moveTimeFull);
+
+                    const totalTimePerTrip = travelTimePerTrip + workTime + 1;
+
+                    const tripsPerLife = 1500 / totalTimePerTrip;
+
+                    const workPerLife = workPerTrip * tripsPerLife;
+
+                    const creepsNeeded = Math.ceil(totalWork / workPerLife)
+
+                    const totalCost = cost * creepsNeeded;
+
+                    if (totalCost < minCost) {
+                        bestBody = [workParts, carryParts, moveParts];
+                        minCost = totalCost;
+                    }
+
+                };
+            };
+        };
+        console.log('Generated builder body', bestBody)
+        // Build the body
+        let body = [];
+
+        for (let i = 0; i < bestBody[0]; i++) {
+            body.push(WORK);
+        };
+
+        for (let i = 0; i < bestBody[1]; i++) {
+            body.push(CARRY);
+        };
+
+        for (let i = 0; i < bestBody[2]; i++) {
+            body.push(MOVE);
+        };
+
+        return body;
+    },
 
     /**
      * Generates a body for a filler.
@@ -471,6 +589,17 @@ function getCreepName(roomName, role) {
 }
 
 const getTargetCount = {
+
+    /**
+     * Returns the target number of builders.
+     * @param {Room} room 
+     * @returns {number}
+     */
+    builder: function (room) {
+        if (room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) return 1;
+
+        return 0
+    },
 
     /**
      * Returns the target number of fillers. 
