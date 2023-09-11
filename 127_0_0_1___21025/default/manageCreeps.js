@@ -678,7 +678,7 @@ function validateTask(room, creep) {
             if (!target) {
                 return false;
             }
-            if (target.store.getFreeCapacity(task.resourceType) === 0 || creep.store[RESOURCE_ENERGY] === 0) {
+            if (target.store.getFreeCapacity(task.resourceType) === 0 || creep.store[task.resourceType] === 0) {
                 return false;
             }
 

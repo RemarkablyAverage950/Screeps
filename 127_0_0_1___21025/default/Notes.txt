@@ -4,3 +4,7 @@ This means that it averages the work needed for each site at every site.
 We should take into account the fact that heavy construction needed further could mean we need more carry parts etc.
 
 Also, need to make miners stand on their container.
+
+Fillers not finding a new task when they have no energy.
+
+Need to park fillers when they have no task.
