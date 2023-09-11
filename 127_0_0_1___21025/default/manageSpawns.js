@@ -29,11 +29,11 @@ function manageSpawns(room, creeps) {
 
     // Check if spawns are available
     const availableSpawns = room.find(FIND_MY_SPAWNS).filter(s => s.spawning === null);
-    console.log('availableSpawns',availableSpawns.map(s=> s.name))
+    //console.log('availableSpawns',availableSpawns.map(s=> s.name))
     if (availableSpawns.length === 0) return;
 
     let spawnQueue = MEMORY.rooms[room.name].spawnQueue;
-    console.log('starting tick', Game.time, 'with spawnQueue', spawnQueue.map(q => q.role))
+    //console.log('starting tick', Game.time, 'with spawnQueue', spawnQueue.map(q => q.role))
 
     if (MEMORY.rooms[room.name].spawnTimer > 0) {
 
@@ -56,7 +56,7 @@ function manageSpawns(room, creeps) {
         MEMORY.rooms[room.name].spawnTimer = SPAWN_TIMER_SET_VALUE;
         return;
     }
-    console.log('spawnTimer', MEMORY.rooms[room.name].spawnTimer)
+    //console.log('spawnTimer', MEMORY.rooms[room.name].spawnTimer)
     //console.log('new spawnQueue', spawnQueue.map(q => q.role))
 
     for (let spawn of availableSpawns) {
@@ -180,7 +180,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
             }
 
         }
-        console.log('Worker body generated',body)
+        //console.log('Worker body generated',body)
         spawnQueue.push(new SpawnOrder('worker', 1, body, options));
         workerCount++;
 
@@ -197,7 +197,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
                     home: room.name,
                 },
             }
-            console.log('Miner body generated',body)
+            //console.log('Miner body generated',body)
         }
 
         spawnQueue.push(new SpawnOrder('miner', 2, body, options));
@@ -216,7 +216,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
                     home: room.name,
                 },
             }
-            console.log('Filler body generated',body)
+            //console.log('Filler body generated',body)
         }
 
         spawnQueue.push(new SpawnOrder('filler', 3, body, options));
@@ -224,6 +224,40 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     };
 
     if (onlyEssential) return spawnQueue;
+
+    let upgraderCount = creepsCount['upgrader'] || 0;
+
+    const targetUpgraderCount = getTargetCount.upgrader(room);
+
+    for (let order of existingSpawnQueue) {
+
+        const role = order.role;
+
+        if (role === 'upgrader') {
+
+            upgraderCount++;
+
+        };
+
+    };
+
+    body = [];
+    while (upgraderCount < targetUpgraderCount) {
+
+        if (body.length === 0) {
+            body = getBody.upgrader(energyBudget, room);
+            options = {
+                memory: {
+                    role: 'upgrader',
+                    home: room.name,
+                },
+            };
+            
+        };
+
+        spawnQueue.push(new SpawnOrder('upgrader', 4, body, options));
+        upgraderCount++;
+    };
 
 
 
@@ -289,6 +323,90 @@ const getBody = {
         }
 
         body.push(MOVE);
+
+        return body;
+
+    },
+
+    /**
+     * 
+     * @param {number} budget
+     * @param {Room} room 
+     * @returns {BodyPartConstant[]}
+     */
+    upgrader: function (budget, room) {
+
+        /*
+            Most effecient upgrader can complete the most upgrades in its life.
+            Note we are going to increase the number of upgraders as we acquire more energy.
+        */
+        let averageDistance = 0;
+        const sources = room.find(FIND_SOURCES)
+
+
+        if (!room.storage) {
+
+            for (let s of sources) {
+                averageDistance += s.pos.getRangeTo(room.controller);
+            };
+
+            averageDistance /= sources.length;
+
+        };
+
+        let bestBody = [];
+        let max = 0;
+
+        for (let workParts = 1; workParts < 40; workParts++) {
+            for (let carryParts = 1; carryParts < 40; carryParts++) {
+                for (let moveParts = 1; moveParts < 40; moveParts++) {
+
+                    if (workParts + carryParts + moveParts > 50) {
+                        continue;
+                    };
+
+                    const cost = (workParts * 100) + (carryParts * 50) + (moveParts * 50);
+
+                    if (cost > budget) {
+                        continue;
+                    }
+
+                    const workPerTrip = carryParts * 50;
+                    const workTime = workPerTrip / workParts;
+
+                    const moveTimeEmpty = workParts / (2 * moveParts);
+                    const moveTimeFull = (workParts + carryParts) / (2 * moveParts);
+                    const travelTimePerTrip = (averageDistance * moveTimeEmpty) + (averageDistance * moveTimeFull);
+
+                    const totalTimePerTrip = travelTimePerTrip + workTime + 1;
+
+                    const tripsPerLife = 1500 / totalTimePerTrip;
+
+                    const workPerLife = workPerTrip * tripsPerLife;
+
+                    if (workPerLife > max) {
+                        bestBody = [workParts, carryParts, moveParts];
+                        max = workPerLife;
+                    }
+
+                };
+            };
+        };
+
+        // Build the body
+        let body = [];
+
+        for (let i = 0; i < bestBody[0]; i++) {
+            body.push(WORK);
+        };
+
+        for (let i = 0; i < bestBody[1]; i++) {
+            body.push(CARRY);
+        };
+
+        for (let i = 0; i < bestBody[2]; i++) {
+            body.push(MOVE);
+        };
 
         return body;
 
@@ -372,6 +490,47 @@ const getTargetCount = {
     miner: function (room) {
 
         return room.find(FIND_SOURCES).length;
+
+    },
+
+    /**
+     * 
+     * @param {Room} room 
+     */
+    upgrader: function (room) {
+
+        // Count total energy available.
+        const structures = room.find(FIND_STRUCTURES)
+        const dropped = room.find(FIND_DROPPED_RESOURCES)
+        let energy = 0;
+
+        for (const s of structures) {
+            if (s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_STORAGE) {
+                energy += s.store[RESOURCE_ENERGY]
+            }
+        }
+
+        for (const d of dropped) {
+            if (d.resourceType === RESOURCE_ENERGY) {
+                energy += d.amount
+            }
+        }
+
+        /*
+            Table:
+            if no storage:
+           energy/1000 round up:
+
+
+        */
+
+        if (!room.storage) {
+            return Math.ceil(energy / 1000)
+        } else {
+            console.log('Set upgrade target count for case with storage')
+        }
+
+
 
     },
 

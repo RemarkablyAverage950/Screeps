@@ -158,7 +158,9 @@ function getAssignedCreeps(target_id) {
     let assigned = [];
 
     for (let creep of Object.values(Game.creeps)) {
-
+        if(!MEMORY.rooms[creep.memory.home].creeps[creep.name]){
+            continue;
+        }
         let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].task;
 
         if (task && task.id && task.id === target_id) {
