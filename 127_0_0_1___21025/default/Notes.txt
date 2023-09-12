@@ -1,12 +1,13 @@
-When generating a body for a worker, we are not counting the amount of work to be done at each distance.
-This means that it averages the work needed for each site at every site.
 
-We should take into account the fact that heavy construction needed further could mean we need more carry parts etc.
+1. Impletment costmatrix && pathfinding
 
-Also, need to make miners stand on their container.
+2. Miners not finding container if there is already a creep on the container. They just start mining the source.
+    - think this may have been fixed by deleting the heap memory for the creep on death.
 
-Fillers not finding a new task when they have no energy.
+3. Auto Build Room.
 
-Need to park fillers when they have no task.
+4. Room defence
+    a) towers
+    b) safe module
+    c) defensive units
 
-Creeps picking up closest dropped even though these is enough to fill carry capacity at a further drop.

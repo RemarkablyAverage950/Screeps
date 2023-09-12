@@ -34,17 +34,13 @@ function manageSpawns(room, creeps) {
 
     let spawnQueue = MEMORY.rooms[room.name].spawnQueue;
     //console.log('starting tick', Game.time, 'with spawnQueue', spawnQueue.map(q => q.role))
-    console.log('SpawnTimer:', MEMORY.rooms[room.name].spawnTimer)
-    if (MEMORY.rooms[room.name].spawnTimer > 0) {
 
-        MEMORY.rooms[room.name].spawnTimer -= 1;
-        spawnQueue.push(...getSpawnQueue(room, creeps, true, spawnQueue));
+    if (Game.time % 10 === 0) {
 
-    } else if (spawnQueue.length === 0) {
-
-        spawnQueue = getSpawnQueue(room, creeps, false, spawnQueue);
+        spawnQueue.push(...getSpawnQueue(room, creeps, false, spawnQueue));
 
     } else {
+
 
         spawnQueue.push(...getSpawnQueue(room, creeps, true, spawnQueue));
 
@@ -52,16 +48,11 @@ function manageSpawns(room, creeps) {
 
     MEMORY.rooms[room.name].spawnQueue = spawnQueue;
 
-
-    //console.log('spawnTimer', MEMORY.rooms[room.name].spawnTimer)
-    //console.log('new spawnQueue', spawnQueue.map(q => q.role))
-
     for (let spawn of availableSpawns) {
 
         let ret = undefined;
 
-        if (spawnQueue.length === 0 && MEMORY.rooms[room.name].spawnTimer === 0) {
-            MEMORY.rooms[room.name].spawnTimer = SPAWN_TIMER_SET_VALUE;
+        if (spawnQueue.length === 0) {
             return;
         }
 
@@ -343,21 +334,21 @@ const getBody = {
         const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
         /*let averageDistance = 0;
         let totalWork = 0;
-
+ 
         for (let site of sites) {
             totalWork = site.progressTotal - site.progress;
         };
-
+ 
         if (!room.storage) {
-
+ 
             for (let source of sources) {
                 for (let site of sites) {
                     averageDistance += source.pos.getRangeTo(site);
                 }
             };
-
+ 
             averageDistance /= (sources.length * sites.length);
-
+ 
         };*/
 
         let bestBody = [];
@@ -404,7 +395,7 @@ const getBody = {
 
                         const tripsNeededToBuild = workNeeded / workPerTrip;
 
-                        totalTime += totalTimePerTrip * tripsNeededToBuild;
+                        totalTime += (totalTimePerTrip * tripsNeededToBuild);
 
                     };
 
@@ -414,7 +405,7 @@ const getBody = {
 
                     console.log('work/carry/move', workParts, carryParts, moveParts, 'TotalTime:', totalTime, 'totalCost:', totalCost)
 
-                    if (totalCost < minCost) {
+                    if (totalCost <= minCost) {
                         bestBody = [workParts, carryParts, moveParts];
                         minCost = totalCost;
                     }
@@ -466,7 +457,7 @@ const getBody = {
 
     },
 
-    maintainer: function (budget,room) {
+    maintainer: function (budget, room) {
 
         const structures = room.find(FIND_STRUCTURES);
         const sources = room.find(FIND_SOURCES);
@@ -491,7 +482,7 @@ const getBody = {
             };
         };
 
-        averageDistance /= sources.length;
+        averageDistance /= ((containerCount + roadCount) *sources.length);
 
         const workNeededPerLife = (containerCount * 15000) + (roadCount * 150) * 1.1; // 10% extra to account for any non road/container buildings that need repairs.
 
@@ -528,7 +519,7 @@ const getBody = {
 
                     const tripsPerLife = 1500 / timePerTrip;
 
-                        //console.log('work/carry/move', workParts, carryParts, moveParts, 'TotalTime:', totalTime, 'totalCost:', totalCost)
+                    //console.log('work/carry/move', workParts, carryParts, moveParts, 'TotalTime:', totalTime, 'totalCost:', totalCost)
 
                     if (tripsPerLife > tripsNeeded && cost < minCost) {
                         bestBody = [workParts, carryParts, moveParts];
@@ -810,8 +801,8 @@ const getTargetCount = {
             Table:
             if no storage:
            energy/1000 round up:
-
-
+ 
+ 
         */
 
         if (!room.storage) {

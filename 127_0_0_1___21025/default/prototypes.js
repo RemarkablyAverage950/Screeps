@@ -20,8 +20,8 @@ Source.prototype.available = function () {
  * @returns {StructureContainer}
  */
 Source.prototype.getContainer = function () {
-    const containers = this.room.find(FIND_STRUCTURES).filter(s => s.structureType == STRUCTURE_CONTAINER && s.pos.isNearTo(this.pos))
-    if (containers.length == 1) {
+    const containers = this.room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_CONTAINER && s.pos.isNearTo(this.pos))
+    if (containers.length === 1) {
         return containers[0]
     } else if (containers.length == 2) {
         // find the container that only can access this source.

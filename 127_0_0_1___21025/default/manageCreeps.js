@@ -131,6 +131,8 @@ function manageCreeps(room, creeps) {
         const taskValid = validateTask(room, creep);
 
         if (!taskValid) {
+            //console.log('Task',JSON.stringify(MEMORY.rooms[room.name].creeps[creep.name].task),'not valid for',creep.name)
+            MEMORY.rooms[room.name].creeps[creep.name].task = undefined;
             assignTask(room, creep)
             //console.log('Assigned task', JSON.stringify(MEMORY.rooms[room.name].creeps[creep.name].task), 'to', creep.name)
         }
@@ -196,7 +198,15 @@ function assignTask(room, creep) {
                 task = t;
             };
 
+            //console.log('A',creep.name,JSON.stringify(task))
+
+          
+
         };
+
+        if (task === undefined) {
+            task = parkTask(room, creep);
+        }
     } else if (role === 'upgrader') {
 
         availableTasks = getRoleTasks.upgrader(room, creep);
@@ -234,8 +244,13 @@ function assignTask(room, creep) {
                 task = t;
             };
 
+          
+
         };
-    }else if (role === 'maintainer') {
+        if (task === undefined) {
+            task = parkTask(room, creep);
+        }
+    } else if (role === 'maintainer') {
 
         availableTasks = getRoleTasks.maintainer(room, creep);
 
@@ -254,6 +269,10 @@ function assignTask(room, creep) {
             };
 
         };
+
+        if (task === undefined) {
+            task = parkTask(room, creep);
+        }
     }
 
     if (!task) {
@@ -360,7 +379,7 @@ function executeTask(room, creep) {
                     }
                 })
             }
-        break;
+            break;
         case 'TRANSFER':
 
             if (creep.transfer(target, task.resourceType) != 0) {
@@ -406,6 +425,61 @@ function executeTask(room, creep) {
 
     };
 };
+
+/**
+ * 
+ * @param {Room} room 
+ * @param {Creep} creep 
+ * @returns {MoveTask}
+ */
+function parkTask(room, creep) {
+
+    let range = 0;
+    let xStart = creep.pos.x;
+    let yStart = creep.pos.y;
+
+    while (range < 40) {
+        for (let x = xStart - range; x <= xStart + range; x++) {
+            for (let y = yStart - range; y <= yStart + range; y++) {
+
+                if(x < 1 || x > 48 || y < 1 || y > 48){
+                    continue;
+                }
+
+                const pos = new RoomPosition(x, y, room.name);
+                const look = pos.look(pos);
+                let valid = true;
+                for (let l of look) {
+                    if (l.type === LOOK_STRUCTURES || l.type === LOOK_CONSTRUCTION_SITES) {
+                        valid = false;
+                        break;
+                    } else if (l.type === LOOK_TERRAIN && l.terrain === TERRAIN_MASK_WALL) {
+                        valid = false;
+                        break;
+                    }else if (l.type === LOOK_CREEPS && l.creep.name != creep.name){
+                        valid = false;
+                    }
+
+                }
+
+                
+
+                if (valid) {
+
+                    if(range === 0){
+                        return undefined;
+                    }
+                    
+                    return new MoveTask(pos);
+
+                }
+
+            }
+        }
+        range++;
+    }
+
+}
 
 const getRoleTasks = {
 
@@ -464,7 +538,7 @@ const getRoleTasks = {
         return tasks;
     },
 
-    maintainer: function (room,creep){
+    maintainer: function (room, creep) {
         let tasks = [];
 
         if (creep.store.getFreeCapacity() > 0) {
@@ -493,9 +567,11 @@ const getRoleTasks = {
             if (MEMORY.rooms[room.name].sources[s.id].minerNumber == minerNumber) {
 
                 const container = s.getContainer();
-                if (container && (creep.pos.x != container.pos.x || creep.pos.y != container.pos.y)) {
+                if (container && (creep.pos.x !== container.pos.x || creep.pos.y !== container.pos.y)) {
                     tasks.push(new MoveTask(container.pos));
                     return tasks;
+                }else if(!container){
+                    console.log('Could not find container near source',s.id)
                 }
 
                 tasks.push(new HarvestTask(s.id))
@@ -666,18 +742,18 @@ const getTasks = {
 
     },
 
-    repair: function(room){
+    repair: function (room) {
 
         const structures = room.find(FIND_STRUCTURES);
         let tasks = [];
 
 
-        for(let s of structures){
-            if(s.structureType === STRUCTURE_WALL){
+        for (let s of structures) {
+            if (s.structureType === STRUCTURE_WALL) {
                 continue;
             }
 
-            if(s.hits < s.hitsMax){
+            if (s.hits < s.hitsMax) {
                 tasks.push(new RepairTask(s.id));
             }
 
@@ -853,8 +929,9 @@ function validateTask(room, creep) {
             if (!target) {
                 return false;
             };
-            console.log(JSON.stringify(task))
+            
             if (creep.store.getFreeCapacity() === 0 || target.store[task.resourceType] < task.qty) {
+
                 return false;
             };
             break;

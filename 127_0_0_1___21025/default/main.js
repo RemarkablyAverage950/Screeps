@@ -10,9 +10,9 @@ module.exports.loop = function () {
     // Remove dead creeps from memory.
     for (let name in Memory.creeps) {
         if (!Game.creeps[name]) {
-            const room = Memory.creeps[name].home
+            const roomName = Memory.creeps[name].home
             delete Memory.creeps[name];
-
+            delete MEMORY.rooms[roomName].creeps[name]
             console.log('Cleared memory for ' + name)
         }
     }
