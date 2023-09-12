@@ -33,6 +33,17 @@ class HarvestTask extends Task {
     };
 };
 
+class MoveTask extends Task {
+    /**
+     * @constructor
+     * @param {RoomPosition} pos
+     */
+    constructor(pos) {
+        super('MOVE');
+        this.pos = pos;
+    }
+}
+
 class PickupTask extends Task {
     /**
      * @constructor
@@ -43,6 +54,17 @@ class PickupTask extends Task {
         super('PICKUP');
         this.id = id;
         this.qty = qty;
+    };
+};
+
+class RepairTask extends Task {
+    /**
+     * @constructor
+     * @param {string} id 
+     */
+    constructor(id) {
+        super('REPAIR');
+        this.id = id;
     };
 };
 
@@ -213,6 +235,25 @@ function assignTask(room, creep) {
             };
 
         };
+    }else if (role === 'maintainer') {
+
+        availableTasks = getRoleTasks.maintainer(room, creep);
+
+        // Best task is closest
+
+        let minDistance = Infinity;
+
+        for (const t of availableTasks) {
+
+            let object = Game.getObjectById(t.id);
+
+            const distance = creep.pos.getRangeTo(object);
+            if (distance < minDistance) {
+                minDistance = distance;
+                task = t;
+            };
+
+        };
     }
 
     if (!task) {
@@ -272,6 +313,27 @@ function executeTask(room, creep) {
             }
 
             break;
+
+        case 'MOVE':
+
+            const x = task.pos.x;
+            const y = task.pos.y;
+
+            if (x != creep.pos.x || y != creep.pos.y) {
+                creep.moveTo(x, y,
+                    {
+                        visualizePathStyle: {
+                            fill: 'transparent',
+                            stroke: '#fff',
+                            lineStyle: 'dashed',
+                            strokeWidth: .15,
+                            opacity: .1
+                        }
+                    })
+            }
+
+            break;
+
         case 'PICKUP':
             if (creep.pickup(target) != 0) {
                 creep.moveTo(target, {
@@ -285,6 +347,20 @@ function executeTask(room, creep) {
                 })
             }
             break;
+
+        case 'REPAIR':
+            if (creep.repair(target) != 0) {
+                creep.moveTo(target, {
+                    visualizePathStyle: {
+                        fill: 'transparent',
+                        stroke: '#fff',
+                        lineStyle: 'dashed',
+                        strokeWidth: .15,
+                        opacity: .1
+                    }
+                })
+            }
+        break;
         case 'TRANSFER':
 
             if (creep.transfer(target, task.resourceType) != 0) {
@@ -302,6 +378,20 @@ function executeTask(room, creep) {
 
         case 'UPGRADE':
             if (creep.upgradeController(target) != 0) {
+                creep.moveTo(target, {
+                    visualizePathStyle: {
+                        fill: 'transparent',
+                        stroke: '#fff',
+                        lineStyle: 'dashed',
+                        strokeWidth: .15,
+                        opacity: .1
+                    }
+                })
+            }
+            break;
+
+        case 'WITHDRAW':
+            if (creep.withdraw(target, task.resourceType) != 0) {
                 creep.moveTo(target, {
                     visualizePathStyle: {
                         fill: 'transparent',
@@ -374,6 +464,25 @@ const getRoleTasks = {
         return tasks;
     },
 
+    maintainer: function (room,creep){
+        let tasks = [];
+
+        if (creep.store.getFreeCapacity() > 0) {
+
+            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY));
+            tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY));
+
+        };
+
+        if (creep.store[RESOURCE_ENERGY] > 0) {
+
+            tasks.push(...getTasks.repair(room));
+
+        };
+
+        return tasks;
+    },
+
     miner: function (room, creep) {
         const creepName = creep.name;
         const minerNumber = creepName[creepName.length - 1]
@@ -382,6 +491,13 @@ const getRoleTasks = {
 
         for (let s of sources) {
             if (MEMORY.rooms[room.name].sources[s.id].minerNumber == minerNumber) {
+
+                const container = s.getContainer();
+                if (container && (creep.pos.x != container.pos.x || creep.pos.y != container.pos.y)) {
+                    tasks.push(new MoveTask(container.pos));
+                    return tasks;
+                }
+
                 tasks.push(new HarvestTask(s.id))
                 break;
             }
@@ -534,16 +650,37 @@ const getTasks = {
 
             };
         };
-        
-        if(tasks.length === 0){
+
+        if (tasks.length === 0) {
             for (let r of dropped) {
                 const forecast = r.forecast();
                 if (r.resourceType === resourceType && forecast > 0) {
-    
+
                     tasks.push(new PickupTask(r.id, Math.min(forecast, capacity)));
-    
+
                 };
             };
+        }
+
+        return tasks;
+
+    },
+
+    repair: function(room){
+
+        const structures = room.find(FIND_STRUCTURES);
+        let tasks = [];
+
+
+        for(let s of structures){
+            if(s.structureType === STRUCTURE_WALL){
+                continue;
+            }
+
+            if(s.hits < s.hitsMax){
+                tasks.push(new RepairTask(s.id));
+            }
+
         }
 
         return tasks;
@@ -667,9 +804,30 @@ function validateTask(room, creep) {
             }
 
             break;
+
+        case 'MOVE':
+
+            const x = task.pos.x;
+            const y = task.pos.y;
+
+            if (x === creep.pos.x && y === creep.pos.y) {
+                return false;
+            }
+
+            break;
+
         case 'PICKUP':
             if (!target) return false;
             if (creep.store.getFreeCapacity() === 0) {
+                return false;
+            }
+            break;
+
+        case 'REPAIR':
+            if (!target) {
+                return false;
+            };
+            if (target.hits === target.hitsMax || creep.store[RESOURCE_ENERGY] === 0) {
                 return false;
             }
             break;
@@ -688,6 +846,18 @@ function validateTask(room, creep) {
             if (creep.store[RESOURCE_ENERGY] === 0) {
                 return false
             }
+
+            break;
+
+        case 'WITHDRAW':
+            if (!target) {
+                return false;
+            };
+            console.log(JSON.stringify(task))
+            if (creep.store.getFreeCapacity() === 0 || target.store[task.resourceType] < task.qty) {
+                return false;
+            };
+            break;
     };
 
     //console.log(creep.name,'task',task.type,'is valid.')

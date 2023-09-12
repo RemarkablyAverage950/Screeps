@@ -8,3 +8,5 @@ Also, need to make miners stand on their container.
 Fillers not finding a new task when they have no energy.
 
 Need to park fillers when they have no task.
+
+Creeps picking up closest dropped even though these is enough to fill carry capacity at a further drop.
