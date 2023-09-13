@@ -633,7 +633,7 @@ const getBody = {
 
                     const workPerLife = workPerTrip * tripsPerLife;
 
-                    if (workPerLife > max) {
+                    if (workPerLife >= max) {
                         bestBody = [workParts, carryParts, moveParts];
                         max = workPerLife;
                     }

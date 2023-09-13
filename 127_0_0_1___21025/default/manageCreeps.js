@@ -1,4 +1,5 @@
 let MEMORY = require('memory');
+const { moveCreep } = require('pathfinder');
 require('prototypes');
 
 class Task {
@@ -120,10 +121,9 @@ function manageCreeps(room, creeps) {
 
         // initialize creep memory if nescessary.
         if (!MEMORY.rooms[room.name].creeps[creep.name]) {
-            MEMORY.rooms[room.name].creeps[creep.name] = {
-                moving: true,
-                task: undefined,
-            }
+
+            initializeCreepMemory(creep)
+
         }
 
         if (creep.spawning) continue;
@@ -200,7 +200,7 @@ function assignTask(room, creep) {
 
             //console.log('A',creep.name,JSON.stringify(task))
 
-          
+
 
         };
 
@@ -244,7 +244,7 @@ function assignTask(room, creep) {
                 task = t;
             };
 
-          
+
 
         };
         if (task === undefined) {
@@ -304,32 +304,32 @@ function executeTask(room, creep) {
     switch (task.type) {
 
         case 'BUILD':
+
             if (creep.build(target) != 0) {
-                creep.moveTo(target, {
-                    visualizePathStyle: {
-                        fill: 'transparent',
-                        stroke: '#fff',
-                        lineStyle: 'dashed',
-                        strokeWidth: .15,
-                        opacity: .1
-                    }
-                })
-            }
+
+                moveCreep(creep, target.pos, 1, 1);
+
+            } else {
+
+                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
+                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+
+            };
+
             break;
 
         case 'HARVEST':
 
             if (creep.harvest(target) != 0) {
-                creep.moveTo(target, {
-                    visualizePathStyle: {
-                        fill: 'transparent',
-                        stroke: '#fff',
-                        lineStyle: 'dashed',
-                        strokeWidth: .15,
-                        opacity: .1
-                    }
-                })
-            }
+
+                moveCreep(creep, target.pos, 1, 1);
+
+            } else {
+
+                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
+                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+
+            };
 
             break;
 
@@ -339,88 +339,84 @@ function executeTask(room, creep) {
             const y = task.pos.y;
 
             if (x != creep.pos.x || y != creep.pos.y) {
-                creep.moveTo(x, y,
-                    {
-                        visualizePathStyle: {
-                            fill: 'transparent',
-                            stroke: '#fff',
-                            lineStyle: 'dashed',
-                            strokeWidth: .15,
-                            opacity: .1
-                        }
-                    })
-            }
+
+                moveCreep(creep, task.pos, 0, 1);
+
+            } else {
+
+                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
+                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+
+            };
 
             break;
 
         case 'PICKUP':
+
             if (creep.pickup(target) != 0) {
-                creep.moveTo(target, {
-                    visualizePathStyle: {
-                        fill: 'transparent',
-                        stroke: '#fff',
-                        lineStyle: 'dashed',
-                        strokeWidth: .15,
-                        opacity: .1
-                    }
-                })
-            }
+
+                moveCreep(creep, target.pos, 1, 1);
+
+            } else {
+
+                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+
+            };
             break;
 
         case 'REPAIR':
+
             if (creep.repair(target) != 0) {
-                creep.moveTo(target, {
-                    visualizePathStyle: {
-                        fill: 'transparent',
-                        stroke: '#fff',
-                        lineStyle: 'dashed',
-                        strokeWidth: .15,
-                        opacity: .1
-                    }
-                })
-            }
+
+                moveCreep(creep, target.pos, 1, 1);
+
+            } else {
+
+                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
+                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+
+            };
+
             break;
         case 'TRANSFER':
 
             if (creep.transfer(target, task.resourceType) != 0) {
-                creep.moveTo(target, {
-                    visualizePathStyle: {
-                        fill: 'transparent',
-                        stroke: '#fff',
-                        lineStyle: 'dashed',
-                        strokeWidth: .15,
-                        opacity: .1
-                    }
-                })
-            }
+
+                moveCreep(creep, target.pos, 1, 1);
+
+            } else {
+
+                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+
+            };
+
             break;
 
         case 'UPGRADE':
             if (creep.upgradeController(target) != 0) {
-                creep.moveTo(target, {
-                    visualizePathStyle: {
-                        fill: 'transparent',
-                        stroke: '#fff',
-                        lineStyle: 'dashed',
-                        strokeWidth: .15,
-                        opacity: .1
-                    }
-                })
-            }
+
+                moveCreep(creep, target.pos, 1, 1);
+
+            } else {
+
+                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
+                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+
+            };
+
             break;
 
         case 'WITHDRAW':
             if (creep.withdraw(target, task.resourceType) != 0) {
-                creep.moveTo(target, {
-                    visualizePathStyle: {
-                        fill: 'transparent',
-                        stroke: '#fff',
-                        lineStyle: 'dashed',
-                        strokeWidth: .15,
-                        opacity: .1
-                    }
-                })
-            }
+
+                moveCreep(creep, target.pos, 1, 1);
+
+            } else {
+
+                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+
+            };
+
             break;
 
     };
@@ -442,7 +438,7 @@ function parkTask(room, creep) {
         for (let x = xStart - range; x <= xStart + range; x++) {
             for (let y = yStart - range; y <= yStart + range; y++) {
 
-                if(x < 1 || x > 48 || y < 1 || y > 48){
+                if (x < 1 || x > 48 || y < 1 || y > 48) {
                     continue;
                 }
 
@@ -456,20 +452,20 @@ function parkTask(room, creep) {
                     } else if (l.type === LOOK_TERRAIN && l.terrain === TERRAIN_MASK_WALL) {
                         valid = false;
                         break;
-                    }else if (l.type === LOOK_CREEPS && l.creep.name != creep.name){
+                    } else if (l.type === LOOK_CREEPS && l.creep.name != creep.name) {
                         valid = false;
                     }
 
                 }
 
-                
+
 
                 if (valid) {
 
-                    if(range === 0){
+                    if (range === 0) {
                         return undefined;
                     }
-                    
+
                     return new MoveTask(pos);
 
                 }
@@ -570,8 +566,8 @@ const getRoleTasks = {
                 if (container && (creep.pos.x !== container.pos.x || creep.pos.y !== container.pos.y)) {
                     tasks.push(new MoveTask(container.pos));
                     return tasks;
-                }else if(!container){
-                    console.log('Could not find container near source',s.id)
+                } else if (!container) {
+                    console.log('Could not find container near source', s.id)
                 }
 
                 tasks.push(new HarvestTask(s.id))
@@ -842,6 +838,25 @@ const getTasks = {
 
 };
 
+/**
+ * Initializes heap memory for an individual creep.
+ * @param {Creep} creep 
+ */
+function initializeCreepMemory(creep) {
+
+    MEMORY.rooms[creep.memory.home].creeps[creep.name] = {
+        moving: false,
+        task: undefined,
+        path: undefined,
+    }
+};
+
+/**
+ * 
+ * @param {Room} room 
+ * @param {Creep} creep 
+ * @returns {boolean}
+ */
 function validateTask(room, creep) {
     const task = MEMORY.rooms[room.name].creeps[creep.name].task
 
@@ -929,7 +944,7 @@ function validateTask(room, creep) {
             if (!target) {
                 return false;
             };
-            
+
             if (creep.store.getFreeCapacity() === 0 || target.store[task.resourceType] < task.qty) {
 
                 return false;
