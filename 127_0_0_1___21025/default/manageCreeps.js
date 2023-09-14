@@ -463,6 +463,7 @@ function parkTask(room, creep) {
                 if (valid) {
 
                     if (range === 0) {
+                        MEMORY.rooms[room.name].creeps[creep.name].moving = false;
                         return undefined;
                     }
 
@@ -845,7 +846,7 @@ const getTasks = {
 function initializeCreepMemory(creep) {
 
     MEMORY.rooms[creep.memory.home].creeps[creep.name] = {
-        moving: false,
+        moving: true,
         task: undefined,
         path: undefined,
     }

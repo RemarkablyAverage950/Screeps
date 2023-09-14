@@ -1,13 +1,36 @@
 
-1. Impletment costmatrix && pathfinding
+Impletment costmatrix && pathfinding
+    [x] Basic pathfinding.
+    [ ] Multi-Room navigation.
 
-2. Miners not finding container if there is already a creep on the container. They just start mining the source.
-    - think this may have been fixed by deleting the heap memory for the creep on death.
+Auto Build Room.
+    [] Owned room
+    [] Outpost
 
-3. Auto Build Room.
-
-4. Room defence
+Room defense
     a) towers
-    b) safe module
+    b) safe mode
     c) defensive units
+
+Change loop searches to BF Searches if it can speed up process.
+
+Roles:
+    [] Remote Miner
+    [] Remote builder
+    [] Remote Maintainer
+    [] Wallbuilder
+    [] Transporter
+    [] Defender
+    [] Reserver
+    [] Scout
+    [] Claimer
+    [] Duo Squad
+    [] Trio Squad
+    [] Quad
+    [] Fastfiller
+    [] HubManager
+
+Links    
+
+
 

@@ -163,11 +163,11 @@ function getCostMatrix(room) {
     for (let creep of myCreeps) {
 
         if (MEMORY.rooms[creep.memory.home].creeps[creep.name]) {
-            const moving = MEMORY.rooms[creep.memory.home].creeps[creep.name].moving
+            const moving = MEMORY.rooms[creep.memory.home].creeps[creep.name].moving;
 
-            if (moving === undefined || moving === false) {
-                costMatrix.set(creep.pos.x, creep.pos.y, 0xff)
-            }
+            if (moving === false) {
+                costMatrix.set(creep.pos.x, creep.pos.y, 0xff);
+            };
         }
     }
 

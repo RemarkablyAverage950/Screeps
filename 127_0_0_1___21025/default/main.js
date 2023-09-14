@@ -1,7 +1,10 @@
 const manageSpawns = require('manageSpawns');
 const manageCreeps = require('manageCreeps');
+const roomPlanner = require('roomPlanner')
 let MEMORY = require('memory');
 require('prototypes');
+require('RoomVisual');
+
 
 
 module.exports.loop = function () {
@@ -27,6 +30,7 @@ module.exports.loop = function () {
         const creeps = Object.values(Game.creeps).filter(c => c.memory.home === roomName);
 
         manageMemory(room, creeps);
+        roomPlanner(room);
         manageSpawns(room, creeps);
         manageCreeps(room, creeps);
 
