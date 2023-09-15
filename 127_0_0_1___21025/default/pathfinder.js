@@ -199,5 +199,6 @@ function getCostMatrix(room) {
 
 module.exports = {
     getCostMatrix,
+    getPath,
     moveCreep,
 };
