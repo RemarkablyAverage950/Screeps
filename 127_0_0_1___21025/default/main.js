@@ -1,6 +1,7 @@
 const manageSpawns = require('manageSpawns');
 const manageCreeps = require('manageCreeps');
-const roomPlanner = require('roomPlanner')
+const roomPlanner = require('roomPlanner');
+const towers = require('towers');
 let MEMORY = require('memory');
 require('prototypes');
 require('RoomVisual');
@@ -31,6 +32,7 @@ module.exports.loop = function () {
 
         manageMemory(room, creeps);
         roomPlanner(room);
+        towers(room);
         manageSpawns(room, creeps);
         manageCreeps(room, creeps);
 

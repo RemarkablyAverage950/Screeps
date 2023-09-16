@@ -1,6 +1,7 @@
 let MEMORY = require('memory')
 
 const HOSTILE_BUFFER = 4;
+const MAX_PATH_LENGTH = 5;
 
 /**
  * Returns a path to target using the room's CostMatrix.
@@ -17,6 +18,7 @@ function getPath(origin, destination, range, maxRooms) {
         plainCost: 2,
         swampCost: 3,
         maxRooms: maxRooms,
+        ignoreCreeps: true,
         roomCallback: function (roomName) {
 
             let room = Game.rooms[roomName];
@@ -45,6 +47,8 @@ function getPath(origin, destination, range, maxRooms) {
         return
     }*/
 
+    ret.path.length = Math.min(ret.path.length, MAX_PATH_LENGTH)
+
     return ret.path;
 }
 
@@ -57,7 +61,7 @@ function getPath(origin, destination, range, maxRooms) {
  */
 function moveCreep(creep, destination, range, maxRooms) {
 
-    MEMORY.rooms[creep.room.name].creeps[creep.name].moving = true;
+    MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = true;
     // Pull the path from memory.
 
     let path = MEMORY.rooms[creep.memory.home].creeps[creep.name].path;
@@ -86,9 +90,9 @@ function moveCreep(creep, destination, range, maxRooms) {
         }
     }
 
-    const next = path[0];
+    const next = creep.pos.getDirectionTo(path[0]);
 
-    const ret = creep.moveTo(next);
+    const ret = creep.move(next)
 
     if (ret === 0) {
         path.shift()

@@ -213,10 +213,12 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let upgraderCount = creepsCount['upgrader'] || 0;
     let builderCount = creepsCount['builder'] || 0;
     let maintainerCount = creepsCount['maintainer'] || 0;
+    let wallBuilderCount = creepsCount['wallBuilder'] || 0;
 
     const targetUpgraderCount = getTargetCount.upgrader(room);
-    const targetBuilderCount = getTargetCount.builder(room);
+    let targetBuilderCount = getTargetCount.builder(room);
     const targetMaintainerCount = getTargetCount.maintainer(room);
+    const targetWallBuilderCount = getTargetCount.wallBuilder(room);
 
     for (let order of existingSpawnQueue) {
 
@@ -233,6 +235,10 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         } else if (role === 'maintainer') {
 
             maintainerCount++;
+
+        } else if (role === 'wallBuilder') {
+
+            wallBuilderCount++;
 
         };
 
@@ -257,10 +263,16 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     };
 
     body = [];
+
     while (builderCount < targetBuilderCount) {
 
         if (body.length === 0) {
-            body = getBody.builder(energyBudget, room);
+            let ret = getBody.builder(energyBudget, room);
+            body = ret[0];
+            console.log('estCreepsNeeded', ret[1])
+            if (ret[1] > 2) {
+                targetBuilderCount = ret[1] - 1
+            }
             options = {
                 memory: {
                     role: 'builder',
@@ -290,6 +302,24 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
         spawnQueue.push(new SpawnOrder('maintainer', 4, body, options));
         maintainerCount++;
+    };
+
+    body = [];
+    while (wallBuilderCount < targetWallBuilderCount) {
+
+        if (body.length === 0) {
+            body = getBody.wallBuilder(energyBudget, room);
+            options = {
+                memory: {
+                    role: 'wallBuilder',
+                    home: room.name,
+                },
+            };
+
+        };
+
+        spawnQueue.push(new SpawnOrder('wallBuilder', 4, body, options));
+        wallBuilderCount++;
     };
 
 
@@ -347,6 +377,7 @@ const getBody = {
 
         let bestBody = [];
         let minCost = Infinity;
+        let estCreepsNeeded = undefined;
 
         for (let workParts = 1; workParts < 40; workParts++) {
             for (let carryParts = 1; carryParts < 40; carryParts++) {
@@ -362,7 +393,7 @@ const getBody = {
                         continue;
                     }
 
-                    const workPerTrip = carryParts * 250;
+                    const workPerTrip = carryParts * 50;
                     const workTime = workPerTrip / (workParts * 5);
 
                     const moveTimeEmpty = Math.ceil(workParts / (2 * moveParts));
@@ -384,7 +415,7 @@ const getBody = {
 
                         distance /= sources.length;
 
-                        const travelTimePerTrip = (distance * moveTimeEmpty) + (distance * moveTimeFull)
+                        const travelTimePerTrip = ((distance * moveTimeEmpty) + (distance * moveTimeFull)) * 1.2; // assume trips can take 20% longer than fastest possible.
                         const totalTimePerTrip = travelTimePerTrip + workTime + 1;
 
                         const tripsNeededToBuild = workNeeded / workPerTrip;
@@ -401,6 +432,7 @@ const getBody = {
                     if (totalCost <= minCost) {
                         bestBody = [workParts, carryParts, moveParts];
                         minCost = totalCost;
+                        estCreepsNeeded = creepsNeeded;
                     }
 
                 };
@@ -422,7 +454,7 @@ const getBody = {
             body.push(MOVE);
         };
 
-        return body;
+        return [body, estCreepsNeeded];
     },
 
     /**
@@ -592,6 +624,96 @@ const getBody = {
 
             averageDistance /= sources.length;
 
+        } else {
+            console.log('Upgrader: Need buildbody case for with storage')
+        };
+
+        let bestBody = [];
+        let max = 0;
+
+        for (let workParts = 1; workParts < 40; workParts++) {
+            for (let carryParts = 1; carryParts < 40; carryParts++) {
+                for (let moveParts = 1; moveParts < 40; moveParts++) {
+
+                    if (workParts + carryParts + moveParts > 50) {
+                        continue;
+                    };
+
+                    const cost = (workParts * 100) + (carryParts * 50) + (moveParts * 50);
+
+                    if (cost > budget) {
+                        continue;
+                    }
+                    const workPerTrip = carryParts * 5000;
+                    const workTime = workPerTrip / (workParts * 100);
+
+                    const moveTimeEmpty = Math.ceil(workParts / (2 * moveParts));
+                    const moveTimeFull = Math.ceil((workParts + carryParts) / (2 * moveParts));
+
+                    const avgMoveTime = (averageDistance * moveTimeEmpty) + (averageDistance * moveTimeFull)
+
+                    const timePerTrip = avgMoveTime + workTime + 1;
+
+                    const tripsPerLife = 1500 / timePerTrip;
+
+                    const workPerLife = tripsPerLife * workPerTrip;
+
+
+                    if (workPerLife > max) {
+                        bestBody = [workParts, carryParts, moveParts];
+                        max = workPerLife;
+                    }
+
+
+                };
+            };
+        };
+
+        // Build the body
+        let body = [];
+
+        for (let i = 0; i < bestBody[0]; i++) {
+            body.push(WORK);
+        };
+
+        for (let i = 0; i < bestBody[1]; i++) {
+            body.push(CARRY);
+        };
+
+        for (let i = 0; i < bestBody[2]; i++) {
+            body.push(MOVE);
+        };
+
+        return body;
+
+    },
+
+    wallBuilder: function (budget, room) {
+
+        let averageDistance = 0;
+        const sources = room.find(FIND_SOURCES)
+        const structures = room.find(FIND_STRUCTURES)
+        let wallCount = 0;
+
+        if (!room.storage) {
+
+            for (let structure of structures) {
+
+                if (structure.structureType == STRUCTURE_WALL || structure.structureType === STRUCTURE_RAMPART) {
+
+                    wallCount++;
+
+                    for (let s of sources) {
+
+                        averageDistance += s.pos.getRangeTo(room.controller);
+                    };
+                }
+            }
+
+            averageDistance /= (sources.length * wallCount);
+
+        } else {
+            console.log('wallBuilder: Need buildbody case for with storage')
         };
 
         let bestBody = [];
@@ -649,6 +771,7 @@ const getBody = {
         };
 
         return body;
+
 
     },
 
@@ -806,6 +929,21 @@ const getTargetCount = {
 
     },
 
+    wallBuilder: function (room) {
+
+        let structures = room.find(FIND_STRUCTURES)
+        let hitsTarget = getWallHitsTarget(room);
+
+        for (let s of structures) {
+            if (s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART && s.hits < hitsTarget) {
+                return 1;
+            }
+        }
+
+        return 0;
+
+    },
+
     /**
     * Returns the target number of workers.
     * @param {number} minerCount 
@@ -823,7 +961,22 @@ const getTargetCount = {
 
     },
 
-}
+};
+
+function getWallHitsTarget(room) {
+    switch (room.controller.level) {
+        case 8:
+            return 20000000;
+        case 7:
+            return 4000000;
+        case 6:
+            return 3000000;
+        case 5:
+            return 2000000;
+        default:
+            return 1000000;
+    };
+};
 
 
 module.exports = manageSpawns;

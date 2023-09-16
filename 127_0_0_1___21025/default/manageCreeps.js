@@ -110,6 +110,24 @@ class WithdrawTask extends Task {
     };
 };
 
+const BUILD_PRIORITY = [
+    STRUCTURE_SPAWN,
+    STRUCTURE_EXTENSION,
+    STRUCTURE_CONTAINER,
+    STRUCTURE_ROAD,
+    STRUCTURE_STORAGE,
+    STRUCTURE_TOWER,
+    STRUCTURE_WALL,
+    STRUCTURE_RAMPART,
+    STRUCTURE_LINK,
+    STRUCTURE_TERMINAL,
+    STRUCTURE_EXTRACTOR,
+    STRUCTURE_LAB,
+    STRUCTURE_FACTORY,
+    STRUCTURE_POWER_SPAWN,
+    STRUCTURE_NUKER,
+    STRUCTURE_OBSERVER,
+]
 /**
  * Assigns, validates, and executes tasks to individual creeps.
  * @param {Room} room 
@@ -132,7 +150,9 @@ function manageCreeps(room, creeps) {
             assignTask(room, creep)
             //console.log('Assigned task', JSON.stringify(MEMORY.rooms[room.name].creeps[creep.name].task), 'to', creep.name)
         }
-
+        if (creep.name === 'W2N2_filler_1') {
+            //console.log('task for filler1',JSON.stringify(MEMORY.rooms[room.name].creeps[creep.name].task))
+        }
         executeTask(room, creep);
 
     }
@@ -249,6 +269,28 @@ function assignTask(room, creep) {
     } else if (role === 'maintainer') {
 
         availableTasks = getRoleTasks.maintainer(room, creep);
+
+        // Best task is closest
+
+        let minDistance = Infinity;
+
+        for (const t of availableTasks) {
+
+            let object = Game.getObjectById(t.id);
+
+            const distance = creep.pos.getRangeTo(object);
+            if (distance < minDistance) {
+                minDistance = distance;
+                task = t;
+            };
+
+        };
+
+        if (task === undefined) {
+            task = parkTask(room, creep);
+        }
+    } else if (role === 'wallBuilder') {
+        availableTasks = getRoleTasks.wallBuilder(room, creep);
 
         // Best task is closest
 
@@ -442,10 +484,13 @@ function parkTask(room, creep) {
                 const look = pos.look(pos);
                 let valid = true;
                 for (let l of look) {
+                    /*if(creep.name === 'W2N2_filler_0' || creep.name === 'W2N2_filler_1'){
+                        console.log('LOOK',JSON.stringify(l))
+                    }*/
                     if (l.type === LOOK_STRUCTURES || l.type === LOOK_CONSTRUCTION_SITES) {
                         valid = false;
                         break;
-                    } else if (l.type === LOOK_TERRAIN && l.terrain === TERRAIN_MASK_WALL) {
+                    } else if (l.type === LOOK_TERRAIN && l.terrain === 'wall') {
                         valid = false;
                         break;
                     } else if (l.type === LOOK_CREEPS && l.creep.name != creep.name) {
@@ -457,7 +502,7 @@ function parkTask(room, creep) {
 
 
                 if (valid) {
-
+                    //console.log('Creating MoveTask for',creep.name, 'at',JSON.stringify(pos))
                     if (range === 0) {
                         MEMORY.rooms[room.name].creeps[creep.name].moving = false;
                         return undefined;
@@ -595,6 +640,29 @@ const getRoleTasks = {
 
     },
 
+    wallBuilder: function (room, creep) {
+        let tasks = [];
+
+        if (creep.store.getFreeCapacity() > 0) {
+
+            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY));
+            tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY));
+
+            if (tasks.length === 0) {
+                tasks.push(...getTasks.harvest(room, creep, RESOURCE_ENERGY));
+            };
+
+        };
+
+        if (creep.store[RESOURCE_ENERGY] > 0) {
+
+            tasks.push(...getTasks.wallBuild(room, creep));
+        };
+
+        return tasks;
+
+    },
+
     worker: function (room, creep) {
 
         let tasks = [];
@@ -636,9 +704,15 @@ const getTasks = {
 
         const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
         let tasks = [];
-
-        for (let site of sites) {
-            tasks.push(new BuildTask(site.id))
+        for (let type of BUILD_PRIORITY) {
+            if (tasks.length > 0) {
+                return tasks;
+            }
+            for (let site of sites) {
+                if (site.structureType === type) {
+                    tasks.push(new BuildTask(site.id))
+                }
+            }
         };
 
         return tasks;
@@ -656,8 +730,13 @@ const getTasks = {
         const structures = room.find(FIND_STRUCTURES);
         const heldEnergy = creep.store[RESOURCE_ENERGY];
         let tasks = [];
+        let towers = [];
 
         for (let s of structures) {
+
+            if (s.structureType === STRUCTURE_TOWER) {
+                towers.push(s)
+            }
 
             if (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION) {
 
@@ -673,6 +752,19 @@ const getTasks = {
             };
 
         };
+
+        if (tasks.length === 0) {
+            for (let s of towers) {
+                const forecast = s.forecast(RESOURCE_ENERGY);
+                const capacity = s.store.getCapacity(RESOURCE_ENERGY);
+
+                if (forecast < capacity) {
+
+                    tasks.push(new TransferTask(s.id, RESOURCE_ENERGY, Math.min(capacity - forecast, heldEnergy)));
+
+                };
+            }
+        }
 
         return tasks;
 
@@ -742,7 +834,7 @@ const getTasks = {
 
 
         for (let s of structures) {
-            if (s.structureType === STRUCTURE_WALL) {
+            if (s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART) {
                 continue;
             }
 
@@ -767,6 +859,30 @@ const getTasks = {
 
     },
 
+    wallBuild: function (room) {
+        const structures = room.find(FIND_STRUCTURES)
+
+        let task = undefined;
+        let min = Infinity;
+
+        for (let s of structures) {
+            if ((s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART) && s.hits < Math.min(s.hitsMax, min)) {
+
+                task = new RepairTask(s.id);
+                min = s.hits
+            }
+        }
+
+        if (task) {
+            let tasks = [task];
+
+            return tasks;
+        }
+
+        return [];
+
+    },
+
     /**
      * 
      * @param {Room} room 
@@ -779,6 +895,7 @@ const getTasks = {
         const capacity = creep.store.getFreeCapacity();
         const structures = room.find(FIND_STRUCTURES);
         const tombstones = room.find(FIND_TOMBSTONES);
+        const ruins = room.find(FIND_RUINS)
         let tasks = [];
 
         for (let s of structures) {
@@ -801,6 +918,13 @@ const getTasks = {
             const forecast = t.forecast(resourceType);
             if (forecast >= capacity) {
                 tasks.push(new WithdrawTask(t.id, resourceType, Math.min(forecast, capacity)));
+            }
+        }
+
+        for (let r of ruins) {
+            const forecast = r.forecast(resourceType);
+            if (forecast >= capacity) {
+                tasks.push(new WithdrawTask(r.id, resourceType, Math.min(forecast, capacity)));
             }
         }
 
@@ -883,13 +1007,20 @@ function validateTask(room, creep) {
             break;
 
         case 'MOVE':
-
-            const x = task.pos.x;
-            const y = task.pos.y;
+            const pos = new RoomPosition(task.pos.x, task.pos.y, creep.room.name)
+            const x = pos.x;
+            const y = pos.y;
 
             if (x === creep.pos.x && y === creep.pos.y) {
                 return false;
             }
+
+            let look = pos.lookFor(LOOK_CREEPS)
+            console.log('A', creep.name, JSON.stringify(pos), JSON.stringify(look))
+            if (look.length > 0) {
+                return false
+            }
+
 
             break;
 

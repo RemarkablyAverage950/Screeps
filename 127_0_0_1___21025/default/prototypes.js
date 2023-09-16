@@ -85,6 +85,40 @@ Resource.prototype.forecast = function () {
  * @param {ResourceConstant} resourceType 
  * @returns {number}
  */
+Ruin.prototype.forecast = function (resourceType) {
+
+    if (this.store === undefined) {
+        return 0;
+    }
+
+    const assigned = getAssignedCreeps(this.id)
+
+    let forecast = this.store[resourceType]
+
+    for (let creep of assigned) {
+        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].task;
+        const type = task.type;
+        if (task.resourceType != resourceType) {
+            continue;
+        }
+
+        if (type === 'WITHDRAW') {
+            forecast -= task.qty;
+        } else if (type === 'TRANSFER') {
+            forecast += task.qty;
+        };
+
+    }
+
+    return forecast;
+
+}
+
+/**
+ * Forecasts the quantity of a resource after assigned tasks are complete.
+ * @param {ResourceConstant} resourceType 
+ * @returns {number}
+ */
 Structure.prototype.forecast = function (resourceType) {
 
     if (this.store === undefined) {
