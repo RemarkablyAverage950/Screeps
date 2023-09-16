@@ -61,7 +61,7 @@ function getMyRooms() {
  * Initializes and maintains heap memory.
  * @param {Room} room 
  */
-function manageMemory(room) {
+function manageMemory(room,creeps) {
 
     if (!MEMORY.rooms[room.name]) {
         InitializeRoom(room)
@@ -69,7 +69,29 @@ function manageMemory(room) {
 
     }
 
+    for (let creep of creeps) {
+        // initialize creep memory if nescessary.
+        if (!MEMORY.rooms[room.name].creeps[creep.name]) {
+
+            initializeCreepMemory(creep)
+
+        }
+    }
+
 }
+
+/**
+ * Initializes heap memory for an individual creep.
+ * @param {Creep} creep 
+ */
+function initializeCreepMemory(creep) {
+
+    MEMORY.rooms[creep.memory.home].creeps[creep.name] = {
+        moving: true,
+        task: undefined,
+        path: undefined,
+    }
+};
 
 function InitializeRoom(room) {
 

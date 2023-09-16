@@ -29,11 +29,10 @@ function manageSpawns(room, creeps) {
 
     // Check if spawns are available
     const availableSpawns = room.find(FIND_MY_SPAWNS).filter(s => s.spawning === null);
-    //console.log('availableSpawns',availableSpawns.map(s=> s.name))
+
     if (availableSpawns.length === 0) return;
 
     let spawnQueue = MEMORY.rooms[room.name].spawnQueue;
-    //console.log('starting tick', Game.time, 'with spawnQueue', spawnQueue.map(q => q.role))
 
     if (Game.time % 10 === 0) {
 
@@ -80,10 +79,7 @@ function manageSpawns(room, creeps) {
                         break;
 
                     } else if (ret != 0) {
-                        console.log('Spawning failed for ' + name + ' with code ' + ret)
-                        return;
-                    } else {
-                        console.log()
+
                         return;
                     }
 
@@ -142,8 +138,6 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
     };
 
-    //console.log('worker:', workerCount, '/', targetWorkerCount, workerCount < targetWorkerCount, 'miner:', minerCount, '/', targetMinerCount, minerCount < targetMinerCount, 'filler:', fillerCount, '/', targetFillerCount, fillerCount < targetFillerCount)
-
     let body = [];
     let options = undefined;
     while (workerCount < targetWorkerCount) {
@@ -171,7 +165,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
             }
 
         }
-        //console.log('Worker body generated',body)
+
         spawnQueue.push(new SpawnOrder('worker', 1, body, options));
         workerCount++;
 
@@ -188,7 +182,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
                     home: room.name,
                 },
             }
-            //console.log('Miner body generated',body)
+
         }
 
         spawnQueue.push(new SpawnOrder('miner', 2, body, options));
@@ -207,7 +201,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
                     home: room.name,
                 },
             }
-            //console.log('Filler body generated',body)
+
         }
 
         spawnQueue.push(new SpawnOrder('filler', 3, body, options));
@@ -328,7 +322,7 @@ const getBody = {
             More than one builder can be used to complete construction.
         */
 
-        console.log('Generating body for builder')
+
 
         const sources = room.find(FIND_SOURCES);
         const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
@@ -403,7 +397,6 @@ const getBody = {
 
                     const totalCost = cost * creepsNeeded;
 
-                    console.log('work/carry/move', workParts, carryParts, moveParts, 'TotalTime:', totalTime, 'totalCost:', totalCost)
 
                     if (totalCost <= minCost) {
                         bestBody = [workParts, carryParts, moveParts];
@@ -413,7 +406,7 @@ const getBody = {
                 };
             };
         };
-        console.log('Generated builder body', bestBody)
+
         // Build the body
         let body = [];
 
@@ -482,7 +475,7 @@ const getBody = {
             };
         };
 
-        averageDistance /= ((containerCount + roadCount) *sources.length);
+        averageDistance /= ((containerCount + roadCount) * sources.length);
 
         const workNeededPerLife = (containerCount * 15000) + (roadCount * 150) * 1.1; // 10% extra to account for any non road/container buildings that need repairs.
 
@@ -519,7 +512,6 @@ const getBody = {
 
                     const tripsPerLife = 1500 / timePerTrip;
 
-                    //console.log('work/carry/move', workParts, carryParts, moveParts, 'TotalTime:', totalTime, 'totalCost:', totalCost)
 
                     if (tripsPerLife > tripsNeeded && cost < minCost) {
                         bestBody = [workParts, carryParts, moveParts];
@@ -530,7 +522,6 @@ const getBody = {
             };
         };
 
-        console.log('Generated maintainer body', bestBody)
         // Build the body
         let body = [];
 

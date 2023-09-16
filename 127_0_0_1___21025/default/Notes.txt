@@ -5,6 +5,7 @@ Impletment costmatrix && pathfinding
 
 Auto Build Room.
     [] Owned room
+        [] at level 2, spawnblock, source roads, and controller roads are not all connected.
     [] Outpost
 
 Room defense

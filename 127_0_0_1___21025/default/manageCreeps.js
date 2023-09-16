@@ -117,14 +117,10 @@ class WithdrawTask extends Task {
  */
 function manageCreeps(room, creeps) {
 
+
     for (const creep of creeps) {
 
-        // initialize creep memory if nescessary.
-        if (!MEMORY.rooms[room.name].creeps[creep.name]) {
 
-            initializeCreepMemory(creep)
-
-        }
 
         if (creep.spawning) continue;
 
@@ -839,18 +835,7 @@ const getTasks = {
 
 };
 
-/**
- * Initializes heap memory for an individual creep.
- * @param {Creep} creep 
- */
-function initializeCreepMemory(creep) {
 
-    MEMORY.rooms[creep.memory.home].creeps[creep.name] = {
-        moving: true,
-        task: undefined,
-        path: undefined,
-    }
-};
 
 /**
  * 

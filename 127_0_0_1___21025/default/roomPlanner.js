@@ -127,7 +127,7 @@ function getRoomPlans(room) {
         if (tile.structure === undefined || tile.structure === 'BUFFER') {
             continue;
         } else if (tile.structure === STRUCTURE_RAMPART) {
-            console.log('Rampart:', tile.x, tile.y)
+            console.log('Rampart:', tile.x, tile.y,tile.level)
         }
 
         buildOrders.push(new BuildOrder(tile.x, tile.y, tile.structure, tile.level));
@@ -636,7 +636,7 @@ let setStamp = {
             [1, -1, 'BUFFER', 9],
             [-1, 0, 'BUFFER', 9],
             [0, 0, STRUCTURE_CONTAINER, 2],
-            [0, 0, STRUCTURE_RAMPART, 2],
+            [0, 0, STRUCTURE_RAMPART, 4],
             [1, 0, 'BUFFER', 9],
             [-1, 1, 'BUFFER', 9],
             [0, 1, 'BUFFER', 9],
@@ -869,13 +869,13 @@ let setStamp = {
         const BUILDINGS = [
             [-1, -2, STRUCTURE_ROAD, 4],
             [0, -2, STRUCTURE_ROAD, 4],
-            [1, -2, STRUCTURE_ROAD, 4],
+            [1, -2, STRUCTURE_ROAD, 2],
             [-2, -1, STRUCTURE_ROAD, 4],
             [-1, -1, STRUCTURE_TERMINAL, 6],
             [0, -1, STRUCTURE_LINK, 5],
             [1, -1, STRUCTURE_STORAGE, 4],
             [1, -1, STRUCTURE_RAMPART, 4],
-            [2, -1, STRUCTURE_ROAD, 4],
+            [2, -1, STRUCTURE_ROAD, 2],
             [-2, 0, STRUCTURE_ROAD, 4],
             [-1, 0, STRUCTURE_NUKER, 8],
             [0, 0, undefined, 9],
@@ -1025,7 +1025,7 @@ let setStamp = {
         BUILDINGS.forEach(b => {
             let isCenter = (b[0] == 0 && b[1] == 0)
             updateTile(center.x + b[0], center.y + b[1], b[2], tiles, isCenter, b[3])
-            if (b.structure === STRUCTURE_SPAWN) {
+            if (b[2] === STRUCTURE_SPAWN) {
                 spawns.push(new RoomPosition(center.x + b[0], center.y + b[1], room.name))
             }
 

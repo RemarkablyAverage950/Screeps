@@ -10,8 +10,8 @@ Source.prototype.available = function () {
 
     if (assigned.length >= maxCreeps) {
         return false;
-    } else { 
-        return true; 
+    } else {
+        return true;
     };
 };
 
@@ -99,10 +99,10 @@ Structure.prototype.forecast = function (resourceType) {
 
         const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].task;
         const type = task.type;
-        if(task.resourceType != resourceType){
+        if (task.resourceType != resourceType) {
             continue;
         }
-        
+
         if (type === 'WITHDRAW') {
             forecast -= task.qty;
         } else if (type === 'TRANSFER') {
@@ -133,7 +133,7 @@ Tombstone.prototype.forecast = function (resourceType) {
     for (let creep of assigned) {
         const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].task;
         const type = task.type;
-        if(task.resourceType != resourceType){
+        if (task.resourceType != resourceType) {
             continue;
         }
 
@@ -158,7 +158,8 @@ function getAssignedCreeps(target_id) {
     let assigned = [];
 
     for (let creep of Object.values(Game.creeps)) {
-        if(!MEMORY.rooms[creep.memory.home].creeps[creep.name]){
+
+        if (!MEMORY.rooms || !MEMORY.rooms[creep.memory.home] || !MEMORY.rooms[creep.memory.home].creeps[creep.name]) {
             continue;
         }
         let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].task;
