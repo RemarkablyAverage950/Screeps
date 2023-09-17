@@ -145,14 +145,12 @@ function manageCreeps(room, creeps) {
         const taskValid = validateTask(room, creep);
 
         if (!taskValid) {
-            //console.log('Task',JSON.stringify(MEMORY.rooms[room.name].creeps[creep.name].task),'not valid for',creep.name)
+
             MEMORY.rooms[room.name].creeps[creep.name].task = undefined;
             assignTask(room, creep)
-            //console.log('Assigned task', JSON.stringify(MEMORY.rooms[room.name].creeps[creep.name].task), 'to', creep.name)
+
         }
-        if (creep.name === 'W2N2_filler_1') {
-            //console.log('task for filler1',JSON.stringify(MEMORY.rooms[room.name].creeps[creep.name].task))
-        }
+
         executeTask(room, creep);
 
     }
@@ -213,10 +211,6 @@ function assignTask(room, creep) {
                 minDistance = distance;
                 task = t;
             };
-
-            //console.log('A',creep.name,JSON.stringify(task))
-
-
 
         };
 
@@ -310,7 +304,28 @@ function assignTask(room, creep) {
 
         if (task === undefined) {
             task = parkTask(room, creep);
-        }
+        };
+    } else if (role === 'hauler') {
+
+        availableTasks = getRoleTasks.hauler(room, creep);
+        let minDistance = Infinity;
+
+
+        for (const t of availableTasks) {
+
+            let object = Game.getObjectById(t.id);
+
+            const distance = creep.pos.getRangeTo(object);
+            if (distance < minDistance) {
+                minDistance = distance;
+                task = t;
+            };
+
+        };
+
+        if (task === undefined) {
+            task = parkTask(room, creep);
+        };
     }
 
     if (!task) {
@@ -330,6 +345,7 @@ function assignTask(room, creep) {
 function executeTask(room, creep) {
     const task = MEMORY.rooms[room.name].creeps[creep.name].task
     if (!task) {
+        MEMORY.rooms[room.name].creeps[creep.name].moving = false;
         return false
     }
 
@@ -425,6 +441,7 @@ function executeTask(room, creep) {
             } else {
 
                 MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.rooms[room.name].creeps[creep.name].task = undefined;
 
             };
 
@@ -484,9 +501,7 @@ function parkTask(room, creep) {
                 const look = pos.look(pos);
                 let valid = true;
                 for (let l of look) {
-                    /*if(creep.name === 'W2N2_filler_0' || creep.name === 'W2N2_filler_1'){
-                        console.log('LOOK',JSON.stringify(l))
-                    }*/
+
                     if (l.type === LOOK_STRUCTURES || l.type === LOOK_CONSTRUCTION_SITES) {
                         valid = false;
                         break;
@@ -502,7 +517,7 @@ function parkTask(room, creep) {
 
 
                 if (valid) {
-                    //console.log('Creating MoveTask for',creep.name, 'at',JSON.stringify(pos))
+
                     if (range === 0) {
                         MEMORY.rooms[room.name].creeps[creep.name].moving = false;
                         return undefined;
@@ -534,6 +549,9 @@ const getRoleTasks = {
 
             tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY));
             tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY));
+            if (tasks.length === 0) {
+                tasks.push(...getTasks.harvest(room))
+            }
 
         };
 
@@ -566,14 +584,25 @@ const getRoleTasks = {
 
             tasks.push(...getTasks.fill(room, creep));
 
-            if (tasks.length === 0) {
-                // console.log('Implement park task')
-                // tasks.push(...getTasks.park(room, creep));
-            };
-
         };
 
         return tasks;
+    },
+
+    hauler: function (room, creep) {
+
+        let tasks = [];
+
+        if (creep.store.getFreeCapacity() > 0) {
+            tasks.push(...getTasks.haul(room, creep))
+        }
+
+        if (creep.store.getUsedCapacity() > 0) {
+            tasks.push(...getTasks.deliver(room, creep))
+        }
+
+        return tasks;
+
     },
 
     maintainer: function (room, creep) {
@@ -583,6 +612,9 @@ const getRoleTasks = {
 
             tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY));
             tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY));
+            if (tasks.length === 0) {
+                tasks.push(...getTasks.harvest(room));
+            };
 
         };
 
@@ -628,6 +660,9 @@ const getRoleTasks = {
 
             tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY));
             tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY));
+            if (tasks.length === 0) {
+                tasks.push(...getTasks.harvest(room));
+            };
 
         };
 
@@ -673,7 +708,7 @@ const getRoleTasks = {
             tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY));
 
             if (tasks.length === 0) {
-                tasks.push(...getTasks.harvest(room, creep, RESOURCE_ENERGY));
+                tasks.push(...getTasks.harvest(room));
             };
 
         };
@@ -703,6 +738,7 @@ const getTasks = {
     build: function (room) {
 
         const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
+        const structures = room.find(FIND_STRUCTURES);
         let tasks = [];
         for (let type of BUILD_PRIORITY) {
             if (tasks.length > 0) {
@@ -715,8 +751,25 @@ const getTasks = {
             }
         };
 
+        for (let s of structures) {
+            if (s.structureType === STRUCTURE_RAMPART && s.hits < 5000) {
+                tasks.push(new RepairTask(s.id))
+            }
+        }
+
+
         return tasks;
 
+    },
+
+    deliver: function (room, creep) {
+        let tasks = [];
+        if (room.storage) {
+            for (let r of Object.keys(creep.store)) {
+                tasks.push(new TransferTask(room.storage.id, r, creep.store[r]));
+            };
+        };
+        return tasks;
     },
 
     /**
@@ -758,7 +811,7 @@ const getTasks = {
                 const forecast = s.forecast(RESOURCE_ENERGY);
                 const capacity = s.store.getCapacity(RESOURCE_ENERGY);
 
-                if (forecast < capacity) {
+                if (forecast < capacity - 40) {
 
                     tasks.push(new TransferTask(s.id, RESOURCE_ENERGY, Math.min(capacity - forecast, heldEnergy)));
 
@@ -787,6 +840,63 @@ const getTasks = {
         }
 
         return tasks
+
+    },
+
+    /**
+     * 
+     * @param {Room} room 
+     * @param {Creep} creep 
+     */
+    haul: function (room, creep) {
+
+        const sources = room.find(FIND_SOURCES);
+        const structures = room.find(FIND_STRUCTURES);
+        const capacity = creep.store.getFreeCapacity();
+
+        let tasks = [];
+
+        for (let s of structures) {
+
+            if (s.structureType === STRUCTURE_CONTAINER) {
+
+                for (let source of sources) {
+
+                    if (s.pos.isNearTo(source) && s.store.getUsedCapacity() > 0) {
+
+                        for (let r of Object.keys(s.store)) {
+                            if (s.forecast(r) >= capacity)
+                                tasks.push(new WithdrawTask(s.id, r, Math.min(capacity, s.store[r])));
+                        };
+
+                    };
+                };
+            };
+        };
+
+
+        if (tasks.length === 0) {
+            const dropped = room.find(FIND_DROPPED_RESOURCES);
+            const tombstones = room.find(FIND_TOMBSTONES);
+            const ruins = room.find(FIND_RUINS);
+
+            for (let r of dropped) {
+                tasks.push(new PickupTask(r.id, Math.min(capacity, r.forecast(r.resourceType))))
+            }
+
+            for(let t of tombstones){
+                for(let r of Object.keys(t.store)){
+                    tasks.push(new WithdrawTask(t.id,r,Math.min(t.forecast(r),capacity)))
+                }
+            }
+            for(let ruin of ruins){
+                for(let r of Object.keys(ruin.store)){
+                    tasks.push(new WithdrawTask(ruin.id,r,Math.min(ruin.forecast(r),capacity)))
+                }
+            }
+        }
+
+        return tasks;
 
     },
 
@@ -936,7 +1046,7 @@ const getTasks = {
 
                 const forecast = s.forecast(resourceType);
 
-                if (forecast >= 0) {
+                if (forecast > 0) {
 
                     tasks.push(new WithdrawTask(s.id, resourceType, forecast));
 
@@ -948,7 +1058,7 @@ const getTasks = {
         for (let t of tombstones) {
 
             const forecast = t.forecast(resourceType);
-            if (forecast >= 0) {
+            if (forecast > 0) {
                 tasks.push(new WithdrawTask(t.id, resourceType, forecast));
             };
         };
@@ -971,11 +1081,9 @@ function validateTask(room, creep) {
     const task = MEMORY.rooms[room.name].creeps[creep.name].task
 
     if (!task) {
-        //console.log('Task for',creep.name,'is undefined.')
+
         return false
     }
-
-    //console.log('Checking if',creep.name,task.type,'is valid.')
 
     let target = undefined;
 
@@ -1016,7 +1124,7 @@ function validateTask(room, creep) {
             }
 
             let look = pos.lookFor(LOOK_CREEPS)
-            console.log('A', creep.name, JSON.stringify(pos), JSON.stringify(look))
+
             if (look.length > 0) {
                 return false
             }
@@ -1069,7 +1177,6 @@ function validateTask(room, creep) {
             break;
     };
 
-    //console.log(creep.name,'task',task.type,'is valid.')
     return true;
 }
 

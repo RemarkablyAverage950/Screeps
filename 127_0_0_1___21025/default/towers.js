@@ -8,7 +8,6 @@ function towers(room) {
     const towers = room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_TOWER);
     const wallTarget = getWallHitsTarget(room) + 1000;
 
-
     let target = undefined;
 
     for (let tower of towers) {
@@ -33,19 +32,29 @@ function towers(room) {
         }
 
         const structures = room.find(FIND_STRUCTURES);
-
+        if (tower.store[RESOURCE_ENERGY] <= 500) {
+            continue;
+        }
 
         for (let s of structures) {
-            if ((s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL) && s.hits < Math.min(wallTarget, s.hitsMax)) {
+            if (s.pos.getRangeTo(tower) > 3) {
+                continue;
+            }
 
-                console.log(tower.id,'attempting to repair',s.id)
-                
-                tower.repair(s)
+            if ((s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL)) {
+
+                if (s.hits < Math.min(wallTarget, s.hitsMax)) {
+
+                    tower.repair(s);
+                    return;
+
+                }
+
+            } else if (s.hits < s.hitsMax) {
+
+                tower.repair(s);
                 return;
-            } else if (s.hits < s.hitsMax && s.pos.getRangeTo(tower) < 4) {
-                console.log(tower.id,'attempting to repair',s.id)
-                tower.repair(s)
-                return;
+
             }
         }
 

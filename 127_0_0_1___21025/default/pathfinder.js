@@ -171,7 +171,7 @@ function getCostMatrix(room) {
 
             if (moving === false) {
                 costMatrix.set(creep.pos.x, creep.pos.y, 0xff);
-            };
+            }
         }
     }
 
