@@ -1,6 +1,7 @@
 const manageSpawns = require('manageSpawns');
 const manageCreeps = require('manageCreeps');
 const roomPlanner = require('roomPlanner');
+const { expansionManager } = require('expansionManager');
 const towers = require('towers');
 let MEMORY = require('memory');
 require('prototypes');
@@ -31,6 +32,7 @@ module.exports.loop = function () {
         const creeps = Object.values(Game.creeps).filter(c => c.memory.home === roomName);
 
         manageMemory(room, creeps);
+        expansionManager(room);
         roomPlanner(room);
         towers(room);
         manageSpawns(room, creeps);
@@ -63,7 +65,7 @@ function getMyRooms() {
  * Initializes and maintains heap memory.
  * @param {Room} room 
  */
-function manageMemory(room,creeps) {
+function manageMemory(room, creeps) {
 
     if (!MEMORY.rooms[room.name]) {
         InitializeRoom(room)
@@ -118,6 +120,7 @@ function InitializeRoom(room) {
         creeps: {},
         tasks: {},
         sources: sourceObjects,
+        outposts: {},
     }
 }
 
