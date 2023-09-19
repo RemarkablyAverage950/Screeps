@@ -46,14 +46,14 @@ function towers(room) {
                 if (s.hits < Math.min(wallTarget, s.hitsMax)) {
 
                     tower.repair(s);
-                    return;
+                    continue;
 
                 }
 
             } else if (s.hits < s.hitsMax) {
 
                 tower.repair(s);
-                return;
+                continue;
 
             }
         }

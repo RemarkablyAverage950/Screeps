@@ -24,7 +24,7 @@ function getPath(origin, destination, range, maxRooms) {
             let room = Game.rooms[roomName];
             if (!room) return undefined;
 
-            if(!MEMORY.rooms[room.name]){
+            if (!MEMORY.rooms[room.name]) {
                 MEMORY.rooms[room.name] = {}
             }
 
@@ -106,9 +106,44 @@ function moveCreep(creep, destination, range, maxRooms) {
 
 }
 
-function moveCreepToRoom(creep,roomName){
-    const destination = new RoomPosition(25,25,roomName)
-    moveCreep(creep,destination,20,16)
+function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
+
+
+    let nextRoom = MEMORY.rooms[creep.memory.home].creeps[creep.name].nextroom;
+
+    if (!nextRoom) {
+
+        let from = creep.pos;
+        let to = new RoomPosition(25, 25, targetRoomName);
+
+        // Use `findRoute` to calculate a high-level plan for this path,
+        // prioritizing highways and owned rooms
+
+        nextRoom = Game.map.findRoute(from.roomName, to.roomName, {
+            routeCallback(roomName) {
+                let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+                let isHighway = (parsed[1] % 10 === 0) ||
+                    (parsed[2] % 10 === 0);
+                let isMyRoom = Game.rooms[roomName] &&
+                    Game.rooms[roomName].controller &&
+                    Game.rooms[roomName].controller.my;
+                let isNotHostile = MEMORY.rooms[creep.memory.home].monitoredRooms[roomName] && !MEMORY.rooms[creep.memory.home].monitoredRooms[roomName].hostileTarget
+                if (isHighway || isMyRoom || isNotHostile || roomName === targetRoomName) {
+                    return 1;
+                } else {
+                    return hostileRoomValue;
+                }
+            }
+        })[0].room
+
+        MEMORY.rooms[creep.memory.home].creeps[creep.name].nextroom = nextRoom
+    }
+
+
+    // Invoke PathFinder, allowing access only to rooms from `findRoute`
+    let destination = new RoomPosition(25, 25, nextRoom)
+    moveCreep(creep, destination, 20, 16)
+
 }
 
 /**

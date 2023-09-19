@@ -114,7 +114,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let minerCount = creepsCount['miner'] || 0;
     let fillerCount = creepsCount['filler'] || 0;
 
-    const targetWorkerCount = getTargetCount.worker(minerCount, fillerCount);
+    const targetWorkerCount = getTargetCount.worker(minerCount, fillerCount,room);
     const targetMinerCount = getTargetCount.miner(room);
     const targetFillerCount = getTargetCount.filler();
 
@@ -1114,14 +1114,30 @@ const getTargetCount = {
     * Returns the target number of workers.
     * @param {number} minerCount 
     * @param {number} fillerCount 
+    * @param {Room} room
     * @returns {number} 
     */
-    worker: function (minerCount, fillerCount) {
+    worker: function (minerCount, fillerCount, room) {
+
+        const structures = room.find(FIND_STRUCTURES);
 
         let count = 0;
+        let energy = 0;
 
-        if (minerCount === 0) count++;
-        if (fillerCount === 0) count++;
+        if (minerCount === 0) {
+            for (const s of structures) {
+                if (s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_STORAGE) {
+                    energy += s.store[RESOURCE_ENERGY];
+                };
+            };
+            if (energy < 1000 || fillerCount === 0) {
+                count++;
+            }
+        }
+
+        if (fillerCount === 0 && room.energyAvailable < room.energyCapacityAvailable) {
+            count++
+        }
 
         return count;
 

@@ -1240,6 +1240,9 @@ function validateTask(room, creep) {
 
             break;
         case 'MOVE_TO_ROOM':
+            if (MEMORY.rooms[creep.memory.home].creeps[creep.name].nextroom === creep.room.name) {
+                MEMORY.rooms[creep.memory.home].creeps[creep.name].nextroom = undefined;
+            }
             if (creep.room.name === task.roomName) {
                 return false;
             }
