@@ -6,6 +6,7 @@ Impletment costmatrix && pathfinding
 Auto Build Room.
     [] Owned room
         [] at level 2, spawnblock, source roads, and controller roads are not all connected.
+        [] at level 2, placing ramparts on source containers.
     [] Outpost
 
 Room defense
@@ -16,14 +17,19 @@ Room defense
 Change loop searches to BF Searches if it can speed up process.
 
 Roles:
+    [] Maintainer
+        [] Unit is repairing ramparts
     [] Remote Miner
     [] Remote builder
     [] Remote Maintainer
     [] Wallbuilder
+        [] Spawn Unit
+            []
     [] Transporter
     [] Defender
     [] Reserver
     [] Scout
+        [] Scout fails to find path to room, ends up walking into a corner.
     [] Claimer
     [] Duo Squad
     [] Trio Squad
@@ -32,6 +38,10 @@ Roles:
     [] HubManager
 
 Links    
+
+BUGS:
+
+    [] Miner failed to generate path when it was already standing on a mining container.
 
 
 

@@ -24,6 +24,10 @@ function getPath(origin, destination, range, maxRooms) {
             let room = Game.rooms[roomName];
             if (!room) return undefined;
 
+            if(!MEMORY.rooms[room.name]){
+                MEMORY.rooms[room.name] = {}
+            }
+
             let matrix = MEMORY.rooms[room.name].costMatrix;
 
             if (!matrix || Game.time !== matrix[1]) {
@@ -102,6 +106,11 @@ function moveCreep(creep, destination, range, maxRooms) {
 
 }
 
+function moveCreepToRoom(creep,roomName){
+    const destination = new RoomPosition(25,25,roomName)
+    moveCreep(creep,destination,20,16)
+}
+
 /**
  * Generates a standard CostMatrix for a room.
  * @param {Room} room 
@@ -116,19 +125,19 @@ function getCostMatrix(room) {
 
     // Set edges to 10 to avoid bouncing in and out of rooms.
     for (let x = 0; x < 50; x++) {
-        if (terrain.get(x, 0) !== TERRAIN_MASK_WALL) {
+        if (terrain.get(x, 0) !== 'wall') {
             costMatrix.set(x, 0, 10);
         };
-        if (terrain.get(x, 49) !== TERRAIN_MASK_WALL) {
+        if (terrain.get(x, 49) !== 'wall') {
             costMatrix.set(x, 49, 10);
         };
     }
 
     for (let y = 0; y < 50; y++) {
-        if (terrain.get(0, y) !== TERRAIN_MASK_WALL) {
+        if (terrain.get(0, y) !== 'wall') {
             costMatrix.set(0, y, 10)
         }
-        if (terrain.get(49, y) !== TERRAIN_MASK_WALL) {
+        if (terrain.get(49, y) !== 'wall') {
             costMatrix.set(49, y, 10)
         }
     }
@@ -205,4 +214,5 @@ module.exports = {
     getCostMatrix,
     getPath,
     moveCreep,
+    moveCreepToRoom,
 };

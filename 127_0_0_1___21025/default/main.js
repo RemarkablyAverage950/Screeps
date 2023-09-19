@@ -1,5 +1,5 @@
 const manageSpawns = require('manageSpawns');
-const manageCreeps = require('manageCreeps');
+const { manageCreeps } = require('manageCreeps');
 const roomPlanner = require('roomPlanner');
 const { expansionManager } = require('expansionManager');
 const towers = require('towers');
@@ -51,7 +51,7 @@ function getMyRooms() {
     let myRooms = [];
 
     for (const roomName of Object.keys(Game.rooms)) {
-        if (Game.rooms[roomName].controller.my) {
+        if (Game.rooms[roomName].controller && Game.rooms[roomName].controller.my) {
 
             myRooms.push(roomName);
 

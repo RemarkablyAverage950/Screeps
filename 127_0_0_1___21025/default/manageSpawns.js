@@ -55,7 +55,7 @@ function manageSpawns(room, creeps) {
             return;
         }
 
-        for (let priority = 1; priority <= 5; priority++) {
+        for (let priority = 1; priority <= 6; priority++) {
 
             if (ret == 0) {
                 // Successful
@@ -215,12 +215,15 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let maintainerCount = creepsCount['maintainer'] || 0;
     let wallBuilderCount = creepsCount['wallBuilder'] || 0;
     let haulerCount = creepsCount['hauler'] || 0;
+    let scoutCount = creepsCount['scout'] || 0;
 
     const targetUpgraderCount = getTargetCount.upgrader(room);
     let targetBuilderCount = getTargetCount.builder(room);
     const targetMaintainerCount = getTargetCount.maintainer(room);
     const targetWallBuilderCount = getTargetCount.wallBuilder(room);
     const targetHaulerCount = getTargetCount.hauler(room);
+    const targetScoutCount = getTargetCount.scout(room);
+
 
     for (let order of existingSpawnQueue) {
 
@@ -245,6 +248,10 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         } else if (role === 'hauler') {
 
             haulerCount++;
+
+        } else if (role === 'scout') {
+
+            scoutCount++;
 
         };
 
@@ -345,6 +352,19 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         spawnQueue.push(new SpawnOrder('hauler', 4, body, options));
         haulerCount++;
     };
+
+    body = [];
+    while (scoutCount < targetScoutCount) {
+        body = [MOVE]
+        options = {
+            memory: {
+                role: 'scout',
+                home: room.name,
+            },
+        };
+        spawnQueue.push(new SpawnOrder('scout', 6, body, options));
+        scoutCount++;
+    }
 
 
 
@@ -1027,6 +1047,16 @@ const getTargetCount = {
     miner: function (room) {
 
         return room.find(FIND_SOURCES).length;
+
+    },
+
+    scout: function (room) {
+
+        if (room.storage) {
+            return 1;
+        };
+
+        return 0;
 
     },
 

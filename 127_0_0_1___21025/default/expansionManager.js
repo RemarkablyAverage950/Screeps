@@ -1,5 +1,5 @@
 let MEMORY = require('memory');
-let Task = require('manageCreeps')
+let { Task } = require('manageCreeps')
 
 class SignTask extends Task {
     /**
@@ -29,7 +29,7 @@ function expansionManager(room) {
         if (data) {
             // We have a monitored room
 
-            if (!data.lastS || Game.time - data.lastScan > 100) {
+            if (!data.lastScan || Game.time - data.lastScan > 100) {
                 data = scanRoom(r)
                 MEMORY.rooms[room.name].monitoredRooms[r.name] = data;
             }
@@ -37,7 +37,21 @@ function expansionManager(room) {
         }
     }
 
+    let mission = MEMORY.rooms[room.name].mission;
+    if (Game.time % 100 === 0 && (!mission || mission.complete)) {
 
+        // Get a new mission (Mining outpost, claim new room, attack room)
+        mission = undefined // getMission(room,monitoredRooms)
+        MEMORY.rooms[room.name].mission = mission;
+    }
+
+    if (mission) {
+
+        // Check status.
+
+        // Create tasks if needed.
+
+    }
 
 }
 
@@ -46,17 +60,31 @@ function expansionManager(room) {
  * @param {Room} room 
  */
 function scanRoom(room) {
-    const sources = room.find(FIND_SOURCES).length;
+    const lastScan = Game.time;
+    const sources = room.find(FIND_SOURCES);
     const mineral = room.find(FIND_MINERALS)[0];
     const controller = room.controller;
     const hostileCreeps = room.find(FIND_HOSTILE_CREEPS)
     let reserved = false;
-    let hostileTarget = false;
+
     let occupied = false;
     let reservedBy = undefined;
+    let owned = false;
+    let ownedBy = undefined;
+    let my = false;
+
+    let hostileTarget = false;
 
     if (controller) {
-        if (controller.reservation) {
+        if (controller.owner) {
+            ownedBy = controller.owner
+            owned = true;
+            if (controller.my) {
+                my = true;
+            } else {
+                hostileTarget = true;
+            }
+        } else if (controller.reservation) {
             reserved = true;
             reservedBy = controller.reservation.username
             if (reservedBy !== MEMORY.username) {
@@ -69,17 +97,16 @@ function scanRoom(room) {
     if (hostileCreeps.length > 0) {
         occupied = true;
 
-        for(let creep of hostileCreeps){
-            if(hostileTarget){}
+        for (let creep of hostileCreeps) {
+            if (hostileTarget) { break; }
             const body = creep.body
-            for(let part of body){
-                if(part.type === ATTACK || part.type === RANGED_ATTACK){
+            for (let part of body) {
+                if (part.type === ATTACK || part.type === RANGED_ATTACK) {
                     hostileTarget = true;
                     break;
                 }
             }
         }
-
     }
 
 
@@ -87,8 +114,21 @@ function scanRoom(room) {
         controller: controller,
         sources: sources,
         mineral: mineral,
+        hostileCreeps: hostileCreeps,
+        reserved: reserved,
+        hostileTarget: hostileTarget,
+        occupied: occupied,
+        reservedBy: reservedBy,
+        lastScan: lastScan,
+        owned: owned,
+        ownedBy: ownedBy,
+        my: my,
+
 
     }
+
+    console.log('Scanned room', room.name, ':', JSON.stringify(data))
+    return data;
 }
 
 /**
@@ -97,7 +137,7 @@ function scanRoom(room) {
  */
 function getMonitoredRooms(room) {
 
-
+    console.log('Getting Monitored Rooms...')
     const RANGE = 10;
     let monitoredRoomNames = [];
     let monitoredRooms = {}
@@ -122,7 +162,7 @@ function getMonitoredRooms(room) {
     }
 
     for (let name of monitoredRoomNames) {
-        monitoredRooms[name] = {}
+        monitoredRooms[name] = { lastScan: 0 }
     }
 
 
