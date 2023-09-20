@@ -1,16 +1,18 @@
 let MEMORY = require('memory');
 let { Task } = require('manageCreeps')
 
-class SignTask extends Task {
-    /**
-     * @constructor
-     * @param {string} id Controller ID.
-     * @param {string} str Sign text string.
-     */
-    constructor(id, str) {
-        super('SIGN');
-        this.id = id;
-        this.str = str;
+class Mission {
+    constructor(type) {
+        this.type = type;
+        this.complete = false;
+    }
+}
+
+class OutpostMission extends Mission {
+    constructor(roomName) {
+        super('OUTPOST');
+        this.planned = false;
+        this.roomName = roomName
     }
 }
 
@@ -30,7 +32,7 @@ function expansionManager(room) {
             // We have a monitored room
 
             if (!data.lastScan || Game.time - data.lastScan > 100) {
-                data = scanRoom(r)
+                data = scanRoom(r, room.name)
                 MEMORY.rooms[room.name].monitoredRooms[r.name] = data;
             }
 
@@ -41,7 +43,8 @@ function expansionManager(room) {
     if (Game.time % 100 === 0 && (!mission || mission.complete)) {
 
         // Get a new mission (Mining outpost, claim new room, attack room)
-        mission = undefined // getMission(room,monitoredRooms)
+        mission = getMission(room, monitoredRooms)
+
         MEMORY.rooms[room.name].mission = mission;
     }
 
@@ -58,12 +61,19 @@ function expansionManager(room) {
 /**
  * 
  * @param {Room} room 
+ * @param {string} homeRoom The name of the home room.
  */
-function scanRoom(room) {
+function scanRoom(room, homeRoom) {
     const lastScan = Game.time;
-    const sources = room.find(FIND_SOURCES);
+    const sources = room.find(FIND_SOURCES).map(s => s.id);
     const mineral = room.find(FIND_MINERALS)[0];
+    let mineralType = undefined;
+    if (mineral) {
+        mineralType = mineral.mineralType
+    }
     const controller = room.controller;
+    let controller_id = undefined;
+    let level = undefined;
     const hostileCreeps = room.find(FIND_HOSTILE_CREEPS)
     let reserved = false;
 
@@ -72,23 +82,28 @@ function scanRoom(room) {
     let owned = false;
     let ownedBy = undefined;
     let my = false;
+    let distance = Game.map.findRoute(homeRoom, room.name).length;
 
     let hostileTarget = false;
 
     if (controller) {
+        controller_id = controller.id;
         if (controller.owner) {
             ownedBy = controller.owner
             owned = true;
+            level = controller.level;
             if (controller.my) {
                 my = true;
             } else {
                 hostileTarget = true;
+                occupied = true;
             }
         } else if (controller.reservation) {
             reserved = true;
             reservedBy = controller.reservation.username
             if (reservedBy !== MEMORY.username) {
                 hostileTarget = true;
+                occupied = true;
             }
         }
     }
@@ -111,10 +126,12 @@ function scanRoom(room) {
 
 
     let data = {
-        controller: controller,
+        name: room.name,
+        controller_id: controller_id,
+        level: level,
         sources: sources,
-        mineral: mineral,
-        hostileCreeps: hostileCreeps,
+        mineralType: mineralType,
+        hostileCreeps: hostileCreeps.length,
         reserved: reserved,
         hostileTarget: hostileTarget,
         occupied: occupied,
@@ -123,7 +140,7 @@ function scanRoom(room) {
         owned: owned,
         ownedBy: ownedBy,
         my: my,
-
+        distance: distance,
 
     }
 
@@ -171,64 +188,57 @@ function getMonitoredRooms(room) {
 
 }
 
-function scoutManager() {
-    const scouts = Object.values(Game.creeps).filter(c => c.memory.role === 'scout')
+/*
+    let data = {
+        controller: controller,
+        sources: sources,
+        mineral: mineral,
+        hostileCreeps: hostileCreeps,
+        reserved: reserved,
+        hostileTarget: hostileTarget,
+        occupied: occupied,
+        reservedBy: reservedBy,
+        lastScan: lastScan,
+        owned: owned,
+        ownedBy: ownedBy,
+        my: my,
+        distance: distance,
+    }
+*/
 
-    for (let creep of scouts) {
+/**
+ * 
+ * @param {Room} room 
+ * @param {Object} monitoredRooms 
+ */
+function getMission(room, monitoredRooms) {
+    console.log('Entering getMission')
 
-        const home = creep.memory.home;
 
-        let task = MEMORY.rooms[home].creeps[creep.name].task;
+    for (let i = 1; i <= 2; i++) {
+        for (let r of Object.values(monitoredRooms)) {
+            if (r.lastScan === 0) {
+                continue;
+            }
+          
+            if (r.distance === i && r.controller_id && !r.occupied  && !r.my && !room.memory.outposts.some(o => o === r.name)) {
 
-        const valid = validateScoutTask(creep, task);
+                //room.memory.outposts.push(r.name)
+                MEMORY.rooms[room.name].outposts[r.name] = {
+                    plans: undefined,
+                    sources: r.sources,
+                }
+                console.log('Generating OutpostMission', r.name)
+                return new OutpostMission(r.name)
 
-        if (!valid) {
-
-            assignScoutTask(creep);
-
+            }
         }
 
-        executeScoutTask(creep);
-
-    }
-}
-
-/**
- * 
- * @param {Creep} creep 
- * @param {Task} task 
- */
-function validateScoutTask(creep, task) {
-
-}
-
-/**
- * 
- * @param {Creep} creep 
- */
-function assignScoutTask(creep) {
-
-    const controller = creep.room.controller;
-
-    if (controller) {
-
-        const sign = controller.sign;
-
-        if (!sign || sign.username !== MEMORY.username) {
-            return new SignTask(controller.id, 'RA was here.')
-        }
-
     }
 
+    return undefined;
 }
 
-/**
- * 
- * @param {Creep} creep 
- */
-function executeScoutTask(creep) {
-
-}
 
 
 module.exports = {

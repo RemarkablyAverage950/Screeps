@@ -105,6 +105,9 @@ function InitializeRoom(room) {
     let sourceObjects = {};
     let minerNumber = 0;
 
+    if (!room.memory.outposts) {
+        room.memory.outposts = [];
+    }
     for (let source of sources) {
 
         sourceObjects[source.id] = {

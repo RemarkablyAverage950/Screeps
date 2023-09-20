@@ -18,6 +18,7 @@ class SpawnOrder {
 }
 
 const SPAWN_TIMER_SET_VALUE = 10;
+const CONSERVE_ENERGY_VALUE = 50000;
 
 
 /**
@@ -106,6 +107,14 @@ function manageSpawns(room, creeps) {
 function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
     const energyBudget = room.energyCapacityAvailable;
+    const structures = room.find(FIND_STRUCTURES);
+    let storedEnergy = 0;
+
+    for (const s of structures) {
+        if (s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_LINK) {
+            storedEnergy += s.store[RESOURCE_ENERGY];
+        };
+    };
 
     let spawnQueue = [];
 
@@ -114,9 +123,9 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let minerCount = creepsCount['miner'] || 0;
     let fillerCount = creepsCount['filler'] || 0;
 
-    const targetWorkerCount = getTargetCount.worker(minerCount, fillerCount, room);
+    const targetWorkerCount = getTargetCount.worker(minerCount, fillerCount, room, storedEnergy);
     const targetMinerCount = getTargetCount.miner(room);
-    const targetFillerCount = getTargetCount.filler();
+    const targetFillerCount = getTargetCount.filler(creeps);
 
     for (let order of existingSpawnQueue) {
 
@@ -224,7 +233,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     const targetWallBuilderCount = getTargetCount.wallBuilder(room);
     const targetHaulerCount = getTargetCount.hauler(room);
     const targetScoutCount = getTargetCount.scout(room);
-    const targetHubCount = getTargetCount.hub(room);
+    const targetHubCount = getTargetCount.hub(room, storedEnergy);
 
 
     for (let order of existingSpawnQueue) {
@@ -267,7 +276,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     while (upgraderCount < targetUpgraderCount) {
 
         if (body.length === 0) {
-            body = getBody.upgrader(energyBudget, room);
+            body = getBody.upgrader(energyBudget, room, storedEnergy);
             options = {
                 memory: {
                     role: 'upgrader',
@@ -286,7 +295,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     while (builderCount < targetBuilderCount) {
 
         if (body.length === 0) {
-            let ret = getBody.builder(energyBudget, room);
+            let ret = getBody.builder(energyBudget, room, storedEnergy);
             body = ret[0];
             console.log('estCreepsNeeded', ret[1])
             if (ret[1] > 2) {
@@ -327,7 +336,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     while (wallBuilderCount < targetWallBuilderCount) {
 
         if (body.length === 0) {
-            body = getBody.wallBuilder(energyBudget, room);
+            body = getBody.wallBuilder(energyBudget, room, storedEnergy);
             options = {
                 memory: {
                     role: 'wallBuilder',
@@ -407,9 +416,10 @@ const getBody = {
      * 
      * @param {number} budget
      * @param {Room} room 
+     * @param {number} storedEnergy
      * @returns {BodyPartConstant[]}
      */
-    builder: function (budget, room) {
+    builder: function (budget, room, storedEnergy) {
         /*
             Most effecient builder will complete all existing construction sites using the least amount of spawn cost.
             More than one builder can be used to complete construction.
@@ -488,6 +498,12 @@ const getBody = {
             };
         };
 
+        if (storedEnergy < CONSERVE_ENERGY_VALUE) {
+
+            bestBody[0] = Math.max(Math.floor(bestBody[0] / 2), 1)
+            bestBody[1] = Math.max(Math.floor(bestBody[1] / 2), 1)
+            bestBody[2] = Math.max(Math.floor(bestBody[2] / 2), 1)
+        }
         // Build the body
         let body = [];
 
@@ -586,6 +602,7 @@ const getBody = {
             };
         };
 
+
         let body = [];
         if (bestBody) {
 
@@ -599,6 +616,7 @@ const getBody = {
 
             return body;
         } else {
+
             for (let i = 0; i < closestBody[0]; i++) {
                 body.push(CARRY);
             };
@@ -641,7 +659,7 @@ const getBody = {
 
                 maxCarry = 16
                 break;
-                
+
         }
 
 
@@ -810,9 +828,10 @@ const getBody = {
      * 
      * @param {number} budget
      * @param {Room} room 
+     * @param {number} storedEnergy
      * @returns {BodyPartConstant[]}
      */
-    upgrader: function (budget, room) {
+    upgrader: function (budget, room, storedEnergy) {
 
         /*
             Most effecient upgrader can complete the most upgrades in its life.
@@ -875,6 +894,11 @@ const getBody = {
             };
         };
 
+        if (storedEnergy < CONSERVE_ENERGY_VALUE) {
+            bestBody[0] = Math.max(Math.floor(bestBody[0] / 2), 1)
+            bestBody[1] = Math.max(Math.floor(bestBody[1] / 2), 1)
+            bestBody[2] = Math.max(Math.floor(bestBody[2] / 2), 1)
+        }
         // Build the body
         let body = [];
 
@@ -894,7 +918,7 @@ const getBody = {
 
     },
 
-    wallBuilder: function (budget, room) {
+    wallBuilder: function (budget, room, storedEnergy) {
 
         let averageDistance = 0;
         const sources = room.find(FIND_SOURCES)
@@ -973,6 +997,11 @@ const getBody = {
             };
         };
 
+        if (storedEnergy < CONSERVE_ENERGY_VALUE) {
+            bestBody[0] = Math.max(Math.floor(bestBody[0] / 2), 1)
+            bestBody[1] = Math.max(Math.floor(bestBody[1] / 2), 1)
+            bestBody[2] = Math.max(Math.floor(bestBody[2] / 2), 1)
+        }
         // Build the body
         let body = [];
 
@@ -1066,11 +1095,19 @@ const getTargetCount = {
 
     /**
      * Returns the target number of fillers. 
-     * @returns {number} Hardcoded to 2.
+     * @param {Creep[]} creeps
+     * @returns {number} 
      */
-    filler: function () {
+    filler: function (creeps) {
+        let count = 1;
+        const fillers = creeps.filter(c => c.memory.role === 'filler')
+        for (let creep of fillers) {
+            if (creep.ticksToLive < 300) {
+                count++;
+            }
+        }
 
-        return 2;
+        return count;
 
     },
 
@@ -1088,9 +1125,10 @@ const getTargetCount = {
     /**
      * Returns the target number of hub managers.
      * @param {Room} room
+     * @param {number} storedEnergy
      */
-    hub: function (room) {
-        if (room.controller.level < 5) {
+    hub: function (room, storedEnergy) {
+        if (room.controller.level < 5 || storedEnergy < 1000) {
             return 0;
         }
         if (MEMORY.rooms[room.name].links.hub) {
@@ -1196,22 +1234,17 @@ const getTargetCount = {
     * @param {number} minerCount 
     * @param {number} fillerCount 
     * @param {Room} room
+    * @param {number} storedEnergy
     * @returns {number} 
     */
-    worker: function (minerCount, fillerCount, room) {
-
-        const structures = room.find(FIND_STRUCTURES);
+    worker: function (minerCount, fillerCount, room, storedEnergy) {
 
         let count = 0;
-        let energy = 0;
+
 
         if (minerCount === 0) {
-            for (const s of structures) {
-                if (s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_STORAGE) {
-                    energy += s.store[RESOURCE_ENERGY];
-                };
-            };
-            if (energy < 1000 || fillerCount === 0) {
+
+            if (storedEnergy < 1000 || fillerCount === 0) {
                 count++;
             }
         }
