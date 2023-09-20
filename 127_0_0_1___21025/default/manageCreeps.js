@@ -349,6 +349,8 @@ function assignTask(room, creep) {
 
         task = getRoleTasks.scout(room, creep)
 
+    } else if (role === 'hub') {
+        task = getRoleTasks.hub(room, creep)
     }
 
     if (!task) {
@@ -640,6 +642,37 @@ const getRoleTasks = {
         }
 
         return tasks;
+
+    },
+
+    hub: function (room, creep) {
+        let storage = room.storage;
+        if (!storage) {
+            return undefined;
+        }
+        let pos = new RoomPosition(storage.pos.x - 1, storage.pos.y + 1, room.name);
+
+        if (creep.pos.x !== pos.x || creep.pos.y !== pos.y) {
+            return new MoveTask(pos);
+        }
+
+        const hubLink = Game.getObjectById(MEMORY.rooms[room.name].links.hub)
+        let hubEnergyNeeded = 800 - hubLink.store[RESOURCE_ENERGY];
+        if (hubEnergyNeeded > 0) {
+
+            if (creep.store[RESOURCE_ENERGY] > 0) {
+                return new TransferTask(hubLink.id, RESOURCE_ENERGY, Math.min(hubEnergyNeeded, creep.store[RESOURCE_ENERGY]))
+            } else if (creep.store.getFreeCapacity() > 0 && storage.store[RESOURCE_ENERGY] > 0) {
+                return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(creep.store.getFreeCapacity(), storage.store[RESOURCE_ENERGY], hubEnergyNeeded))
+            }
+
+
+        }
+
+        if(creep.store[RESOURCE_ENERGY] > 0){
+            return new TransferTask(storage.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY]);
+
+        }
 
     },
 
@@ -1118,7 +1151,7 @@ const getTasks = {
 
         for (let s of structures) {
 
-            if (s.structureType === STRUCTURE_CONTAINER || s.structureType == STRUCTURE_STORAGE) {
+            if (s.structureType === STRUCTURE_CONTAINER || s.structureType == STRUCTURE_STORAGE || s.structureType === STRUCTURE_LINK) {
 
                 const forecast = s.forecast(resourceType);
 

@@ -46,10 +46,7 @@ function getPath(origin, destination, range, maxRooms) {
         },
     });
 
-    /*if (ret.incomplete) {
-        creep.memory.needTask = true
-        return
-    }*/
+
 
     ret.path.length = Math.min(ret.path.length, MAX_PATH_LENGTH)
 
@@ -79,8 +76,18 @@ function moveCreep(creep, destination, range, maxRooms) {
         console.log('Failed to generate path for', creep.name);
         return;
     }
-    // Check if there is a stationary creep standing in the next spot.
-    const lookCreeps = path[0].lookFor(LOOK_CREEPS);
+    let lookCreeps
+    try {
+        lookCreeps = path[0].lookFor(LOOK_CREEPS);
+    } catch (e) {
+        console.log(e);
+        console.log(JSON.stringify(path))
+        MEMORY.rooms[creep.memory.home].creeps[creep.name].path = undefined;
+
+
+        return;
+    }
+
     if (lookCreeps.length > 0) {
         //console.log('LookCreeps', JSON.stringify(lookCreeps))
         const lookCreep = lookCreeps[0]
@@ -128,7 +135,7 @@ function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
                     Game.rooms[roomName].controller &&
                     Game.rooms[roomName].controller.my;
                 let isNotHostile = MEMORY.rooms[creep.memory.home].monitoredRooms[roomName] && !MEMORY.rooms[creep.memory.home].monitoredRooms[roomName].hostileTarget
-                if (isHighway || isMyRoom || isNotHostile || roomName === targetRoomName) {
+                if (isHighway || isMyRoom || isNotHostile || roomName === targetRoomName || roomName === creep.room.name) {
                     return 1;
                 } else {
                     return hostileRoomValue;

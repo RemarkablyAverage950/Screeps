@@ -3,7 +3,7 @@
  * 
  * @param {Room} room 
  */
-function towers(room) {
+function manageTowers(room) {
 
     const towers = room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_TOWER);
     const wallTarget = getWallHitsTarget(room) + 1000;
@@ -30,7 +30,7 @@ function towers(room) {
                 return;
             }
         }
-
+        
         const structures = room.find(FIND_STRUCTURES);
         if (tower.store[RESOURCE_ENERGY] <= 500) {
             continue;
@@ -78,4 +78,4 @@ function getWallHitsTarget(room) {
     };
 };
 
-module.exports = towers;
+module.exports = manageTowers;

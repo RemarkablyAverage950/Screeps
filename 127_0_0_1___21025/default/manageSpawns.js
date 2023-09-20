@@ -114,7 +114,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let minerCount = creepsCount['miner'] || 0;
     let fillerCount = creepsCount['filler'] || 0;
 
-    const targetWorkerCount = getTargetCount.worker(minerCount, fillerCount,room);
+    const targetWorkerCount = getTargetCount.worker(minerCount, fillerCount, room);
     const targetMinerCount = getTargetCount.miner(room);
     const targetFillerCount = getTargetCount.filler();
 
@@ -216,6 +216,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let wallBuilderCount = creepsCount['wallBuilder'] || 0;
     let haulerCount = creepsCount['hauler'] || 0;
     let scoutCount = creepsCount['scout'] || 0;
+    let hubCount = creepsCount['hub'] || 0;
 
     const targetUpgraderCount = getTargetCount.upgrader(room);
     let targetBuilderCount = getTargetCount.builder(room);
@@ -223,6 +224,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     const targetWallBuilderCount = getTargetCount.wallBuilder(room);
     const targetHaulerCount = getTargetCount.hauler(room);
     const targetScoutCount = getTargetCount.scout(room);
+    const targetHubCount = getTargetCount.hub(room);
 
 
     for (let order of existingSpawnQueue) {
@@ -252,6 +254,10 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         } else if (role === 'scout') {
 
             scoutCount++;
+
+        } else if (role === 'hub') {
+
+            hubCount++;
 
         };
 
@@ -364,6 +370,19 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         };
         spawnQueue.push(new SpawnOrder('scout', 6, body, options));
         scoutCount++;
+    }
+
+    body = [];
+    while (hubCount < targetHubCount) {
+        body = getBody.hub(energyBudget, room)
+        options = {
+            memory: {
+                role: 'hub',
+                home: room.name,
+            },
+        };
+        spawnQueue.push(new SpawnOrder('hub', 4, body, options));
+        hubCount++;
     }
 
 
@@ -592,6 +611,54 @@ const getBody = {
         }
 
 
+
+    },
+
+    hub: function (energyBudget, room) {
+
+        let carryParts = 5;
+        let cost = 300;
+        let maxCarry = undefined;
+        let body = [];
+
+        switch (room.controller.level) {
+            case 5:
+
+                maxCarry = 5;
+                break;
+
+            case 6:
+
+                maxCarry = 8
+                break;
+
+            case 7:
+
+                maxCarry = 10;
+                break;
+
+            case 8:
+
+                maxCarry = 16
+                break;
+                
+        }
+
+
+        while (cost + 50 <= energyBudget && carryParts < maxCarry) {
+
+            carryParts++;
+            cost += 50;
+
+        }
+
+        for (let i = 0; i < carryParts; i++) {
+            body.push(CARRY);
+        };
+
+        body.push(MOVE);
+
+        return body;
 
     },
 
@@ -1015,6 +1082,20 @@ const getTargetCount = {
         if (room.storage) {
             return 1;
         };
+        return 0;
+    },
+
+    /**
+     * Returns the target number of hub managers.
+     * @param {Room} room
+     */
+    hub: function (room) {
+        if (room.controller.level < 5) {
+            return 0;
+        }
+        if (MEMORY.rooms[room.name].links.hub) {
+            return 1;
+        }
         return 0;
     },
 
