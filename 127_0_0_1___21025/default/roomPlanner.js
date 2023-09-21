@@ -45,9 +45,7 @@ function roomPlanner(room) {
 
 
     if (room.memory === undefined || room.memory.plans === undefined) {
-        room.memory = {
-            plans: {},
-        };
+       
     };
 
     let plans = room.memory.plans;
@@ -123,9 +121,11 @@ function getOutpostPlans(outpostRoom, homeRoom) {
     console.log('plans', JSON.stringify(plans))
     for (let roomName of route) {
         if (!plans[roomName]) {
-            plans[roomName] = [];
+            
         }
     }
+
+    plans[outpostRoom.name] = [];
 
     for (let s of sources) {
 
@@ -136,11 +136,11 @@ function getOutpostPlans(outpostRoom, homeRoom) {
             swampCost: 5,
             roomCallback: function (roomName) {
 
-                let room = Game.rooms[roomName];
+        
                 // In this example `room` will always exist, but since 
                 // PathFinder supports searches which span multiple rooms 
                 // you should be careful!
-                if (!room) return;
+
                 let costs = new PathFinder.CostMatrix;
 
 
@@ -167,19 +167,22 @@ function getOutpostPlans(outpostRoom, homeRoom) {
         for (let i = 0; i < path.length; i++) {
 
             let pos = path[i];
+         
+
             if (pos.x === 0 || pos.x === 49 || pos.y === 0 || pos.y === 49) {
                 continue;
             }
 
             if (i === 0) {
-                plans[pos.roomName].push(new BuildOrder(pos.x, pos.y, STRUCTURE_CONTAINER, 4))
+                plans[pos.roomName].push(new BuildOrder(pos.x, pos.y, STRUCTURE_CONTAINER, 4));
+                continue;
             }
 
             let bo = plans[pos.roomName].find(b => b.x === pos.x && b.y === pos.y)
             if (bo) {
-                bo.level = Math.min(4, bo.level)
+                bo.level = Math.min(4, bo.level);
             } else {
-                plans[pos.roomName].push(new BuildOrder(pos.x, pos.y, STRUCTURE_ROAD, 4))
+                plans[pos.roomName].push(new BuildOrder(pos.x, pos.y, STRUCTURE_ROAD, 4));
             }
 
         }
