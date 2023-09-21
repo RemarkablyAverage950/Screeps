@@ -4,6 +4,7 @@ const roomPlanner = require('roomPlanner');
 const { expansionManager } = require('expansionManager');
 const manageTowers = require('manageTowers');
 const manageLinks = require('manageLinks');
+const outpostManager = require('outpostManager');
 let MEMORY = require('memory');
 require('prototypes');
 require('RoomVisual');
@@ -33,7 +34,8 @@ module.exports.loop = function () {
         const creeps = Object.values(Game.creeps).filter(c => c.memory.home === roomName);
 
         manageMemory(room, creeps);
-        manageLinks(room)
+        outpostManager(room);
+        manageLinks(room);
         expansionManager(room);
         roomPlanner(room);
         manageTowers(room);
@@ -106,7 +108,7 @@ function InitializeRoom(room) {
     let minerNumber = 0;
 
     if (!room.memory.outposts) {
-        room.memory.outposts = [];
+        room.memory.outposts = {};
     }
     for (let source of sources) {
 

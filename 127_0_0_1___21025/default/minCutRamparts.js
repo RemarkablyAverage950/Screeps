@@ -5,6 +5,7 @@
  * adapted (for Typescript by Chobobobo , is it somewhere?)
  * some readability added by Chobobobo @typescript was included here
  * (15Aug2019) Updated Game.map.getTerrainAt to Game.map.getRoomTerrain method -Shibdib
+ * (2023) Converted back to js.
  */
 
 const UNWALKABLE = -1;

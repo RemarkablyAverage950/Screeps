@@ -17,7 +17,7 @@ function manageTowers(room) {
             target = _.min(hostiles, h => h.pos.getRangeTo(tower))
             if (target) {
                 tower.attack(target);
-                return;
+                continue;
             }
         }
 
@@ -27,10 +27,10 @@ function manageTowers(room) {
             target = _.min(creeps, h => h.pos.getRangeTo(tower))
             if (target) {
                 tower.heal(target);
-                return;
+                continue;
             }
         }
-        
+
         const structures = room.find(FIND_STRUCTURES);
         if (tower.store[RESOURCE_ENERGY] <= 500) {
             continue;
@@ -46,14 +46,14 @@ function manageTowers(room) {
                 if (s.hits < Math.min(wallTarget, s.hitsMax)) {
 
                     tower.repair(s);
-                    continue;
+                    break;
 
                 }
 
             } else if (s.hits < s.hitsMax) {
 
                 tower.repair(s);
-                continue;
+                break;
 
             }
         }

@@ -498,7 +498,7 @@ const getBody = {
             };
         };
 
-        if (storedEnergy < CONSERVE_ENERGY_VALUE) {
+        if (room.storage && storedEnergy < CONSERVE_ENERGY_VALUE) {
 
             bestBody[0] = Math.max(Math.floor(bestBody[0] / 2), 1)
             bestBody[1] = Math.max(Math.floor(bestBody[1] / 2), 1)
@@ -894,7 +894,7 @@ const getBody = {
             };
         };
 
-        if (storedEnergy < CONSERVE_ENERGY_VALUE) {
+        if (room.storage && storedEnergy < CONSERVE_ENERGY_VALUE) {
             bestBody[0] = Math.max(Math.floor(bestBody[0] / 2), 1)
             bestBody[1] = Math.max(Math.floor(bestBody[1] / 2), 1)
             bestBody[2] = Math.max(Math.floor(bestBody[2] / 2), 1)
@@ -921,8 +921,8 @@ const getBody = {
     wallBuilder: function (budget, room, storedEnergy) {
 
         let averageDistance = 0;
-        const sources = room.find(FIND_SOURCES)
-        const structures = room.find(FIND_STRUCTURES)
+        const sources = room.find(FIND_SOURCES);
+        const structures = room.find(FIND_STRUCTURES);
         let wallCount = 0;
 
         if (!room.storage) {
@@ -997,7 +997,7 @@ const getBody = {
             };
         };
 
-        if (storedEnergy < CONSERVE_ENERGY_VALUE) {
+        if (room.storage && storedEnergy < CONSERVE_ENERGY_VALUE) {
             bestBody[0] = Math.max(Math.floor(bestBody[0] / 2), 1)
             bestBody[1] = Math.max(Math.floor(bestBody[1] / 2), 1)
             bestBody[2] = Math.max(Math.floor(bestBody[2] / 2), 1)

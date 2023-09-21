@@ -144,7 +144,7 @@ function scanRoom(room, homeRoom) {
 
     }
 
-    console.log('Scanned room', room.name, ':', JSON.stringify(data))
+    //console.log('Scanned room', room.name, ':', JSON.stringify(data))
     return data;
 }
 
@@ -154,7 +154,7 @@ function scanRoom(room, homeRoom) {
  */
 function getMonitoredRooms(room) {
 
-    console.log('Getting Monitored Rooms...')
+    //console.log('Getting Monitored Rooms...')
     const RANGE = 10;
     let monitoredRoomNames = [];
     let monitoredRooms = {}
@@ -212,7 +212,7 @@ function getMonitoredRooms(room) {
  * @param {Object} monitoredRooms 
  */
 function getMission(room, monitoredRooms) {
-    console.log('Entering getMission')
+    //console.log('Entering getMission')
 
 
     for (let i = 1; i <= 2; i++) {
@@ -220,10 +220,12 @@ function getMission(room, monitoredRooms) {
             if (r.lastScan === 0) {
                 continue;
             }
-          
-            if (r.distance === i && r.controller_id && !r.occupied  && !r.my && !room.memory.outposts.some(o => o === r.name)) {
 
-                //room.memory.outposts.push(r.name)
+            if (r.distance === i && r.controller_id && !r.occupied && !r.my && !Object.keys(room.memory.outposts).some(o => o === r.name)) {
+
+                room.memory.outposts[r.name] = {
+                    plans: undefined,
+                }
                 MEMORY.rooms[room.name].outposts[r.name] = {
                     plans: undefined,
                     sources: r.sources,

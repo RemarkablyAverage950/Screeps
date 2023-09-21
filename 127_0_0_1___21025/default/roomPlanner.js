@@ -44,19 +44,29 @@ class Tile {
 function roomPlanner(room) {
 
 
-    if (room.memory === undefined) {
-        room.memory = {};
+    if (room.memory === undefined || room.memory.plans === undefined) {
+        room.memory = {
+            plans: {},
+        };
     };
 
     let plans = room.memory.plans;
 
     //if (plans === undefined) {
 
-    if (!plans && Game.cpu.bucket > 100) {
+    if (!plans || !plans[room.name] && Game.cpu.bucket > 100) {
 
         plans = getRoomPlans(room);
 
     };
+
+
+
+
+
+    if (Game.time % 20 === 0 && Game.cpu.bucket > 100 && plans) {
+        outpostPlanner(room, plans)
+    }
 
     if (plans && Game.time % 20 === 0 && Game.cpu.bucket > 100) {
         placeSites(room, plans);
@@ -66,19 +76,152 @@ function roomPlanner(room) {
 
 };
 
+
+function outpostPlanner(homeRoom) {
+    console.log('Entering outpostPlanner', homeRoom.name)
+    if (!homeRoom) {
+        return;
+    }
+
+    let outposts = homeRoom.memory.outposts;
+    if (!outposts) {
+        return;
+    }
+    for (let outpostName of Object.keys(outposts)) {
+
+        // Check if we are in the room.
+        let outpostRoom = Game.rooms[outpostName];
+        if (!outpostRoom) {
+            console.log('not in outpost room')
+            continue;
+        }
+
+        let outpostPlans = homeRoom.memory.plans[outpostName]
+
+
+        if (!outpostPlans || outpostPlans.length === 0) {
+            getOutpostPlans(outpostRoom, homeRoom);
+        }
+
+    }
+
+}
+
 /**
- * Generates build plans for a room
- * @param {Room} room 
+ * 
+ * @param {Room} outpostRoom 
+ * @param {Room} homeRoom
+ * @param {BuildOrder[]} plans 
  */
-function getRoomPlans(room) {
+function getOutpostPlans(outpostRoom, homeRoom) {
+    console.log('Entering getOutpostPlans', outpostRoom.name)
+    const sources = outpostRoom.find(FIND_SOURCES);
+    const storageTile = homeRoom.memory.plans[homeRoom.name].find(bo => bo.structure === STRUCTURE_STORAGE);
+    const route = Game.map.findRoute(outpostRoom.name, homeRoom.name).map(r => r.room);
+    const destination = new RoomPosition(storageTile.x, storageTile.y, homeRoom.name)
+    const plans = homeRoom.memory.plans
+    console.log('plans', JSON.stringify(plans))
+    for (let roomName of route) {
+        if (!plans[roomName]) {
+            plans[roomName] = [];
+        }
+    }
+
+    for (let s of sources) {
 
 
+        let path = PathFinder.search(s.pos, destination, {
+            ignoreCreeps: true,
+            plainCost: 3,
+            swampCost: 5,
+            roomCallback: function (roomName) {
+
+                let room = Game.rooms[roomName];
+                // In this example `room` will always exist, but since 
+                // PathFinder supports searches which span multiple rooms 
+                // you should be careful!
+                if (!room) return;
+                let costs = new PathFinder.CostMatrix;
+
+
+                let structures = plans[roomName]
+
+
+                if (structures) {
+                    structures.forEach(function (struct) {
+                        if (struct.structure === STRUCTURE_ROAD) {
+                            // Favor roads over plain tiles
+                            costs.set(struct.x, struct.y, 1);
+                        } else {
+                            costs.set(struct.x, struct.y, 0xff);
+                        }
+                    });
+                }
+
+                return costs;
+            },
+
+        }).path
+
+        console.log('plans keys', Object.keys(plans))
+        for (let i = 0; i < path.length; i++) {
+
+            let pos = path[i];
+            if (pos.x === 0 || pos.x === 49 || pos.y === 0 || pos.y === 49) {
+                continue;
+            }
+
+            if (i === 0) {
+                plans[pos.roomName].push(new BuildOrder(pos.x, pos.y, STRUCTURE_CONTAINER, 4))
+            }
+
+            let bo = plans[pos.roomName].find(b => b.x === pos.x && b.y === pos.y)
+            if (bo) {
+                bo.level = Math.min(4, bo.level)
+            } else {
+                plans[pos.roomName].push(new BuildOrder(pos.x, pos.y, STRUCTURE_ROAD, 4))
+            }
+
+        }
+    }
+
+    homeRoom.memory.plans = plans;
+
+
+
+    /*let outPostPlans = [];
+
+    for (let r of route) {
+
+
+
+        for (let s of sources) {
+            const path = PathFinder.search(s.pos, destination, { range: 1 }, {
+                plainCost: 2,
+                swampCost: 4,
+                maxOps: 4000,
+                maxRooms: 16,
+                roomCallback: function (roomName) {
+                    if (roomName = homeRoom.name) {
+                        return buildOutpostCostmatrix(plans)
+                    } else {
+                        return buildOutpostCostmatrix(outPostPlans)
+                    }
+                },
+            }).path.filter(p => r.roomName === p.roomName)
+
+            for (let p of path) {
+                const buildOrder =
+                    updateTile()
+            }
+
+        }
+    }*/
+}
+
+function getTiles(room) {
     let terrain = new Room.Terrain(room.name);
     let tiles = [];
-    let buildOrders = [];
-
-    // Create a 50x50 grid.
-    // Mark all terrain walls as unavailable, open spaces as available.
 
     for (let x = 1; x < 49; x++) {
         for (let y = 1; y < 49; y++) {
@@ -89,8 +232,28 @@ function getRoomPlans(room) {
                 tiles.push(new Tile(x, y, true));
             };
 
+
+
         };
     };
+
+    return tiles;
+}
+
+/**
+ * Generates build plans for a room
+ * @param {Room} room 
+ */
+function getRoomPlans(room) {
+
+
+
+    let tiles = getTiles(room);
+    let buildOrders = [];
+
+    // Create a 50x50 grid.
+    // Mark all terrain walls as unavailable, open spaces as available.
+
 
     const sources = room.find(FIND_SOURCES)
     const controller = room.controller
@@ -127,14 +290,14 @@ function getRoomPlans(room) {
         if (tile.structure === undefined || tile.structure === 'BUFFER') {
             continue;
         } else if (tile.structure === STRUCTURE_RAMPART) {
-            console.log('Rampart:', tile.x, tile.y,tile.level)
+            console.log('Rampart:', tile.x, tile.y, tile.level)
         }
 
         buildOrders.push(new BuildOrder(tile.x, tile.y, tile.structure, tile.level));
 
     };
 
-    room.memory.plans = buildOrders;
+    room.memory.plans[room.name] = buildOrders;
 
     return buildOrders;
 
@@ -369,10 +532,9 @@ function setRoads(room, tiles, origin, destination, range, level) {
  * @param {RoomPosition} destination 
  * @param {number} range 
  * @param {Tile[]} tiles
- * @param {Room} room
  * @returns {PathFinderPath}
  */
-function getPath(origin, destination, range, tiles, room) {
+function getPath(origin, destination, range, tiles) {
     let target = { pos: destination, range: range };
 
     let ret = PathFinder.search(
@@ -380,7 +542,9 @@ function getPath(origin, destination, range, tiles, room) {
         plainCost: 2,
         swampCost: 2,
         roomCallback: function (roomName) {
-            const costs = getPlannerCostMatrix(tiles, room);
+
+
+            const costs = getPlannerCostMatrix(tiles, Game.rooms[roomName]);
             return costs;
         },
     });
@@ -412,7 +576,7 @@ function getPlannerCostMatrix(tiles, room) {
         for (let x = -1 + source.pos.x; x <= 1 + source.pos.x; x++) {
             for (let y = -1 + source.pos.y; y <= 1 + source.pos.y; y++) {
                 const tile = tiles.find(t => t.x === x && t.y === y)
-                if (tile.available) {
+                if (tile && tile.available) {
                     costs.set(x, y, 10);
                 }
             }
@@ -609,7 +773,13 @@ function visualizeStructures(plans, room) {
     if (plans === undefined) {
         return;
     };
-    for (let order of plans) {
+    let roomPlans = plans[room.name];
+    if(!roomPlans) {
+        return;
+    }
+    for (let order of roomPlans) {
+
+
 
         if (order.structure && !order.placed && order.level <= reqDisplayLevel) {//order.structure != STRUCTURE_RAMPART
             // Visualize the tile based on its structure type
@@ -1045,16 +1215,27 @@ let setStamp = {
  * @param {Room} room 
  * @param {BuildOrder[]} plans 
  */
-function placeSites(room, plans) {
-    const RCL = room.controller.level
-    for (let order of plans) {
-        updatePlacedStatus(order, room)
-        if (order.level <= RCL && !order.placed) {
+function placeSites(homeRoom, plans) {
+    const RCL = homeRoom.controller.level
+    let rooms = [homeRoom.name, ...Object.keys(homeRoom.memory.outposts)]
 
-            room.createConstructionSite(order.x, order.y, order.structure)
+    console.log('rooms', JSON.stringify(rooms))
+    for (let roomName of rooms) {
+        let room = Game.rooms[roomName]
+        if (!room) {
+            continue;
+        }
+        let roomPlans = plans[roomName]
+        if (!roomPlans) {
+            console.log('No roomPlans found for', roomName)
+            continue;
+        }
 
-
-
+        for (let order of roomPlans) {
+            updatePlacedStatus(order, room)
+            if (order.level <= RCL && !order.placed) {
+                room.createConstructionSite(order.x, order.y, order.structure)
+            }
         }
     }
 }

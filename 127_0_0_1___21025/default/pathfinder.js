@@ -82,8 +82,8 @@ function moveCreep(creep, destination, range, maxRooms) {
     try {
         lookCreeps = path[0].lookFor(LOOK_CREEPS);
     } catch (e) {
-        console.log(e);
-        console.log(JSON.stringify(path))
+        //console.log(e);
+        //console.log(JSON.stringify(path))
         MEMORY.rooms[creep.memory.home].creeps[creep.name].path = undefined;
 
 
