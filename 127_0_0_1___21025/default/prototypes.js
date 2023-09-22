@@ -205,3 +205,5 @@ function getAssignedCreeps(target_id) {
 
     return assigned;
 };
+
+module.exports = getAssignedCreeps;

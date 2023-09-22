@@ -221,15 +221,9 @@ function getMission(room, monitoredRooms) {
                 continue;
             }
 
-            if (r.distance === i && r.controller_id && !r.occupied && !r.my && !Object.keys(room.memory.outposts).some(o => o === r.name)) {
+            if (r.distance === i && r.controller_id && !r.occupied && !r.my && !room.memory.outposts.some(o => o === r.name)) {
 
-                room.memory.outposts[r.name] = {
-                    plans: undefined,
-                }
-                MEMORY.rooms[room.name].outposts[r.name] = {
-                    plans: undefined,
-                    sources: r.sources,
-                }
+                room.memory.outposts.push(r.name)
                 console.log('Generating OutpostMission', r.name)
                 return new OutpostMission(r.name)
 

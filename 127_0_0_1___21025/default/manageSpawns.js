@@ -219,6 +219,8 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
     if (onlyEssential) return spawnQueue;
 
+    const outpostRooms = room.memory.outposts;
+
     let upgraderCount = creepsCount['upgrader'] || 0;
     let builderCount = creepsCount['builder'] || 0;
     let maintainerCount = creepsCount['maintainer'] || 0;
@@ -226,6 +228,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let haulerCount = creepsCount['hauler'] || 0;
     let scoutCount = creepsCount['scout'] || 0;
     let hubCount = creepsCount['hub'] || 0;
+    let remoteMinerCount = creepsCount['remoteMiner'] || 0;
 
     const targetUpgraderCount = getTargetCount.upgrader(room);
     let targetBuilderCount = getTargetCount.builder(room);
@@ -234,6 +237,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     const targetHaulerCount = getTargetCount.hauler(room);
     const targetScoutCount = getTargetCount.scout(room);
     const targetHubCount = getTargetCount.hub(room, storedEnergy);
+    const targetRemoteMinerCount = getTargetCount.remoteMiner(room, outpostRooms);
 
 
     for (let order of existingSpawnQueue) {
@@ -268,6 +272,8 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
             hubCount++;
 
+        } else if (role === 'remoteMiner') {
+            remoteMinerCount++;
         };
 
     };
@@ -392,6 +398,20 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         };
         spawnQueue.push(new SpawnOrder('hub', 4, body, options));
         hubCount++;
+    }
+
+    body = [];
+    while (remoteMinerCount < targetRemoteMinerCount) {
+        body = getBody.miner(energyBudget)
+        options = {
+            memory: {
+                role: 'remoteMiner',
+                home: room.name,
+                assignedRoom: undefined,
+            },
+        };
+        spawnQueue.push(new SpawnOrder('remoteMiner', 4, body, options));
+        remoteMinerCount++;
     }
 
 
@@ -1166,6 +1186,26 @@ const getTargetCount = {
     miner: function (room) {
 
         return room.find(FIND_SOURCES).length;
+
+    },
+
+    remoteMiner: function (room, outposts) {
+        console.log('Entering getTargetCount.remoteMiner')
+        let count = 0;
+        console.log(JSON.stringify(outposts))
+        for (let outpostName of outposts) {
+
+            console.log(MEMORY.rooms[room.name].outposts[outpostName])
+
+            if (MEMORY.rooms[room.name].outposts[outpostName]) {
+                let mr = MEMORY.rooms[room.name].outposts[outpostName].minersReq
+
+                count += mr
+            }
+        }
+
+
+        return count;
 
     },
 

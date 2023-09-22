@@ -45,7 +45,7 @@ function roomPlanner(room) {
 
 
     if (room.memory === undefined || room.memory.plans === undefined) {
-       
+
     };
 
     let plans = room.memory.plans;
@@ -62,7 +62,7 @@ function roomPlanner(room) {
 
 
 
-    if (Game.time % 20 === 0 && Game.cpu.bucket > 100 && plans) {
+    if (Game.time % 20 === 0 && room.memory.outposts.length > 0 && Game.cpu.bucket > 100 && plans) {
         outpostPlanner(room, plans)
     }
 
@@ -76,7 +76,7 @@ function roomPlanner(room) {
 
 
 function outpostPlanner(homeRoom) {
-    console.log('Entering outpostPlanner', homeRoom.name)
+    //console.log('Entering outpostPlanner', homeRoom.name)
     if (!homeRoom) {
         return;
     }
@@ -85,12 +85,12 @@ function outpostPlanner(homeRoom) {
     if (!outposts) {
         return;
     }
-    for (let outpostName of Object.keys(outposts)) {
+    for (let outpostName of outposts) {
 
         // Check if we are in the room.
         let outpostRoom = Game.rooms[outpostName];
         if (!outpostRoom) {
-            console.log('not in outpost room')
+            //console.log('not in outpost room')
             continue;
         }
 
@@ -121,7 +121,7 @@ function getOutpostPlans(outpostRoom, homeRoom) {
     console.log('plans', JSON.stringify(plans))
     for (let roomName of route) {
         if (!plans[roomName]) {
-            
+
         }
     }
 
@@ -136,7 +136,7 @@ function getOutpostPlans(outpostRoom, homeRoom) {
             swampCost: 5,
             roomCallback: function (roomName) {
 
-        
+
                 // In this example `room` will always exist, but since 
                 // PathFinder supports searches which span multiple rooms 
                 // you should be careful!
@@ -167,7 +167,7 @@ function getOutpostPlans(outpostRoom, homeRoom) {
         for (let i = 0; i < path.length; i++) {
 
             let pos = path[i];
-         
+
 
             if (pos.x === 0 || pos.x === 49 || pos.y === 0 || pos.y === 49) {
                 continue;
@@ -777,7 +777,7 @@ function visualizeStructures(plans, room) {
         return;
     };
     let roomPlans = plans[room.name];
-    if(!roomPlans) {
+    if (!roomPlans) {
         return;
     }
     for (let order of roomPlans) {
@@ -1220,9 +1220,9 @@ let setStamp = {
  */
 function placeSites(homeRoom, plans) {
     const RCL = homeRoom.controller.level
-    let rooms = [homeRoom.name, ...Object.keys(homeRoom.memory.outposts)]
+    let rooms = [homeRoom.name, ...homeRoom.memory.outposts]
 
-    console.log('rooms', JSON.stringify(rooms))
+    //console.log('rooms', JSON.stringify(rooms))
     for (let roomName of rooms) {
         let room = Game.rooms[roomName]
         if (!room) {

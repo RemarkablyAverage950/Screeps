@@ -20,6 +20,9 @@ Roles:
     [] Maintainer
         [] Unit is repairing ramparts
     [] Remote Miner
+        - assigned to a source at spawn time.
+        - always the same body. Same as a regular miner.
+
     [] Remote builder
     [] Remote Maintainer
     [] Wallbuilder

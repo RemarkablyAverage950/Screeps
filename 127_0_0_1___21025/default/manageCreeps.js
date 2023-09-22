@@ -1,5 +1,7 @@
 let MEMORY = require('memory');
 const { moveCreep, moveCreepToRoom } = require('pathfinder');
+const getAssignedCreeps = require('prototypes');
+
 require('prototypes');
 
 class Task {
@@ -351,6 +353,46 @@ function assignTask(room, creep) {
 
     } else if (role === 'hub') {
         task = getRoleTasks.hub(room, creep)
+    } else if (role === 'remoteMiner') {
+
+        if (!creep.memory.assignedRoom) {
+            console.log('Assigning room to', creep.name)
+            let outpostNames = room.memory.outposts;
+            console.log('A', outpostNames)
+            if (!outpostNames) {
+                task = parkTask(room, creep);
+            } else {
+                for (let roomName of outpostNames) {
+                    if (!MEMORY.rooms[room.name].outposts[roomName]) {
+                        MEMORY.rooms[room.name].outposts[roomName] = { minersReq: 1 }
+                    }
+                    MEMORY.rooms[room.name].outposts[roomName].minersAssigned = 0;
+
+                    console.log('B', JSON.stringify(MEMORY.rooms[room.name].outposts[roomName]))
+                }
+
+                let creeps = Object.values(Game.creeps).filter(c => c.memory.home === room.name && c.memory.role === 'remoteMiner')
+                console.log('C', creeps.length)
+                for (let c of creeps) {
+                    const assignedRoom = c.memory.assignedRoom
+                    if (assignedRoom) {
+                        MEMORY.rooms[room.name].outposts[assignedRoom].minersAssigned++;
+                    }
+                }
+                for (let name of outpostNames) {
+                    let outpost = MEMORY.rooms[room.name].outposts[name]
+                    console.log('D', name, JSON.stringify(outpost))
+                    if (outpost.minersAssigned < outpost.minersReq) {
+                        creep.memory.assignedRoom = name
+                        break;
+                    }
+                }
+
+            }
+        }
+        console.log(creep.name, creep.memory.assignedRoom)
+        task = getRoleTasks.remoteMiner(room, creep)
+
     }
 
     if (!task) {
@@ -669,7 +711,7 @@ const getRoleTasks = {
 
         }
 
-        if(creep.store[RESOURCE_ENERGY] > 0){
+        if (creep.store[RESOURCE_ENERGY] > 0) {
             return new TransferTask(storage.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY]);
 
         }
@@ -720,6 +762,35 @@ const getRoleTasks = {
             }
         }
         return tasks;
+
+    },
+
+    remoteMiner: function (room, creep) {
+        const assignedRoom = creep.memory.assignedRoom
+        if (creep.room.name !== assignedRoom) {
+            console.log(creep.name, 'Not in assigned room')
+            return new MoveToRoomTask(assignedRoom)
+        }
+
+        const sources = creep.room.find(FIND_SOURCES)
+        for (let s of sources) {
+            console.log('E')
+
+            if (getAssignedCreeps(s.id).length > 0) {
+                continue;
+            }
+            const container = s.getContainer();
+            if (container && (creep.pos.x !== container.pos.x || creep.pos.y !== container.pos.y)) {
+                return new MoveTask(container.pos);
+
+            } else if (!container) {
+                console.log('Could not find container near source', s.id)
+            }
+
+            return new HarvestTask(s.id)
+
+        }
+
 
     },
 
