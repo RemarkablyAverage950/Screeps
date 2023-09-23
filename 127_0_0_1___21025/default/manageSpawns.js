@@ -283,7 +283,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
             remoteBuilderCount++;
         } else if (role === 'remoteHauler') {
             remoteHaulerCount++;
-        }else if (role === 'remoteMaintainer'){
+        } else if (role === 'remoteMaintainer') {
             remoteMaintainerCount++;
         }
 
@@ -411,19 +411,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         hubCount++;
     }
 
-    body = [];
-    while (remoteMinerCount < targetRemoteMinerCount) {
-        body = getBody.miner(energyBudget)
-        options = {
-            memory: {
-                role: 'remoteMiner',
-                home: room.name,
-                assignedRoom: undefined,
-            },
-        };
-        spawnQueue.push(new SpawnOrder('remoteMiner', 5, body, options));
-        remoteMinerCount++;
-    }
+
 
     body = [];
     while (remoteBuilderCount < targetRemoteBuilderCount) {
@@ -955,8 +943,8 @@ const getBody = {
         return body;
     },
 
-    remoteMaintainer: function(energyBudget){
-        
+    remoteMaintainer: function (energyBudget) {
+
         let workParts = 1;
         let moveParts = 1;
         let carryParts = 1;
@@ -978,6 +966,48 @@ const getBody = {
             body.push(MOVE);
         };
         return body;
+    },
+
+    /**
+     * Generates a body for a miner.
+     * @param {number} budget Energy budget.
+     * @returns {BodyPartConstant[]}
+     */
+    remoteMiner: function (budget) {
+
+        let cost = 200; // Includes 1 carry part
+        let workCount = 1;
+        let moveCount = 1;
+
+        let body = [];
+
+
+
+        if (cost + 250 <= budget) {
+            workCount++;
+            workCount++;
+            moveCount++;
+            cost += 250;
+        };
+        if (cost + 250 <= budget) {
+            workCount++;
+            workCount++;
+            moveCount++;
+            cost += 150;
+        }
+
+        for (let i = 0; i < workCount; i++) {
+            body.push(WORK);
+        };
+
+        body.push(CARRY)
+
+        for (let i = 0; i < moveCount; i++) {
+            body.push(MOVE);
+        };
+
+        return body;
+
     },
 
     /**
@@ -1487,4 +1517,4 @@ function getWallHitsTarget(room) {
 };
 
 
-module.exports = manageSpawns;
+module.exports = { manageSpawns, getBody, SpawnOrder };

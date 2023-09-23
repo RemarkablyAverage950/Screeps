@@ -36,10 +36,8 @@ function getPath(origin, destination, range, maxRooms) {
             };
 
             if (matrix) {
-                //console.log('Matrix defined')
                 return matrix[0];
             } else {
-                //console.log('Matrix undefined')
                 return undefined;
             }
 
@@ -73,7 +71,6 @@ function moveCreep(creep, destination, range, maxRooms) {
     }
     // Generate a path if needed.
     if (!path || path.length === 0) {
-        console.log('A generating path for', creep.name)
         path = getPath(creep.pos, destination, range, maxRooms);
     };
     if (path.length === 0) {
@@ -86,22 +83,16 @@ function moveCreep(creep, destination, range, maxRooms) {
     try {
         lookCreeps = path[0].lookFor(LOOK_CREEPS);
     } catch (e) {
-        //console.log(e);
-        //console.log(JSON.stringify(path))
         MEMORY.rooms[creep.memory.home].creeps[creep.name].path = undefined;
-
-
         return;
     }
 
     if (lookCreeps.length > 0) {
-        //console.log('LookCreeps', JSON.stringify(lookCreeps))
-        const lookCreep = lookCreeps[0]
-        console.log(creep.name, 'LookCreep', JSON.stringify(lookCreep.name))
 
+        const lookCreep = lookCreeps[0]
+     
         if (MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] && MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
             // Get a new path if there is.
-            console.log('B generating path for', creep.name)
             path = getPath(creep.pos, destination, range, maxRooms);
 
         }
@@ -117,7 +108,7 @@ function moveCreep(creep, destination, range, maxRooms) {
 }
 
 function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
-
+    
 
     let nextRoom = MEMORY.rooms[creep.memory.home].creeps[creep.name].nextroom;
 
@@ -248,10 +239,6 @@ function getCostMatrix(room) {
             }
         }
     }
-    if (room.name === 'W2N1') {
-        //console.log('CM',costMatrix.get(0,7),terrain.get(0, 7))
-    }
-
 
     MEMORY.rooms[room.name].costMatrix = [costMatrix, Game.time];
 
