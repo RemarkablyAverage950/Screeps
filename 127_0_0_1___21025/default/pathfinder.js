@@ -24,15 +24,15 @@ function getPath(origin, destination, range, maxRooms) {
             let room = Game.rooms[roomName];
             if (!room) return undefined;
 
-            if (!MEMORY.rooms[room.name]) {
-                MEMORY.rooms[room.name] = {}
+            if (!MEMORY.rooms[roomName]) {
+                MEMORY.rooms[roomName] = {}
             }
 
-            let matrix = MEMORY.rooms[room.name].costMatrix;
+            let matrix = MEMORY.rooms[roomName].costMatrix;
 
             if (!matrix || Game.time !== matrix[1]) {
                 getCostMatrix(room);
-                matrix = MEMORY.rooms[room.name].costMatrix
+                matrix = MEMORY.rooms[roomName].costMatrix
             };
 
             if (matrix) {
@@ -66,10 +66,14 @@ function moveCreep(creep, destination, range, maxRooms) {
     // Pull the path from memory.
 
     let path = MEMORY.rooms[creep.memory.home].creeps[creep.name].path;
+ 
+    if (path && creep.pos.x === path[0].x && creep.pos.y === path[0].y) {
 
+        path.shift()
+    }
     // Generate a path if needed.
     if (!path || path.length === 0) {
-        //console.log('generating path for', creep.name)
+        console.log('A generating path for', creep.name)
         path = getPath(creep.pos, destination, range, maxRooms);
     };
     if (path.length === 0) {
@@ -93,23 +97,20 @@ function moveCreep(creep, destination, range, maxRooms) {
     if (lookCreeps.length > 0) {
         //console.log('LookCreeps', JSON.stringify(lookCreeps))
         const lookCreep = lookCreeps[0]
-        //console.log('LookCreep', JSON.stringify(lookCreep))
+        console.log(creep.name, 'LookCreep', JSON.stringify(lookCreep.name))
 
         if (MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] && MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
             // Get a new path if there is.
-            //console.log('generating path for', creep.name)
+            console.log('B generating path for', creep.name)
             path = getPath(creep.pos, destination, range, maxRooms);
 
         }
     }
 
+
     const next = creep.pos.getDirectionTo(path[0]);
 
     const ret = creep.move(next)
-
-    if (ret === 0) {
-        path.shift()
-    }
 
     MEMORY.rooms[creep.memory.home].creeps[creep.name].path = path;
 
@@ -169,19 +170,19 @@ function getCostMatrix(room) {
 
     // Set edges to 10 to avoid bouncing in and out of rooms.
     for (let x = 0; x < 50; x++) {
-        if (terrain.get(x, 0) !== 'wall') {
+        if (terrain.get(x, 0) !== 1) {
             costMatrix.set(x, 0, 10);
         };
-        if (terrain.get(x, 49) !== 'wall') {
+        if (terrain.get(x, 49) !== 1) {
             costMatrix.set(x, 49, 10);
         };
     }
 
     for (let y = 0; y < 50; y++) {
-        if (terrain.get(0, y) !== 'wall') {
+        if (terrain.get(0, y) !== 1) {
             costMatrix.set(0, y, 10)
         }
-        if (terrain.get(49, y) !== 'wall') {
+        if (terrain.get(49, y) !== 1) {
             costMatrix.set(49, y, 10)
         }
     }
@@ -247,7 +248,9 @@ function getCostMatrix(room) {
             }
         }
     }
-
+    if (room.name === 'W2N1') {
+        //console.log('CM',costMatrix.get(0,7),terrain.get(0, 7))
+    }
 
 
     MEMORY.rooms[room.name].costMatrix = [costMatrix, Game.time];

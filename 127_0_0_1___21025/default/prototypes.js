@@ -5,6 +5,7 @@ let MEMORY = require('memory');
  * @returns {boolean} 
  */
 Source.prototype.available = function () {
+    if(!MEMORY.rooms[this.room.name] || !MEMORY.rooms[this.room.name].sources[this.id].maxCreeps) return false;
     const maxCreeps = MEMORY.rooms[this.room.name].sources[this.id].maxCreeps
     const assigned = getAssignedCreeps(this.id)
 

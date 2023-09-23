@@ -22,6 +22,8 @@ Roles:
     [] Remote Miner
         - assigned to a source at spawn time.
         - always the same body. Same as a regular miner.
+    [] Hauler
+        - Does not pick up anything except resource energy from tombstones, possibly dropped as well.
 
     [] Remote builder
     [] Remote Maintainer
