@@ -160,7 +160,6 @@ function manageCreeps(room, creeps) {
     for (const creep of creeps) {
 
 
-
         if (creep.spawning) continue;
 
         const taskValid = validateTask(room, creep);
@@ -393,67 +392,17 @@ function assignTask(room, creep) {
             } else {
                 // Return to storage
                 task = new TransferTask(room.storage.id, RESOURCE_ENERGY, creep.store.getUsedCapacity(RESOURCE_ENERGY))
-                creep.memory.assignedRoom = undefined;
             }
         } else {
 
-            if (!creep.memory.assignedRoom) {
-
-                // find fullest room.
-                let maxEnergy = 0;
-                let targetRoomName = undefined;
-                for (let outpostName of room.memory.outposts) {
-
-                    let outpost = Game.rooms[outpostName];
-
-                    if (!outpost) {
-                        continue;
-                    }
-                    let energy = 0;
-                    const structures = outpost.find(FIND_STRUCTURES);
-                    const dropped = outpost.find(FIND_DROPPED_RESOURCES);
-                    const tombstones = outpost.find(FIND_TOMBSTONES)
-                    for (let s of structures) {
-                        if (s.structureType === STRUCTURE_CONTAINER) {
-                            energy += s.forecast(RESOURCE_ENERGY);
-                        }
-                    }
-
-                    for (let d of dropped) {
-                        energy += d.forecast(RESOURCE_ENERGY);
-                    }
-
-                    for (let t of tombstones) {
-                        energy += t.forecast(RESOURCE_ENERGY);
-                    }
-
-                    if (energy > maxEnergy) {
-                        maxEnergy = energy;
-                        targetRoomName = outpostName;
-                    }
-
-                }
-
-                creep.memory.assignedRoom = targetRoomName;
-
-
-            }
 
             let targetRoom = creep.memory.assignedRoom;
             if (creep.room.name !== targetRoom) {
                 task = new MoveToRoomTask(targetRoom)
             } else {
                 let availableTasks = getRoleTasks.remoteHauler(creep.room, creep)
-                if (availableTasks.length === 0) {
-                    creep.memory.assignedRoom = undefined;
-                }
-
                 let maxQty = 0;
-
-
                 for (const t of availableTasks) {
-
-
                     if (t.qty > maxQty) {
                         maxQty = t.qty;
                         task = t;
@@ -461,8 +410,6 @@ function assignTask(room, creep) {
 
                 };
             }
-
-
         }
 
         if (!task) {
@@ -491,7 +438,7 @@ function assignTask(room, creep) {
         if (creep.room.name !== assignedRoom) {
             task = new MoveToRoomTask(assignedRoom)
         } else {
-            let availableTasks = getRoleTasks.maintainer(creep.room, creep);
+            let availableTasks = getRoleTasks.remoteMaintainer(creep.room, creep);
 
             if (availableTasks.length === 0) {
                 creep.memory.assignedRoom = undefined;
@@ -864,6 +811,7 @@ const getRoleTasks = {
 
         if (creep.store[RESOURCE_ENERGY] > 0) {
 
+
             tasks.push(...getTasks.repair(room));
 
         };
@@ -944,6 +892,29 @@ const getRoleTasks = {
             tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY));
 
         }
+        return tasks;
+    },
+
+    remoteMaintainer: function (room, creep) {
+        let tasks = [];
+
+        if (creep.store.getFreeCapacity() > 0) {
+
+            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY));
+            tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY));
+            if (tasks.length === 0) {
+                tasks.push(...getTasks.harvest(room));
+            };
+
+        };
+
+        if (creep.store[RESOURCE_ENERGY] > 0) {
+
+
+            tasks.push(...getTasks.repairRoads(room));
+
+        };
+
         return tasks;
     },
 
@@ -1330,6 +1301,25 @@ const getTasks = {
 
     },
 
+    repairRoads: function (room) {
+
+        const structures = room.find(FIND_STRUCTURES);
+        let tasks = [];
+
+        for (let s of structures) {
+
+            if (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax) {
+
+                tasks.push(new RepairTask(s.id));
+
+            }
+
+        }
+
+        return tasks;
+
+    },
+
     repair: function (room) {
 
         const structures = room.find(FIND_STRUCTURES);
@@ -1439,7 +1429,7 @@ const getTasks = {
 
                 const forecast = s.forecast(resourceType);
 
-                if (forecast > 0) {
+                if (forecast > 20) {
 
                     tasks.push(new WithdrawTask(s.id, resourceType, forecast));
 

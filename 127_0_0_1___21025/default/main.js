@@ -34,7 +34,7 @@ module.exports.loop = function () {
         const creeps = Object.values(Game.creeps).filter(c => c.memory.home === roomName);
 
         manageMemory(room, creeps);
-        outpostManager(room);
+        outpostManager(room, creeps);
         manageLinks(room);
         expansionManager(room);
         roomPlanner(room);

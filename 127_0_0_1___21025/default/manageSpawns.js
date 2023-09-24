@@ -111,7 +111,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let storedEnergy = 0;
 
     for (const s of structures) {
-        if (s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_STORAGE || s.structureType === STRUCTURE_LINK) {
+        if (s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_STORAGE) {
             storedEnergy += s.store[RESOURCE_ENERGY];
         };
     };
@@ -228,9 +228,8 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let haulerCount = creepsCount['hauler'] || 0;
     let scoutCount = creepsCount['scout'] || 0;
     let hubCount = creepsCount['hub'] || 0;
-    let remoteMinerCount = creepsCount['remoteMiner'] || 0;
     let remoteBuilderCount = creepsCount['remoteBuilder'] || 0;
-    let remoteHaulerCount = creepsCount['remoteHauler'] || 0;
+
     let remoteMaintainerCount = creepsCount['remoteMaintainer'] || 0;
 
     const targetUpgraderCount = getTargetCount.upgrader(room);
@@ -240,9 +239,8 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     const targetHaulerCount = getTargetCount.hauler(room);
     const targetScoutCount = getTargetCount.scout(room);
     const targetHubCount = getTargetCount.hub(room, storedEnergy);
-    const targetRemoteMinerCount = getTargetCount.remoteMiner(room, outpostRooms);
     const targetRemoteBuilderCount = getTargetCount.remoteBuilder(room, outpostRooms);
-    const targetRemoteHaulerCount = getTargetCount.remoteHauler(room, outpostRooms);
+
     const targetRemoteMaintainerCount = getTargetCount.remoteMaintainer(room, outpostRooms);
 
     for (let order of existingSpawnQueue) {
@@ -277,13 +275,10 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
             hubCount++;
 
-        } else if (role === 'remoteMiner') {
-            remoteMinerCount++;
         } else if (role === 'remoteBuilder') {
             remoteBuilderCount++;
-        } else if (role === 'remoteHauler') {
-            remoteHaulerCount++;
-        } else if (role === 'remoteMaintainer') {
+        }
+        else if (role === 'remoteMaintainer') {
             remoteMaintainerCount++;
         }
 
@@ -315,7 +310,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
             let ret = getBody.builder(energyBudget, room, storedEnergy);
             body = ret[0];
 
-            if (ret[1] > 2) {
+            if (ret[1] > 2 && storedEnergy < CONSERVE_ENERGY_VALUE) {
                 targetBuilderCount = 2;
             }
             options = {
@@ -327,7 +322,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
         };
 
-        spawnQueue.push(new SpawnOrder('builder', 4, body, options));
+        spawnQueue.push(new SpawnOrder('builder', 6, body, options));
         builderCount++;
     };
 
@@ -345,7 +340,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
         };
 
-        spawnQueue.push(new SpawnOrder('maintainer', 4, body, options));
+        spawnQueue.push(new SpawnOrder('maintainer', 5, body, options));
         maintainerCount++;
     };
 
@@ -363,7 +358,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
         };
 
-        spawnQueue.push(new SpawnOrder('wallBuilder', 4, body, options));
+        spawnQueue.push(new SpawnOrder('wallBuilder', 6, body, options));
         wallBuilderCount++;
     };
 
@@ -424,23 +419,8 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
                 assignedRoom: undefined,
             },
         };
-        spawnQueue.push(new SpawnOrder('remoteBuilder', 5, body, options));
+        spawnQueue.push(new SpawnOrder('remoteBuilder', 6, body, options));
         remoteBuilderCount++;
-    }
-
-    body = [];
-    while (remoteHaulerCount < targetRemoteHaulerCount) {
-        body = getBody.remoteHauler(energyBudget)
-
-        options = {
-            memory: {
-                role: 'remoteHauler',
-                home: room.name,
-                assignedRoom: undefined,
-            },
-        };
-        spawnQueue.push(new SpawnOrder('remoteHauler', 5, body, options));
-        remoteHaulerCount++;
     }
 
     body = [];
@@ -923,14 +903,17 @@ const getBody = {
 
     },
 
-    remoteHauler: function (energyBudget) {
+    remoteHauler: function (energyBudget, capacityRequired) {
         let moveParts = 1;
         let carryParts = 2;
         let cost = 150;
-        while (cost + 150 <= energyBudget) {
+        let capacity = 100;
+
+        while (cost + 150 <= energyBudget && capacity < capacityRequired) {
             moveParts += 1;
             carryParts += 2;
             cost += 150
+            capacity += 100;
         }
 
         let body = [];
@@ -1371,20 +1354,6 @@ const getTargetCount = {
         return 0;
     },
 
-    remoteHauler: function (room, outpostRooms) {
-        let sourceCount = 0;
-
-        for (let outpostName of outpostRooms) {
-            if (MEMORY.rooms[room.name].outposts[outpostName])
-
-                sourceCount += MEMORY.rooms[room.name].outposts[outpostName].minersReq;
-        }
-
-        return Math.ceil(sourceCount / 2)
-
-
-    },
-
     remoteMiner: function (room, outposts) {
 
         let count = 0;
@@ -1407,7 +1376,7 @@ const getTargetCount = {
     remoteMaintainer: function (room, outpostRooms) {
 
         let roomCount = outpostRooms.length;
-        return roomCount;
+        return 1;
 
     },
 
