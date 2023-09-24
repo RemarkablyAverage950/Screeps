@@ -412,7 +412,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
     body = [];
     while (remoteBuilderCount < targetRemoteBuilderCount) {
-        body = getBody.remoteBuilder(energyBudget)
+        body = getBody.remoteBuilder(energyBudget,room,storedEnergy)
 
         options = {
             memory: {
@@ -906,7 +906,7 @@ const getBody = {
 
     },
 
-    remoteBuilder: function (energyBudget) {
+    remoteBuilder: function (energyBudget,room,storedEnergy) {
 
         if(room.storage && storedEnergy < 5000){ 
             return [WORK,CARRY,MOVE]

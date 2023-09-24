@@ -44,9 +44,7 @@ class Tile {
 function roomPlanner(room) {
 
 
-    if (room.memory === undefined || room.memory.plans === undefined) {
-
-    };
+   //room.memory.plans = undefined;
 
     let plans = room.memory.plans;
 
@@ -66,14 +64,77 @@ function roomPlanner(room) {
         outpostPlanner(room, plans)
     }
 
+    if (plans && Game.time % 1000 == 0 && Game.cpu.bucket > 100) {
+        validateStructures(room, plans)
+    }
+
+
     if (plans && Game.time % 20 === 0 && Game.cpu.bucket > 100) {
         placeSites(room, plans);
     };
 
-    visualizeStructures(plans, room)
+    if (plans) visualizeStructures(plans, room);
 
 };
 
+/**
+ * 
+ * @param {Room} room 
+ * @param {Object[]} plans 
+ */
+function validateStructures(room, plans) {
+    const structures = room.find(FIND_STRUCTURES);
+    const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
+    let spawnCount = room.find(FIND_MY_SPAWNS).length;
+
+
+    for (let s of structures) {
+        if (s.structureType === STRUCTURE_CONTROLLER) {
+            continue;
+        }
+        // Find a co-relating build order
+        const pos = s.pos
+        const plan = plans[room.name].find(bo => bo.x === pos.x && bo.y === pos.y)
+
+        // If no plan exists, remove structure
+        if (!plan) {
+
+            // Except if structure is a spawn. Then make sure there is > 1 spawns first.
+            if (s.structureType === STRUCTURE_SPAWN) {
+
+                if (spawnCount > 1) {
+                    console.log('removing structure', s.structureType, JSON.stringify(s.pos))
+                    s.destroy()
+                    spawnCount--;
+                    
+                }
+
+            } else {
+                console.log('removing structure', s.structureType, JSON.stringify(s.pos))
+                s.destroy()
+                
+            }
+        }
+    }
+
+    // Repeat for construction sites
+
+    for (let s of sites) {
+
+        // Find a co-relating build order
+        const pos = s.pos
+        const plan = plans[room.name].find(bo => bo.x === pos.x && bo.y === pos.y)
+
+        // If no plan exists, remove structure
+        if (!plan) {
+
+            console.log('removing construction site', JSON.stringify(s.pos))
+
+            s.remove()
+
+        }
+    }
+}
 
 function outpostPlanner(homeRoom) {
     //console.log('Entering outpostPlanner', homeRoom.name)
@@ -193,11 +254,11 @@ function getOutpostPlans(outpostRoom, homeRoom) {
 
 
     /*let outPostPlans = [];
-
+ 
     for (let r of route) {
-
-
-
+ 
+ 
+ 
         for (let s of sources) {
             const path = PathFinder.search(s.pos, destination, { range: 1 }, {
                 plainCost: 2,
@@ -212,12 +273,12 @@ function getOutpostPlans(outpostRoom, homeRoom) {
                     }
                 },
             }).path.filter(p => r.roomName === p.roomName)
-
+ 
             for (let p of path) {
                 const buildOrder =
                     updateTile()
             }
-
+ 
         }
     }*/
 }
@@ -282,24 +343,18 @@ function getRoomPlans(room) {
 
     setRamparts(room, tiles, storagePos)
 
-    //TODO: 
-    //place ramparts
-    // Place Towers
-
     tiles.sort((a, b) => a.level - b.level)
 
     for (let tile of tiles) {
 
         if (tile.structure === undefined || tile.structure === 'BUFFER') {
             continue;
-        } else if (tile.structure === STRUCTURE_RAMPART) {
-            console.log('Rampart:', tile.x, tile.y, tile.level)
-        }
+        } else
 
-        buildOrders.push(new BuildOrder(tile.x, tile.y, tile.structure, tile.level));
+            buildOrders.push(new BuildOrder(tile.x, tile.y, tile.structure, tile.level));
 
     };
-
+    room.memory.plans = {}
     room.memory.plans[room.name] = buildOrders;
 
     return buildOrders;
@@ -310,7 +365,7 @@ function getRoomPlans(room) {
  * Plans positions for 6 Towers, 1 Observer closest to defined start point.
  * @param {Tile[]} tiles 
  * @param {Room} room 
-
+ 
  */
 function setIndividualStructures(tiles, room) {
 
@@ -494,8 +549,8 @@ function setRamparts(room, tiles, storagePos) {
 
                             let tile = tiles.find(t => t.x === x && t.y === y)
                             if (tile.available) {
-                                updateTile(x, y, building[0], tiles, false, building[1])
-                                updateTile(x, y, STRUCTURE_RAMPART, tiles, false, building[1])
+                                updateTile(x, y, building[0], tiles, false, building[1]);
+                                updateTile(x, y, STRUCTURE_RAMPART, tiles, false, building[1]);
                                 placed = true;
                                 break;
                             }
@@ -506,7 +561,6 @@ function setRamparts(room, tiles, storagePos) {
                 }
             }
         }
-
     }
 }
 
@@ -874,8 +928,7 @@ let setStamp = {
             updateTile(closest.x + b[0], closest.y + b[1], b[2], tiles, isCenter, 6)
         });
 
-        updateTile(mineral.pos.x, mineral.pos.y, STRUCTURE_EXTRACTOR, tiles, false, 6)
-        updateTile(mineral.pos.x, mineral.pos.y, STRUCTURE_RAMPART, tiles, false, 6)
+        updateTile(mineral.pos.x, mineral.pos.y, STRUCTURE_EXTRACTOR, tiles, false, 6);
 
     },
 
@@ -886,6 +939,8 @@ let setStamp = {
      * @param {RoomPosition} hubCenter
      */
     controller: function (room, tiles, hubCenter) {
+        console.log('Entering setStamp.controller')
+
         const BUILDINGS = [
             [-1, -1, 'BUFFER', 9],
             [0, -1, 'BUFFER', 9],
@@ -944,9 +999,11 @@ let setStamp = {
         availablePos = availablePos.sort((a, b) => a.getRangeTo(hubCenter) - b.getRangeTo(hubCenter))
         // check for 3x3 available and place buildings if found
 
-
+        let found = false;
         for (let pos of availablePos) {
-            let found = true;
+            if (found) break;
+
+            found = true;
 
             for (let building of BUILDINGS) {
 
@@ -983,11 +1040,46 @@ let setStamp = {
                     updateTile(pos.x + b[0], pos.y + b[1], b[2], tiles, isCenter, b[3])
                 });
 
-                return;
+                break;
             }
-
-
         }
+
+        console.log('Placing controller Ramparts')
+        const controller = room.controller
+        console.log(JSON.stringify(controller.pos))
+        let terrain = room.getTerrain(room.name)
+        console.log(JSON.stringify(terrain))
+        for (let x = controller.pos.x - 1; x <= controller.pos.x + 1; x++) {
+            let y = -1 + controller.pos.y
+            console.log(x, y, terrain.get(x, y))
+
+            if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
+                console.log('placing rampart at', x, y)
+                updateTile(x, y, STRUCTURE_RAMPART, tiles, false, 4)
+            }
+            y = 1 + controller.pos.y
+            if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
+                console.log('placing rampart at', x, y)
+                updateTile(x, y, STRUCTURE_RAMPART, tiles, false, 4)
+            }
+        }
+
+        let x = -1 + controller.pos.x
+        let y = controller.pos.y
+        console.log(x, y, terrain.get(x, y))
+        if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
+            console.log('placing rampart at', x, y)
+
+            updateTile(x, y, STRUCTURE_RAMPART, tiles, false, 4)
+        }
+        x = 1 + controller.pos.x
+        console.log(x, y, terrain.get(x, y))
+        if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
+            console.log('placing rampart at', x, y)
+            updateTile(x, y, STRUCTURE_RAMPART, tiles, false, 4)
+        }
+
+
     },
 
     /**
@@ -1045,6 +1137,7 @@ let setStamp = {
             [1, -2, STRUCTURE_ROAD, 2],
             [-2, -1, STRUCTURE_ROAD, 4],
             [-1, -1, STRUCTURE_TERMINAL, 6],
+            [-1, -1, STRUCTURE_RAMPART, 6],
             [0, -1, STRUCTURE_LINK, 5],
             [1, -1, STRUCTURE_STORAGE, 4],
             [1, -1, STRUCTURE_RAMPART, 4],

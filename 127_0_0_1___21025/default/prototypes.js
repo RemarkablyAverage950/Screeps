@@ -27,6 +27,10 @@ Source.prototype.getContainer = function () {
     } else if (containers.length == 2) {
         // find the container that only can access this source.
         const otherSource = this.room.find(FIND_SOURCES).filter(s => s.id != this.id)[0]
+        if(!otherSource){
+            return containers[0]
+        }
+        
         for (let container of containers) {
             if (otherSource.pos.isNearTo(container)) {
                 continue

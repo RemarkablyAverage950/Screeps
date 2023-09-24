@@ -25,6 +25,13 @@ class BuildTask extends Task {
     };
 };
 
+class DismantleTask extends Task {
+    constructor(id){
+        super('DISMANTLE');
+        this.id = id;
+    }
+}
+
 class HarvestTask extends Task {
     /**
      * @constructor
@@ -158,7 +165,10 @@ function manageCreeps(room, creeps) {
 
 
     for (const creep of creeps) {
-
+        /*if(creep.name === 'W2N2_remoteHauler_0'){
+            console.log('Task:',JSON.stringify(MEMORY.rooms[room.name].creeps[creep.name].task))
+            console.log('Path:',MEMORY.rooms[room.name].creeps[creep.name].path)
+        }*/
 
         if (creep.spawning) continue;
 
@@ -413,7 +423,7 @@ function assignTask(room, creep) {
         }
 
         if (!task) {
-            task = parkTask(room, creep)
+            task = parkTask(creep.room, creep)
         }
 
     } else if (role === 'remoteMaintainer') {
@@ -514,7 +524,18 @@ function executeTask(room, creep) {
             };
 
             break;
+        case 'DISMANTLE':
+            if (creep.dismantle(target) != 0) {
 
+                moveCreep(creep, target.pos, 1, 1);
+
+            } else {
+
+                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
+                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+
+            };
+        break;
         case 'HARVEST':
 
             if (creep.harvest(target) != 0 && creep.pos.getRangeTo(target) > 1) {
@@ -974,8 +995,7 @@ const getRoleTasks = {
     remoteMaintainer: function (room, creep) {
         let tasks = [];
 
-        if (creep.store.getFreeCapacity() > 0) {
-
+        if (creep.store.getFreeCapacity() > .5 *creep.store.getCapacity()) {
             tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY));
             tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY));
             if (tasks.length === 0) {
@@ -987,9 +1007,13 @@ const getRoleTasks = {
         if (creep.store[RESOURCE_ENERGY] > 0) {
 
 
-            tasks.push(...getTasks.repairRoads(room));
+            tasks.push(...getTasks.repairRoads(room, creep));
 
         };
+
+        if(tasks.length === 0){
+            tasks.push(...getTasks.dismantle(room, creep));
+        }
 
         return tasks;
     },
@@ -1011,7 +1035,11 @@ const getRoleTasks = {
 
         }
 
-        if (container && creep.store.getFreeCapacity() === 0 && container.hits < container.hitsMax) {
+        if (container
+            && creep.store.getFreeCapacity() === 0
+            && container.hits < container.hitsMax
+            && Memory.rooms[creep.memory.home].plans[creep.room.name]
+                .some(p => p.x === container.pos.x && p.y === container.pos.y)) {
             return new RepairTask(container.id)
         }
 
@@ -1212,6 +1240,18 @@ const getTasks = {
         return tasks;
     },
 
+    dismantle: function(room, creep){
+        let tasks = [];
+        let plans = Memory.rooms[creep.memory.home].plans[creep.room.name]
+        let structures = room.find(FIND_STRUCTURES)
+        for(let s of structures){
+            if(!plans.some(p=> p.x === s.pos.x && p.y === s.pos.y)){
+                tasks.push(new DismantleTask(s.id))
+            }
+        }
+        return tasks;
+    },
+
     /**
      * 
      * @param {Room} room 
@@ -1377,7 +1417,7 @@ const getTasks = {
 
     },
 
-    repairRoads: function (room) {
+    repairRoads: function (room, creep) {
 
         const structures = room.find(FIND_STRUCTURES);
         let tasks = [];
@@ -1386,7 +1426,9 @@ const getTasks = {
 
             if (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax) {
 
-                tasks.push(new RepairTask(s.id));
+                if (Memory.rooms[creep.memory.home].plans[room.name].some(p => p.x === s.pos.x && p.y === s.pos.y)) {
+                    tasks.push(new RepairTask(s.id));
+                }
 
             }
 
@@ -1574,7 +1616,15 @@ function validateTask(room, creep) {
             };
 
             break;
-
+        
+        case 'DISMANTLE':
+            if(!target){
+                return false;
+            }
+            if(creep.store.getFreeCapacity() === 0){
+                return false;
+            }
+        break;
         case 'HARVEST':
 
             if (!target) {
