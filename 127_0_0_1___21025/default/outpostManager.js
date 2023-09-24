@@ -178,9 +178,10 @@ function outpostManager(homeRoom, creeps) {
                 let totalDistance = 0;
                 let energyGeneratedPerLife;
                 if (outpostRoom.controller.reservation) {
-                    energyGeneratedPerLife = (15000 - 750) * Object.keys(heap.sources).length
+                    console.log('GENERATING RESERVATION ROOM HAULER')
+                    energyGeneratedPerLife = (15000 - 750) * Object.keys(heap.sources).length * .8 
                 } else {
-                    energyGeneratedPerLife = energyGeneratedPerLife = (7500 - 750) * Object.keys(heap.sources).length
+                    energyGeneratedPerLife = energyGeneratedPerLife = (7500 - 750) * Object.keys(heap.sources).length * .8
                 }
 
                 for (let s of Object.values(heap.sources)) {

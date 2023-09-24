@@ -229,8 +229,8 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let scoutCount = creepsCount['scout'] || 0;
     let hubCount = creepsCount['hub'] || 0;
     let remoteBuilderCount = creepsCount['remoteBuilder'] || 0;
-
     let remoteMaintainerCount = creepsCount['remoteMaintainer'] || 0;
+    let fastFillerCount = creepsCount['fastFiller'] || 0;
 
     const targetUpgraderCount = getTargetCount.upgrader(room);
     let targetBuilderCount = getTargetCount.builder(room);
@@ -240,8 +240,8 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     const targetScoutCount = getTargetCount.scout(room);
     const targetHubCount = getTargetCount.hub(room, storedEnergy);
     const targetRemoteBuilderCount = getTargetCount.remoteBuilder(room, outpostRooms);
-
     const targetRemoteMaintainerCount = getTargetCount.remoteMaintainer(room, outpostRooms);
+    const targetFastFillerCount = getTargetCount.fastFiller(room);
 
     for (let order of existingSpawnQueue) {
 
@@ -280,6 +280,8 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         }
         else if (role === 'remoteMaintainer') {
             remoteMaintainerCount++;
+        } else if (role === 'fastFiller') {
+            fastFillerCount++;
         }
 
     };
@@ -310,7 +312,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
             let ret = getBody.builder(energyBudget, room, storedEnergy);
             body = ret[0];
 
-            if (ret[1] > 2 && storedEnergy < CONSERVE_ENERGY_VALUE) {
+            if (ret[1] > 2 && storedEnergy > CONSERVE_ENERGY_VALUE) {
                 targetBuilderCount = 2;
             }
             options = {
@@ -425,7 +427,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
     body = [];
     while (remoteMaintainerCount < targetRemoteMaintainerCount) {
-        body = getBody.remoteMaintainer(energyBudget)
+        body = getBody.remoteMaintainer()
 
         options = {
             memory: {
@@ -436,6 +438,20 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         };
         spawnQueue.push(new SpawnOrder('remoteMaintainer', 5, body, options));
         remoteMaintainerCount++;
+    }
+
+    body = [];
+    while (fastFillerCount < targetFastFillerCount) {
+        body = getBody.fastFiller()
+
+        options = {
+            memory: {
+                role: 'fastFiller',
+                home: room.name,
+            },
+        };
+        spawnQueue.push(new SpawnOrder('fastFiller', 4, body, options));
+        fastFillerCount++;
     }
 
 
@@ -468,7 +484,9 @@ const getBody = {
             More than one builder can be used to complete construction.
         */
 
-
+            if(room.storage && storedEnergy < 5000){ 
+                return [WORK,CARRY,MOVE]
+            }
 
         const sources = room.find(FIND_SOURCES);
         const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
@@ -565,16 +583,25 @@ const getBody = {
         return [body, estCreepsNeeded];
     },
 
+    fastFiller: function () {
+        return [CARRY, MOVE]
+    },
+
     /**
      * Generates a body for a filler.
      * @param {number} budget Energy budget.
      * @returns {BodyPartConstant[]}
      */
-    filler: function (budget) {
+    filler: function (budget,room) {
 
         const bodyPartBlock = [CARRY, CARRY, MOVE];
         const blockCost = 150;
-        const targetCapacity = budget / 2;
+
+        let targetCapacity = budget / 2;
+
+        if(MEMORY.rooms[room.name].links.spawn){
+            targetCapacity = (budget - 750) / 2
+        }
 
         let cost = 0;
         let capacity = 0;
@@ -731,38 +758,40 @@ const getBody = {
         let roadCount = 0;
         let containerCount = 0;
 
-        let averageDistance = 0;
+        let averageRoadDistance = 0;
+        let averageContainerDistance = 0;
 
         for (let s of structures) {
             if (s.structureType === STRUCTURE_ROAD) {
-                if (room.controller) {
-                    averageDistance += s.pos.getRangeTo(room.controller);
+                if (room.storage) {
+                    averageRoadDistance += s.pos.getRangeTo(room.storage);
                 } else {
                     for (let source of sources) {
-                        averageDistance += s.pos.getRangeTo(source);
+                        averageRoadDistance += s.pos.getRangeTo(source);
                     }
                 }
                 roadCount++;
             } else if (s.structureType === STRUCTURE_CONTAINER) {
-                if (room.controller) {
-                    averageDistance += s.pos.getRangeTo(room.controller);
+                if (room.storage) {
+                    averageContainerDistance += s.pos.getRangeTo(room.storage);
                 } else {
                     for (let source of sources) {
-                        averageDistance += s.pos.getRangeTo(source);
+                        averageContainerDistance += s.pos.getRangeTo(source);
                     }
                 }
                 containerCount++;
             };
         };
 
-        if (room.controller) {
-            averageDistance /= (containerCount + roadCount);
+        if (room.storage) {
+            averageRoadDistance /= roadCount;
         } else {
-            averageDistance /= ((containerCount + roadCount) * sources.length);
+            averageContainerDistance /= (containerCount * sources.length);
         }
-        const workNeededPerLife = (containerCount * 15000) + (roadCount * 150) * 1.1; // 10% extra to account for any non road/container buildings that need repairs.
+        const roadWorkNeededPerLife = (roadCount * 150) * 2; // 2x extra to account for any non road/container buildings that need repairs + road damage from movement.
+        const conatinerWorkNeededPerLife = (containerCount * 15000) * 1.1
 
-
+        let bodyFound = false;
         let bestBody = [1, 1, 1];
         let minCost = Infinity;
 
@@ -784,19 +813,29 @@ const getBody = {
                     const workPerTrip = carryParts * 5000;
                     const workTime = workPerTrip / (workParts * 100);
 
-                    const moveTimeEmpty = Math.ceil(workParts / (2 * moveParts));
-                    const moveTimeFull = Math.ceil((workParts + carryParts) / (2 * moveParts));
+                    const moveTimeEmpty = Math.ceil(workParts / (1.75 * moveParts));
+                    const moveTimeFull = Math.ceil((workParts + carryParts) / (1.75 * moveParts));
 
-                    const totalMoveTime = (averageDistance * moveTimeEmpty) + (averageDistance * moveTimeFull)
+                    const totalMoveTimeRoad = (averageRoadDistance * moveTimeEmpty) + (averageRoadDistance * moveTimeFull)
+                    const totalMoveTimeContainer = (averageContainerDistance * moveTimeEmpty) + (averageContainerDistance * moveTimeFull)
 
-                    const timePerTrip = totalMoveTime + workTime + 1;
+                    const timePerTripRoad = totalMoveTimeRoad + workTime + 1;
+                    const timePerTripContainer = totalMoveTimeContainer + workTime + 1;
 
-                    const tripsNeeded = workNeededPerLife / workPerTrip;
+                    const tripsNeededRoad = roadWorkNeededPerLife / workPerTrip;
+                    const tripsNeededContainer = conatinerWorkNeededPerLife / workPerTrip;
 
-                    const tripsPerLife = 1500 / timePerTrip;
+                    const tripsPerLife = 1500 / (timePerTripRoad+timePerTripContainer);
 
+                    if (workParts < 3 && carryParts < 3 && moveParts < 3) {
+                        console.log(workParts, carryParts, moveParts,tripsPerLife)
+                    }
 
-                    if (tripsPerLife > tripsNeeded && cost < minCost) {
+                    if (!bodyFound && tripsPerLife >= tripsNeededRoad+tripsNeededContainer) {
+                        bestBody = [workParts, carryParts, moveParts];
+                        minCost = cost;
+                        bodyFound = true;
+                    } else if (bodyFound && cost < minCost && tripsPerLife >= tripsNeededRoad+tripsNeededContainer) {
                         bestBody = [workParts, carryParts, moveParts];
                         minCost = cost;
                     }
@@ -869,6 +908,10 @@ const getBody = {
 
     remoteBuilder: function (energyBudget) {
 
+        if(room.storage && storedEnergy < 5000){ 
+            return [WORK,CARRY,MOVE]
+        }
+
         let workParts = 1;
         let moveParts = 1;
         let carryParts = 1;
@@ -926,28 +969,9 @@ const getBody = {
         return body;
     },
 
-    remoteMaintainer: function (energyBudget) {
+    remoteMaintainer: function () {
 
-        let workParts = 1;
-        let moveParts = 1;
-        let carryParts = 1;
-
-        if (energyBudget >= 350) {
-            moveParts += 1 // 2
-            carryParts += 2 // 3
-
-        }
-
-        let body = [];
-        for (let i = 0; i < workParts; i++) {
-            body.push(WORK);
-        };
-        for (let i = 0; i < carryParts; i++) {
-            body.push(CARRY);
-        };
-        for (let i = 0; i < moveParts; i++) {
-            body.push(MOVE);
-        };
+        const body = [WORK, CARRY, MOVE];
         return body;
     },
 
@@ -1001,6 +1025,10 @@ const getBody = {
      * @returns {BodyPartConstant[]}
      */
     upgrader: function (budget, room, storedEnergy) {
+
+        if(room.storage && storedEnergy < 5000){ 
+            return [WORK,CARRY,MOVE]
+        }
 
         /*
             Most effecient upgrader can complete the most upgrades in its life.
@@ -1089,6 +1117,11 @@ const getBody = {
 
     wallBuilder: function (budget, room, storedEnergy) {
 
+        if(room.storage && storedEnergy < 5000){ 
+            return [WORK,CARRY,MOVE]
+        }
+
+
         let averageDistance = 0;
         const sources = room.find(FIND_SOURCES);
         const structures = room.find(FIND_STRUCTURES);
@@ -1165,6 +1198,8 @@ const getBody = {
                 };
             };
         };
+
+
 
         if (room.storage && storedEnergy < CONSERVE_ENERGY_VALUE) {
             bestBody[0] = Math.max(Math.floor(bestBody[0] / 2), 1)
@@ -1260,6 +1295,13 @@ const getTargetCount = {
         if (room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) return 1;
 
         return 0
+    },
+
+    fastFiller: function (room) {
+        if (MEMORY.rooms[room.name].links.spawn) {
+            return 4;
+        }
+        return 0;
     },
 
     /**

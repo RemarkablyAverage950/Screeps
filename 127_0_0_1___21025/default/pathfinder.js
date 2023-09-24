@@ -91,9 +91,9 @@ function moveCreep(creep, destination, range, maxRooms) {
     }
 
     if (lookCreeps.length > 0) {
-        
+
         const lookCreep = lookCreeps[0]
-        
+
         if (MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] && !MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
             // Get a new path if there is.
             path = getPath(creep.pos, destination, range, maxRooms);
@@ -196,8 +196,16 @@ function getCostMatrix(room) {
             continue;
         };
 
-        // Structure is impassable
-        costMatrix.set(structure.pos.x, structure.pos.y, 0xff);
+        if (structure.structureType === STRUCTURE_LINK && MEMORY.rooms[room.name].links.spawn && structure.id === MEMORY.rooms[room.name].links.spawn){
+            let pos = structure.pos;
+
+            costMatrix.set(pos.x-1, pos.y-1, 10);
+            costMatrix.set(pos.x+1, pos.y-1, 10);
+            costMatrix.set(pos.x-1, pos.y+1, 10);
+            costMatrix.set(pos.x+1, pos.y+1, 10);
+        }
+            // Structure is impassable
+            costMatrix.set(structure.pos.x, structure.pos.y, 0xff);
     }
 
     for (let site of sites) {
