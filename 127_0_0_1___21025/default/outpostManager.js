@@ -52,6 +52,9 @@ function outpostManager(homeRoom, creeps) {
                 if (!occupied) {
                     for (let hCreep of hostiles) {
                         if (occupied) break;
+                        if(hCreep.hits === 0){
+                            continue;
+                        }
 
                         let body = hCreep.body;
 

@@ -224,7 +224,7 @@ function assignTask(room, creep) {
 
     if ((role === 'remoteHauler' || role === 'remoteMiner' || role === 'reserver' || role === 'remoteMaintainer' || role === 'remoteBuilder')) {
         let assignedRoom = creep.memory.assignedRoom;
-        if (assignedRoom && MEMORY.rooms[room.name].outposts[assignedRoom].occupied) {
+        if (assignedRoom &&  MEMORY.rooms[room.name].outposts[assignedRoom]&& MEMORY.rooms[room.name].outposts[assignedRoom].occupied) {
 
             if (creep.room.name != creep.memory.home) {
                 MEMORY.rooms[room.name].creeps[creep.name].task = new MoveToRoomTask(room.name)
@@ -871,17 +871,17 @@ const getRoleTasks = {
 
                 for (let c of creeps) {
                     if (c.hits < c.hitsMax) {
-                        let range = h.pos.getRangeTo(creep)
+                        let range = c.pos.getRangeTo(creep)
                         if (range < min) {
                             min = range,
-                                closest = h
+                                closest = c
                         }
                     }
                 }
 
                 if (closest) {
                     return new HealTask(closest.id)
-                }
+                }else{ return parkTask(creep.room,creep)}
 
             }
 
@@ -1783,10 +1783,12 @@ function validateTask(room, creep) {
 
     if (role === 'remoteHauler' || role === 'remoteMiner' || role === 'reserver' || role === 'remoteMaintainer' || role === 'remoteBuilder') {
         let assignedRoom = creep.memory.assignedRoom;
-        if (assignedRoom && MEMORY.rooms[room.name].outposts[assignedRoom].occupied) {
+        if (assignedRoom &&  MEMORY.rooms[room.name].outposts[assignedRoom]&& MEMORY.rooms[room.name].outposts[assignedRoom].occupied) {
 
-            if (creep.memory.room !== creep.memory.home) {
-                return false;
+            if (creep.room.name !== creep.memory.home && (task.type !== 'MOVE_TO_ROOM' && task.roomName !== creep.memory.home)) {
+                MEMORY.rooms[room.name].creeps[creep.name].task = new MoveToRoomTask(creep.memory.home)
+                
+                return true;
             }
 
         }

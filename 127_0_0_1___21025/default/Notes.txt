@@ -1,16 +1,17 @@
 
-Impletment costmatrix && pathfinding
+PathFinding
     [x] In room pathfinding.
     [ ] Multi-Room navigation.
         [] Some units are sometimes bouncing in and out of rooms on transition
+    [] Traffic jam occurred in outpost.
 
 Auto Build Room.
     [] Owned room
        [x] Basic blueprints.
        [x] Migration.
        [] In room outpost road sometimes building on non-optimal path
-    [x] Outpost
-        - These look good.
+    [] Outpost
+        [] Ensure road pathing doesnt randomly dip off existing roads. This happened near a rampart in the home room.
 
 Room defense
     [] towers
@@ -19,12 +20,19 @@ Room defense
         [] Trigger on enemy present and towers, storage, terminal, or spawns < 50% health
     [] defensive units.
         [] Units bodys are smart-scaled based on enemy presence.
+            - in progress, unit did die.
+            [] calculate dps enemy does
+            [] calculate dps defender does.
+            [] ensure enemy will go down first.
+            [] make defender use ranged attack if in range, while moving.
         [] homeRoom
             [] Trigger if no towers or towers not effective
             [] Pull non-combat units inside of ramparts
         [] Outpost
-            [] Trigger if enemy present
-            [] Send non-combat units to home room
+            [x] Trigger if enemy present
+            [x] Send non-combat units to home room
+            [] Spawn only one unit
+            [] Have unit find a new target room if no enemy present in current room, or return home.
 
 Change loop searches to BF Searches if it can speed up process.
 

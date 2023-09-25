@@ -626,14 +626,14 @@ const getBody = {
         let rangedAttackParts = 0;
         let cost = 140;
 
-        while (cost + 140 <= energyBudget && attackParts < enemyAttackParts && attackParts + moveParts + toughParts < 47) {
+        while (cost + 140 <= budget && attackParts < enemyAttackParts && attackParts + moveParts + toughParts < 47) {
             attackParts++;
             moveParts++;
             toughParts++;
             cost += 140
         }
 
-        if (cost + 450 <= energyBudget && attackParts + moveParts + toughParts < 44) {
+        if (cost + 450 <= budget && attackParts + moveParts + toughParts < 44) {
             moveParts++
             healParts++
             rangedAttackParts++;
@@ -644,7 +644,10 @@ const getBody = {
         for (let i = 0; i < toughParts; i++) {
             body.push(TOUGH);
         };
-
+        for (let i = 0; i < moveParts; i++) {
+            body.push(MOVE);
+        };
+        
         for (let i = 0; i < attackParts; i++) {
             body.push(ATTACK);
         };
@@ -653,9 +656,7 @@ const getBody = {
             body.push(RANGED_ATTACK);
         };
 
-        for (let i = 0; i < moveParts; i++) {
-            body.push(MOVE);
-        };
+
 
         for (let i = 0; i < healParts; i++) {
             body.push(HEAL);
