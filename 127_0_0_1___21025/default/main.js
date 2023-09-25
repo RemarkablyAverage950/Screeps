@@ -20,7 +20,7 @@ module.exports.loop = function () {
             const roomName = Memory.creeps[name].home
             delete Memory.creeps[name];
             delete MEMORY.rooms[roomName].creeps[name]
-            console.log('Cleared memory for ' + name)
+            //console.log('Cleared memory for ' + name)
         }
     }
 

@@ -231,6 +231,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let remoteBuilderCount = creepsCount['remoteBuilder'] || 0;
     let remoteMaintainerCount = creepsCount['remoteMaintainer'] || 0;
     let fastFillerCount = creepsCount['fastFiller'] || 0;
+    let mineralMinerCount = creepsCount['mineralMiner'] || 0;
 
     const targetUpgraderCount = getTargetCount.upgrader(room);
     let targetBuilderCount = getTargetCount.builder(room);
@@ -242,6 +243,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     const targetRemoteBuilderCount = getTargetCount.remoteBuilder(room, outpostRooms);
     const targetRemoteMaintainerCount = getTargetCount.remoteMaintainer(room, outpostRooms);
     const targetFastFillerCount = getTargetCount.fastFiller(room);
+    const targetMineralMinerCount = getTargetCount.mineralMiner(room);
 
     for (let order of existingSpawnQueue) {
 
@@ -282,6 +284,8 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
             remoteMaintainerCount++;
         } else if (role === 'fastFiller') {
             fastFillerCount++;
+        } else if (role === 'mineralMiner') {
+            mineralMinerCount++;
         }
 
     };
@@ -368,7 +372,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     while (haulerCount < targetHaulerCount) {
 
         if (body.length === 0) {
-            body = getBody.hauler(energyBudget, room);
+            body = getBody.hauler(energyBudget, room, targetMineralMinerCount);
             options = {
                 memory: {
                     role: 'hauler',
@@ -412,7 +416,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
     body = [];
     while (remoteBuilderCount < targetRemoteBuilderCount) {
-        body = getBody.remoteBuilder(energyBudget,room,storedEnergy)
+        body = getBody.remoteBuilder(energyBudget, room, storedEnergy)
 
         options = {
             memory: {
@@ -442,7 +446,9 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
     body = [];
     while (fastFillerCount < targetFastFillerCount) {
-        body = getBody.fastFiller()
+        if (body.length === 0) {
+            body = getBody.fastFiller()
+        }
 
         options = {
             memory: {
@@ -454,6 +460,18 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         fastFillerCount++;
     }
 
+    body = [];
+    while (mineralMinerCount < targetMineralMinerCount) {
+        body = getBody.mineralMiner(energyBudget, room);
+        options = {
+            memory: {
+                role: 'mineralMiner',
+                home: room.name,
+            },
+        };
+        spawnQueue.push(new SpawnOrder('mineralMiner', 6, body, options));
+        mineralMinerCount++;
+    }
 
     return spawnQueue;
 
@@ -484,9 +502,9 @@ const getBody = {
             More than one builder can be used to complete construction.
         */
 
-            if(room.storage && storedEnergy < 5000){ 
-                return [WORK,CARRY,MOVE]
-            }
+        if (room.storage && storedEnergy < 5000) {
+            return [WORK, CARRY, MOVE]
+        }
 
         const sources = room.find(FIND_SOURCES);
         const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
@@ -583,6 +601,69 @@ const getBody = {
         return [body, estCreepsNeeded];
     },
 
+    /**
+     * 
+     * @param {number} budget 
+     * @param {Creep[]} hostiles 
+     */
+    defender: function (budget, hostiles) {
+        let enemyAttackParts = 0;
+        for (let hCreep of hostiles) {
+
+            let body = hCreep.body;
+
+            for (let part of body) {
+                if (part.type === ATTACK || part.type === RANGED_ATTACK) {
+                    enemyAttackParts++;
+                }
+            }
+        }
+
+        let attackParts = 1;
+        let moveParts = 1;
+        let toughParts = 1;
+        let healParts = 0;
+        let rangedAttackParts = 0;
+        let cost = 140;
+
+        while (cost + 140 <= energyBudget && attackParts < enemyAttackParts && attackParts + moveParts + toughParts < 47) {
+            attackParts++;
+            moveParts++;
+            toughParts++;
+            cost += 140
+        }
+
+        if (cost + 450 <= energyBudget && attackParts + moveParts + toughParts < 44) {
+            moveParts++
+            healParts++
+            rangedAttackParts++;
+        }
+
+        let body = [];
+
+        for (let i = 0; i < toughParts; i++) {
+            body.push(TOUGH);
+        };
+
+        for (let i = 0; i < attackParts; i++) {
+            body.push(ATTACK);
+        };
+
+        for (let i = 0; i < rangedAttackParts; i++) {
+            body.push(RANGED_ATTACK);
+        };
+
+        for (let i = 0; i < moveParts; i++) {
+            body.push(MOVE);
+        };
+
+        for (let i = 0; i < healParts; i++) {
+            body.push(HEAL);
+        };
+        return body;
+
+    },
+
     fastFiller: function () {
         return [CARRY, MOVE]
     },
@@ -592,14 +673,14 @@ const getBody = {
      * @param {number} budget Energy budget.
      * @returns {BodyPartConstant[]}
      */
-    filler: function (budget,room) {
+    filler: function (budget, room) {
 
         const bodyPartBlock = [CARRY, CARRY, MOVE];
         const blockCost = 150;
 
         let targetCapacity = budget / 2;
 
-        if(MEMORY.rooms[room.name].links.spawn){
+        if (MEMORY.rooms[room.name].links.spawn) {
             targetCapacity = (budget - 750) / 2
         }
 
@@ -617,7 +698,14 @@ const getBody = {
 
     },
 
-    hauler: function (budget, room) {
+    /**
+     * 
+     * @param {number} budget 
+     * @param {Room} room 
+     * @param {boolean} haulMinerals 
+     * @returns {BodyPartConstant[]}
+     */
+    hauler: function (budget, room, haulMinerals) {
 
         const sources = room.find(FIND_SOURCES);
 
@@ -625,10 +713,18 @@ const getBody = {
         for (let s of sources) {
             distance += s.pos.getRangeTo(room.storage);
         };
+        if (haulMinerals) {
+            const mineral = room.find(FIND_MINERALS)[0]
+            distance += mineral.pos.getRangeTo(room.storage)
+        }
 
-        distance /= sources.length;
+        distance /= (sources.length + haulMinerals);
 
-        const energyGeneratedPerLife = 15000 * sources.length;
+
+        let energyGeneratedPerLife = 15000 * sources.length;
+        if (haulMinerals) {
+            energyGeneratedPerLife *= 1.25
+        }
 
         let bestBody = undefined;
         let minCost = Infinity;
@@ -825,17 +921,15 @@ const getBody = {
                     const tripsNeededRoad = roadWorkNeededPerLife / workPerTrip;
                     const tripsNeededContainer = conatinerWorkNeededPerLife / workPerTrip;
 
-                    const tripsPerLife = 1500 / (timePerTripRoad+timePerTripContainer);
+                    const tripsPerLife = 1500 / (timePerTripRoad + timePerTripContainer);
 
-                    if (workParts < 3 && carryParts < 3 && moveParts < 3) {
-                        console.log(workParts, carryParts, moveParts,tripsPerLife)
-                    }
 
-                    if (!bodyFound && tripsPerLife >= tripsNeededRoad+tripsNeededContainer) {
+
+                    if (!bodyFound && tripsPerLife >= tripsNeededRoad + tripsNeededContainer) {
                         bestBody = [workParts, carryParts, moveParts];
                         minCost = cost;
                         bodyFound = true;
-                    } else if (bodyFound && cost < minCost && tripsPerLife >= tripsNeededRoad+tripsNeededContainer) {
+                    } else if (bodyFound && cost < minCost && tripsPerLife >= tripsNeededRoad + tripsNeededContainer) {
                         bestBody = [workParts, carryParts, moveParts];
                         minCost = cost;
                     }
@@ -906,10 +1000,55 @@ const getBody = {
 
     },
 
-    remoteBuilder: function (energyBudget,room,storedEnergy) {
+    /**
+     * 
+     * @param {number} energyBudget 
+     * @param {Room} room 
+     * @return {BodyPartConstant[]}
+     */
+    mineralMiner: function (energyBudget, room) {
+        let mineral = room.find(FIND_MINERALS)[0]
+        let mineralAmountRemaining = mineral.mineralAmount
+        let distance = room.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(mineral);
 
-        if(room.storage && storedEnergy < 5000){ 
-            return [WORK,CARRY,MOVE]
+
+        let bestBody = [];
+
+
+        for (let workParts = 1; workParts < 33; workParts++) {
+            let moveParts = Math.ceil(workParts / 2)
+
+            let cost = (workParts * 100) + (moveParts * 50);
+            if (cost > energyBudget) {
+                break;
+            }
+
+            let travelTime = distance;
+
+            let workPerTick = workParts / 5
+            bestBody = [workParts, moveParts]
+            let workPerLife = (1500 - travelTime) * workPerTick
+            if (workPerLife >= mineralAmountRemaining) {
+                break;
+            }
+        }
+
+        let body = [];
+
+        for (let i = 0; i < bestBody[0]; i++) {
+            body.push(WORK);
+        };
+        for (let i = 0; i < bestBody[1]; i++) {
+            body.push(MOVE);
+        };
+
+        return body;
+    },
+
+    remoteBuilder: function (energyBudget, room, storedEnergy) {
+
+        if (room.storage && storedEnergy < 5000) {
+            return [WORK, CARRY, MOVE]
         }
 
         let workParts = 1;
@@ -952,7 +1091,7 @@ const getBody = {
         let cost = 150;
         let capacity = 100;
 
-        while (cost + 150 <= energyBudget && capacity < capacityRequired) {
+        while (cost + 150 <= energyBudget && capacity <= capacityRequired) {
             moveParts += 1;
             carryParts += 2;
             cost += 150
@@ -996,11 +1135,12 @@ const getBody = {
             moveCount++;
             cost += 250;
         };
-        if (cost + 250 <= budget) {
+        if (cost + 350 <= budget) {
+            workCount++;
             workCount++;
             workCount++;
             moveCount++;
-            cost += 150;
+            cost += 350;
         }
 
         for (let i = 0; i < workCount; i++) {
@@ -1017,6 +1157,27 @@ const getBody = {
 
     },
 
+    reserver: function (budget) {
+        let body = [];
+
+        let claimParts = 1;
+        let moveParts = 1
+
+        if (budget >= 1300) {
+            claimParts++;
+            moveParts++;
+        }
+
+        for (let i = 0; i < claimParts; i++) {
+            body.push(CLAIM)
+        }
+        for (let i = 0; i < moveParts; i++) {
+            body.push(MOVE)
+        }
+
+        return body;
+    },
+
     /**
      * 
      * @param {number} budget
@@ -1026,8 +1187,8 @@ const getBody = {
      */
     upgrader: function (budget, room, storedEnergy) {
 
-        if(room.storage && storedEnergy < 5000){ 
-            return [WORK,CARRY,MOVE]
+        if (room.storage && storedEnergy < 5000) {
+            return [WORK, CARRY, MOVE]
         }
 
         /*
@@ -1117,8 +1278,8 @@ const getBody = {
 
     wallBuilder: function (budget, room, storedEnergy) {
 
-        if(room.storage && storedEnergy < 5000){ 
-            return [WORK,CARRY,MOVE]
+        if (room.storage && storedEnergy < 5000) {
+            return [WORK, CARRY, MOVE]
         }
 
 
@@ -1377,6 +1538,28 @@ const getTargetCount = {
     miner: function (room) {
 
         return room.find(FIND_SOURCES).length;
+
+    },
+
+    /**
+     * 
+     * @param {Room} room 
+     * @returns {number}
+     */
+    mineralMiner: function (room) {
+
+        if (room.controller.level < 6) {
+            return 0;
+        } else {
+            const extractor = room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_EXTRACTOR)[0]
+            if (extractor) {
+                let mineral = room.find(FIND_MINERALS)[0]
+                if (mineral.mineralAmount > 0) {
+                    return 1;
+                }
+            }
+            return 0;
+        }
 
     },
 

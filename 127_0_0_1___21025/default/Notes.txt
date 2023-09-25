@@ -1,52 +1,79 @@
 
 Impletment costmatrix && pathfinding
-    [x] Basic pathfinding.
+    [x] In room pathfinding.
     [ ] Multi-Room navigation.
+        [] Some units are sometimes bouncing in and out of rooms on transition
 
 Auto Build Room.
     [] Owned room
-        [] at level 2, spawnblock, source roads, and controller roads are not all connected.
-        [] at level 2, placing ramparts on source containers.
-    [] Outpost
+       [x] Basic blueprints.
+       [x] Migration.
+       [] In room outpost road sometimes building on non-optimal path
+    [x] Outpost
+        - These look good.
 
 Room defense
-    a) towers
-    b) safe mode
-    c) defensive units
+    [] towers
+        [] Add target tracking to see if we are causing damage. Stop attacking if not.
+    [] safe mode
+        [] Trigger on enemy present and towers, storage, terminal, or spawns < 50% health
+    [] defensive units.
+        [] Units bodys are smart-scaled based on enemy presence.
+        [] homeRoom
+            [] Trigger if no towers or towers not effective
+            [] Pull non-combat units inside of ramparts
+        [] Outpost
+            [] Trigger if enemy present
+            [] Send non-combat units to home room
 
 Change loop searches to BF Searches if it can speed up process.
 
 Roles:
     [] Maintainer
-        [] Unit is repairing ramparts
+        - testing
     [] Remote Miner
-        - assigned to a source at spawn time.
-        - always the same body. Same as a regular miner.
+        [x] assigned to a source at spawn time.
+        [] Consider just in time arrival
     [] Hauler
-        - Does not pick up anything except resource energy from tombstones, possibly dropped as well.
-
+        [] More effecient body generation.
+        [] Gather dropped minerals and energy to conserve maximum amount.
+        [] Smoother room-to-room transitions
     [] Remote builder
+        [] Smoother room-to-room transitions
     [] Remote Maintainer
+        [] Smoother room-to-room transitions
+        - testing
     [] Wallbuilder
-        [] Spawn Unit
-            []
+        - testing
     [] Transporter
-    [] Defender
-    [] Reserver
-    [] Scout
-        [] Scout fails to find path to room, ends up walking into a corner.
+        [] Gather dropped minerals and energy to conserve maximum amount.
+        [] Gather mineral container materials
+        [] Body generation accounts for mineral container when needed.
+    [] Remote Defender
+        [] Type and body based on enemy presence.
+    [x] Reserver
+        - Testing
+    [x] Scout
+        - Testing
     [] Claimer
     [] Duo Squad
     [] Trio Squad
     [] Quad
-    [] Fastfiller
+    [x] Fastfiller
+        - Testing
     [] HubManager
+        [] Handle terminal management
+        [x] stock link
 
-Links    
+    [] Links
+        [] Consider outpost edge links
+                
 
 BUGS:
 
-    [] Miner failed to generate path when it was already standing on a mining container.
+    [x] Miner failed to generate path when it was already standing on a mining container.
+    [] Some units bouncing in and out of rooms
+    [] Outpost road path generation causing roads to veer off existing road (near ramparts)
 
 
 

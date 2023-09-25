@@ -94,7 +94,7 @@ function validateStructures(room, plans) {
         }
         // Find a co-relating build order
         const pos = s.pos
-        const plan = plans[room.name].find(bo => bo.x === pos.x && bo.y === pos.y)
+        const plan = plans[room.name].find(bo => bo.x === pos.x && bo.y === pos.y && s.structureType === bo.structure)
 
         // If no plan exists, remove structure
         if (!plan) {
@@ -123,7 +123,7 @@ function validateStructures(room, plans) {
 
         // Find a co-relating build order
         const pos = s.pos
-        const plan = plans[room.name].find(bo => bo.x === pos.x && bo.y === pos.y)
+        const plan = plans[room.name].find(bo => bo.x === pos.x && bo.y === pos.y && s.structureType === bo.structure)
 
         // If no plan exists, remove structure
         if (!plan) {

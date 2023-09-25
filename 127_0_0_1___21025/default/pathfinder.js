@@ -91,10 +91,10 @@ function moveCreep(creep, destination, range, maxRooms) {
     }
 
     if (lookCreeps.length > 0) {
-
+        
         const lookCreep = lookCreeps[0]
 
-        if (MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] && !MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
+        if (lookCreep.my && MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] && !MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
             // Get a new path if there is.
             path = getPath(creep.pos, destination, range, maxRooms);
 

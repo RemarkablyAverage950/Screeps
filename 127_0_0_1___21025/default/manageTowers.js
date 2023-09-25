@@ -50,7 +50,7 @@ function manageTowers(room) {
 
                 }
 
-            } else if (s.hits < s.hitsMax) {
+            } else if (s.structureType !== STRUCTURE_ROAD && s.hits < s.hitsMax) {
 
                 tower.repair(s);
                 break;
