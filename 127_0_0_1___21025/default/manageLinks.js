@@ -74,21 +74,26 @@ function manageLinks(room) {
 
             const spawnLink = Game.getObjectById(linkMem.spawn);
             const controllerLink = Game.getObjectById(linkMem.controller);
-
+            let targetLinks = [];
             if (spawnLink && spawnLink.store[RESOURCE_ENERGY] < 775) {
 
-                const qty = Math.min(hubLink.store[RESOURCE_ENERGY], 800 - spawnLink.store[RESOURCE_ENERGY]);
+                //const qty = Math.min(hubLink.store[RESOURCE_ENERGY], 800 - spawnLink.store[RESOURCE_ENERGY]);
+                targetLinks.push(spawnLink)
+                //hubLink.transferEnergy(spawnLink, qty);
 
-                hubLink.transferEnergy(spawnLink, qty);
+            }
 
-            } else if (controllerLink && controllerLink.store[RESOURCE_ENERGY] < 775) {
+            if (controllerLink && controllerLink.store[RESOURCE_ENERGY] < 775) {
 
-                const qty = Math.min(hubLink.store[RESOURCE_ENERGY], 800 - controllerLink.store[RESOURCE_ENERGY]);
-
-                hubLink.transferEnergy(controllerLink, qty);
+                //const qty = Math.min(hubLink.store[RESOURCE_ENERGY], 800 - controllerLink.store[RESOURCE_ENERGY]);
+                targetLinks.push(controllerLink)
+                //hubLink.transferEnergy(controllerLink, qty);
 
             };
-
+            if (targetLinks.length) {
+                const target = _.min(targetLinks, t => t.store[RESOURCE_ENERGY])
+                hubLink.transferEnergy(target, Math.min(hubLink.store[RESOURCE_ENERGY], 800 - target.store[RESOURCE_ENERGY]))
+            }
         };
     };
 

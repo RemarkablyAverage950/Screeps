@@ -122,10 +122,17 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let workerCount = creepsCount['worker'] || 0;
     let minerCount = creepsCount['miner'] || 0;
     let fillerCount = creepsCount['filler'] || 0;
+    let fastFillerCount = creepsCount['fastFiller'] || 0;
+    let hubCount = creepsCount['hub'] || 0;
+    let haulerCount = creepsCount['hauler'] || 0;
 
     const targetWorkerCount = getTargetCount.worker(minerCount, fillerCount, room, storedEnergy);
     const targetMinerCount = getTargetCount.miner(room);
     const targetFillerCount = getTargetCount.filler(creeps);
+    const targetFastFillerCount = getTargetCount.fastFiller(room);
+    const targetHubCount = getTargetCount.hub(room, storedEnergy);
+    const targetHaulerCount = getTargetCount.hauler(room);
+    const targetMineralMinerCount = getTargetCount.mineralMiner(room);
 
     for (let order of existingSpawnQueue) {
 
@@ -142,6 +149,16 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         } else if (role === 'filler') {
 
             fillerCount++;
+
+        }else if (role === 'hub') {
+
+            hubCount++;
+
+        } else if (role === 'fastFiller') {
+            fastFillerCount++;
+        } else if (role === 'hauler') {
+
+            haulerCount++;
 
         };
 
@@ -217,6 +234,53 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         fillerCount++;
     };
 
+    body = [];
+    while (fastFillerCount < targetFastFillerCount) {
+        if (body.length === 0) {
+            body = getBody.fastFiller()
+        }
+
+        options = {
+            memory: {
+                role: 'fastFiller',
+                home: room.name,
+            },
+        };
+        spawnQueue.push(new SpawnOrder('fastFiller', 4, body, options));
+        fastFillerCount++;
+    }
+    
+    body = [];
+    while (hubCount < targetHubCount) {
+        body = getBody.hub(energyBudget, room)
+        options = {
+            memory: {
+                role: 'hub',
+                home: room.name,
+            },
+        };
+        spawnQueue.push(new SpawnOrder('hub', 4, body, options));
+        hubCount++;
+    }
+
+    body = [];
+    while (haulerCount < targetHaulerCount) {
+
+        if (body.length === 0) {
+            body = getBody.hauler(energyBudget, room, targetMineralMinerCount);
+            options = {
+                memory: {
+                    role: 'hauler',
+                    home: room.name,
+                },
+            };
+
+        };
+
+        spawnQueue.push(new SpawnOrder('hauler', 4, body, options));
+        haulerCount++;
+    };
+
     if (onlyEssential) return spawnQueue;
 
     const outpostRooms = room.memory.outposts;
@@ -225,25 +289,23 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let builderCount = creepsCount['builder'] || 0;
     let maintainerCount = creepsCount['maintainer'] || 0;
     let wallBuilderCount = creepsCount['wallBuilder'] || 0;
-    let haulerCount = creepsCount['hauler'] || 0;
+
     let scoutCount = creepsCount['scout'] || 0;
-    let hubCount = creepsCount['hub'] || 0;
+
     let remoteBuilderCount = creepsCount['remoteBuilder'] || 0;
     let remoteMaintainerCount = creepsCount['remoteMaintainer'] || 0;
-    let fastFillerCount = creepsCount['fastFiller'] || 0;
+
     let mineralMinerCount = creepsCount['mineralMiner'] || 0;
 
     const targetUpgraderCount = getTargetCount.upgrader(room);
     let targetBuilderCount = getTargetCount.builder(room);
     const targetMaintainerCount = getTargetCount.maintainer(room);
     const targetWallBuilderCount = getTargetCount.wallBuilder(room);
-    const targetHaulerCount = getTargetCount.hauler(room);
     const targetScoutCount = getTargetCount.scout(room);
-    const targetHubCount = getTargetCount.hub(room, storedEnergy);
     const targetRemoteBuilderCount = getTargetCount.remoteBuilder(room, outpostRooms);
     const targetRemoteMaintainerCount = getTargetCount.remoteMaintainer(room, outpostRooms);
-    const targetFastFillerCount = getTargetCount.fastFiller(room);
-    const targetMineralMinerCount = getTargetCount.mineralMiner(room);
+
+    
 
     for (let order of existingSpawnQueue) {
 
@@ -265,25 +327,15 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
             wallBuilderCount++;
 
-        } else if (role === 'hauler') {
-
-            haulerCount++;
-
         } else if (role === 'scout') {
 
             scoutCount++;
 
-        } else if (role === 'hub') {
-
-            hubCount++;
-
-        } else if (role === 'remoteBuilder') {
+        }  else if (role === 'remoteBuilder') {
             remoteBuilderCount++;
         }
         else if (role === 'remoteMaintainer') {
             remoteMaintainerCount++;
-        } else if (role === 'fastFiller') {
-            fastFillerCount++;
         } else if (role === 'mineralMiner') {
             mineralMinerCount++;
         }
@@ -368,23 +420,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         wallBuilderCount++;
     };
 
-    body = [];
-    while (haulerCount < targetHaulerCount) {
 
-        if (body.length === 0) {
-            body = getBody.hauler(energyBudget, room, targetMineralMinerCount);
-            options = {
-                memory: {
-                    role: 'hauler',
-                    home: room.name,
-                },
-            };
-
-        };
-
-        spawnQueue.push(new SpawnOrder('hauler', 4, body, options));
-        haulerCount++;
-    };
 
     body = [];
     while (scoutCount < targetScoutCount) {
@@ -399,18 +435,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         scoutCount++;
     }
 
-    body = [];
-    while (hubCount < targetHubCount) {
-        body = getBody.hub(energyBudget, room)
-        options = {
-            memory: {
-                role: 'hub',
-                home: room.name,
-            },
-        };
-        spawnQueue.push(new SpawnOrder('hub', 4, body, options));
-        hubCount++;
-    }
+
 
 
 
@@ -444,21 +469,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         remoteMaintainerCount++;
     }
 
-    body = [];
-    while (fastFillerCount < targetFastFillerCount) {
-        if (body.length === 0) {
-            body = getBody.fastFiller()
-        }
-
-        options = {
-            memory: {
-                role: 'fastFiller',
-                home: room.name,
-            },
-        };
-        spawnQueue.push(new SpawnOrder('fastFiller', 4, body, options));
-        fastFillerCount++;
-    }
+    
 
     body = [];
     while (mineralMinerCount < targetMineralMinerCount) {
@@ -647,7 +658,7 @@ const getBody = {
         for (let i = 0; i < moveParts; i++) {
             body.push(MOVE);
         };
-        
+
         for (let i = 0; i < attackParts; i++) {
             body.push(ATTACK);
         };
@@ -1198,9 +1209,12 @@ const getBody = {
         */
         let averageDistance = 0;
         const sources = room.find(FIND_SOURCES)
+        let controllerLink = MEMORY.rooms[room.name].links.controller
+        let spawn = room.find(FIND_MY_SPAWNS)[0];
 
-
-        if (!room.storage) {
+        if (controllerLink) {
+            averageDistance = spawn.pos.getRangeTo(Game.getObjectById(controllerLink))
+        } else if (!room.storage) {
 
             for (let s of sources) {
                 averageDistance += s.pos.getRangeTo(room.controller);
@@ -1234,14 +1248,25 @@ const getBody = {
                     const moveTimeEmpty = Math.ceil(workParts / (2 * moveParts));
                     const moveTimeFull = Math.ceil((workParts + carryParts) / (2 * moveParts));
 
-                    const avgMoveTime = (averageDistance * moveTimeEmpty) + (averageDistance * moveTimeFull);
+                    let workPerLife;
 
-                    const timePerTrip = avgMoveTime + workTime + 1;
+                    if (controllerLink) {
 
-                    const tripsPerLife = 1500 / timePerTrip;
+                        const moveTime = moveTimeEmpty * averageDistance;
+                        const timeToRefill = workTime + 1;
+                        const refillsPerLife = (1500 - moveTime) / timeToRefill;
+                        workPerLife = workPerTrip * refillsPerLife;
 
-                    const workPerLife = tripsPerLife * workPerTrip;
+                    } else {
+                        const avgMoveTime = (averageDistance * moveTimeEmpty) + (averageDistance * moveTimeFull);
 
+                        const timePerTrip = avgMoveTime + workTime + 1;
+
+                        const tripsPerLife = 1500 / timePerTrip;
+
+
+                        workPerLife = tripsPerLife * workPerTrip;
+                    }
 
                     if (workPerLife > max) {
                         bestBody = [workParts, carryParts, moveParts];
