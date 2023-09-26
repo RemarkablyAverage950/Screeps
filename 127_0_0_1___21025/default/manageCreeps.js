@@ -1004,8 +1004,12 @@ const getRoleTasks = {
         if (creep.store.getFreeCapacity() > 0) {
 
             tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY));
-            tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY));
 
+            if (room.storage && room.storage.store[RESOURCE_ENERGY] > creep.store.getFreeCapacity()) {
+                tasks.push(new WithdrawTask(room.storage.id,RESOURCE_ENERGY,creep.store.getFreeCapacity()))
+            } else {
+                tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY));
+            }
         };
 
         if (creep.store[RESOURCE_ENERGY] > 0) {

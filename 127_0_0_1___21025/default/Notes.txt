@@ -1,9 +1,13 @@
+private server controller level: storage.db['rooms.objects'].update({ _id: 'idOfController' },{ $set: { level: 7 }})
+
 
 PathFinding
     [x] In room pathfinding.
     [ ] Multi-Room navigation.
         [] Some units are sometimes bouncing in and out of rooms on transition
     [] Traffic jam occurred in outpost.
+    [] Consider longer/full point to point pathing.
+        [] May be useful to only generate a path through current room or rooms we can see in.
 
 Auto Build Room.
     [] Owned room
@@ -19,12 +23,6 @@ Room defense
     [] safe mode
         [] Trigger on enemy present and towers, storage, terminal, or spawns < 50% health
     [] defensive units.
-        [] Units bodys are smart-scaled based on enemy presence.
-            - in progress, unit did die.
-            [] calculate dps enemy does
-            [] calculate dps defender does.
-            [] ensure enemy will go down first.
-            [] make defender use ranged attack if in range, while moving.
         [] homeRoom
             [] Trigger if no towers or towers not effective
             [] Pull non-combat units inside of ramparts
@@ -37,28 +35,34 @@ Room defense
 Change loop searches to BF Searches if it can speed up process.
 
 Roles:
-    [] Maintainer
+    [x] Maintainer
         - testing
     [] Remote Miner
+        - testing
         [x] assigned to a source at spawn time.
-        [] Consider just in time arrival
-    [] Hauler
-        [] More effecient body generation.
-        [] Gather dropped minerals and energy to conserve maximum amount.
+        [x] Consider just in time arrival
         [] Smoother room-to-room transitions
+    [x] Hauler
+        - testing
+        [x] More effecient body generation.
+        [x] Gather dropped minerals and energy to conserve maximum amount.
     [] Remote builder
         [] Smoother room-to-room transitions
     [] Remote Maintainer
         [] Smoother room-to-room transitions
         - testing
-    [] Wallbuilder
+    [x] Wallbuilder
         - testing
-    [] Transporter
-        [] Gather dropped minerals and energy to conserve maximum amount.
-        [] Gather mineral container materials
-        [] Body generation accounts for mineral container when needed.
     [] Remote Defender
-        [] Type and body based on enemy presence.
+        [x] Basic framework
+        [] Refine attack code
+        [] Units bodys are smart-scaled based on enemy presence.
+            - in progress, unit did die.
+            [] calculate dps enemy does
+            [] calculate dps defender does.
+            [] ensure enemy will go down first.
+            [] make defender use ranged attack if in range, while moving.
+            [] if defender is damaged and there are no hostiles in attack range, heal self.
     [x] Reserver
         - Testing
     [x] Scout
@@ -71,11 +75,19 @@ Roles:
         - Testing
     [] HubManager
         [] Handle terminal management
-        [x] stock link
+            [x] Energy
+            [] Other resources
+        [x] Stock link
 
     [] Links
         [] Consider outpost edge links
                 
+Expansion Manager:
+    [] Add limits to expansion based on number of spawns.
+    [] Add mission generation to attack hostile rooms.
+    [] Add mission generation to claim new rooms.
+
+
 
 BUGS:
 

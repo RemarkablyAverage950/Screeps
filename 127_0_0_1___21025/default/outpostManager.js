@@ -278,12 +278,12 @@ function outpostManager(homeRoom, creeps) {
 
             let energyCapacityAvailable = homeRoom.energyCapacityAvailable;
 
-            let maxCapacity = Math.floor(energyCapacityAvailable / 150) * 100;
+            let maxCapacity = Math.min(Math.floor(energyCapacityAvailable / 150) * 100, 1600);
 
             let haulerCountRequired = Math.ceil(heap.haulerCapacityReq / maxCapacity);
             let capacityRequiredPerHauler = Math.ceil(heap.haulerCapacityReq / haulerCountRequired)
 
-            console.log('totalCapcityReq', heap.haulerCapacityReq, 'CapacityReqPerHauler', capacityRequiredPerHauler, 'haulerCountReq', haulerCountRequired)
+            //console.log('totalCapcityReq', heap.haulerCapacityReq, 'CapacityReqPerHauler', capacityRequiredPerHauler, 'haulerCountReq', haulerCountRequired)
 
             // Find out how many haulers we have;
             let haulerCount = 0;

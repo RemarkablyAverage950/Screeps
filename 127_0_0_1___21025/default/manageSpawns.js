@@ -30,7 +30,6 @@ function manageSpawns(room, creeps) {
 
     // Check if spawns are available
     const availableSpawns = room.find(FIND_MY_SPAWNS).filter(s => s.spawning === null);
-
     if (availableSpawns.length === 0) return;
 
     let spawnQueue = MEMORY.rooms[room.name].spawnQueue;
@@ -70,7 +69,7 @@ function manageSpawns(room, creeps) {
                     // Attempt to spawn the order
 
                     const name = getCreepName(room.name, spawnQueue[i].role)
-
+  
                     ret = spawn.spawnCreep(spawnQueue[i].body, name, spawnQueue[i].options)
 
                     if (ret == 0) {
@@ -80,7 +79,7 @@ function manageSpawns(room, creeps) {
                         break;
 
                     } else if (ret != 0) {
-
+                        console.log('ret', ret)
                         return;
                     }
 
@@ -150,7 +149,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
             fillerCount++;
 
-        }else if (role === 'hub') {
+        } else if (role === 'hub') {
 
             hubCount++;
 
@@ -237,7 +236,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     body = [];
     while (fastFillerCount < targetFastFillerCount) {
         if (body.length === 0) {
-            body = getBody.fastFiller()
+            body = getBody.fastFiller(room)
         }
 
         options = {
@@ -249,7 +248,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         spawnQueue.push(new SpawnOrder('fastFiller', 4, body, options));
         fastFillerCount++;
     }
-    
+
     body = [];
     while (hubCount < targetHubCount) {
         body = getBody.hub(energyBudget, room)
@@ -305,7 +304,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     const targetRemoteBuilderCount = getTargetCount.remoteBuilder(room, outpostRooms);
     const targetRemoteMaintainerCount = getTargetCount.remoteMaintainer(room, outpostRooms);
 
-    
+
 
     for (let order of existingSpawnQueue) {
 
@@ -331,7 +330,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
             scoutCount++;
 
-        }  else if (role === 'remoteBuilder') {
+        } else if (role === 'remoteBuilder') {
             remoteBuilderCount++;
         }
         else if (role === 'remoteMaintainer') {
@@ -469,7 +468,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         remoteMaintainerCount++;
     }
 
-    
+
 
     body = [];
     while (mineralMinerCount < targetMineralMinerCount) {
@@ -676,7 +675,13 @@ const getBody = {
 
     },
 
-    fastFiller: function () {
+    fastFiller: function (room) {
+        let rcl = room.controller.level;
+        if (rcl === 8) {
+            return [CARRY, CARRY, CARRY, CARRY, MOVE]
+        } else if (rcl === 7) {
+            return [CARRY, CARRY, MOVE]
+        }
         return [CARRY, MOVE]
     },
 
@@ -687,23 +692,42 @@ const getBody = {
      */
     filler: function (budget, room) {
 
-        const bodyPartBlock = [CARRY, CARRY, MOVE];
+        let carryParts = 2;
+        let moveParts = 1;
         const blockCost = 150;
 
         let targetCapacity = budget / 2;
 
         if (MEMORY.rooms[room.name].links.spawn) {
-            targetCapacity = (budget - 750) / 2
+
+            if (room.controller.level === 8) {
+                targetCapacity = (budget - 3000 - (300 * room.find(FIND_MY_SPAWNS).length)) / 2
+            }
+            if (room.controller.level === 7) {
+                targetCapacity = (budget - 1500 - (300 * room.find(FIND_MY_SPAWNS).length)) / 2
+            } else {
+                targetCapacity = (budget - 750 - (300 * room.find(FIND_MY_SPAWNS).length)) / 2
+            }
+            console.log('recalculated target capacity', targetCapacity)
         }
 
-        let cost = 0;
+        let cost = 150;
         let capacity = 0;
         let body = []
 
-        while (cost + blockCost <= budget && capacity < targetCapacity) {
-            body.push(...bodyPartBlock)
+        while (cost + blockCost <= budget && capacity < targetCapacity && carryParts + moveParts < 48) {
+            carryParts += 2
+            moveParts++;
+
             cost += blockCost;
             capacity += 100;
+        }
+
+        for (let i = 0; i < carryParts; i++) {
+            body.push(CARRY)
+        }
+        for (let i = 0; i < moveParts; i++) {
+            body.push(MOVE)
         }
 
         return body;
@@ -1211,9 +1235,11 @@ const getBody = {
         const sources = room.find(FIND_SOURCES)
         let controllerLink = MEMORY.rooms[room.name].links.controller
         let spawn = room.find(FIND_MY_SPAWNS)[0];
+        let maxCarryParts = 40
 
         if (controllerLink) {
             averageDistance = spawn.pos.getRangeTo(Game.getObjectById(controllerLink))
+            maxCarryParts = 15;
         } else if (!room.storage) {
 
             for (let s of sources) {
@@ -1230,7 +1256,7 @@ const getBody = {
         let max = 0;
 
         for (let workParts = 1; workParts < 40; workParts++) {
-            for (let carryParts = 1; carryParts < 40; carryParts++) {
+            for (let carryParts = 1; carryParts <= maxCarryParts; carryParts++) {
                 for (let moveParts = 1; moveParts < 40; moveParts++) {
 
                     if (workParts + carryParts + moveParts > 50) {
@@ -1426,7 +1452,7 @@ const getBody = {
         let moveParts = 0;
         let body = [];
 
-        while (totalCost + blockCost <= budget) {
+        while (totalCost + blockCost <= budget && workParts + carryParts + moveParts < 48) {
             workParts++;
             carryParts++;
             moveParts++;
