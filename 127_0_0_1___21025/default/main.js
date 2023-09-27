@@ -36,7 +36,7 @@ module.exports.loop = function () {
         manageMemory(room, creeps);
         outpostManager(room, creeps);
         manageLinks(room);
-        expansionManager(room);
+        expansionManager(room, myRooms);
         roomPlanner(room);
         manageTowers(room);
         manageSpawns(room, creeps);

@@ -69,7 +69,7 @@ function manageSpawns(room, creeps) {
                     // Attempt to spawn the order
 
                     const name = getCreepName(room.name, spawnQueue[i].role)
-  
+
                     ret = spawn.spawnCreep(spawnQueue[i].body, name, spawnQueue[i].options)
 
                     if (ret == 0) {
@@ -420,7 +420,6 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     };
 
 
-
     body = [];
     while (scoutCount < targetScoutCount) {
         body = [MOVE]
@@ -708,9 +707,7 @@ const getBody = {
             } else {
                 targetCapacity = (budget - 750 - (300 * room.find(FIND_MY_SPAWNS).length)) / 2
             }
-            console.log('recalculated target capacity', targetCapacity)
         }
-
         let cost = 150;
         let capacity = 0;
         let body = []
@@ -1659,11 +1656,11 @@ const getTargetCount = {
 
     scout: function (room) {
 
-        if (room.storage) {
-            return 1;
-        };
 
-        return 0;
+        return 1;
+
+
+        //return 0;
 
     },
 
