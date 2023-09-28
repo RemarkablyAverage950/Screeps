@@ -617,13 +617,18 @@ const getBody = {
      */
     defender: function (budget, hostiles) {
         let enemyAttackParts = 0;
-        for (let hCreep of hostiles) {
+        console.log(hostiles)
+        if (hostiles === undefined) {
+            enemyAttackParts = 50;
+        } else {
+            for (let hCreep of hostiles) {
 
-            let body = hCreep.body;
+                let body = hCreep.body;
 
-            for (let part of body) {
-                if (part.type === ATTACK || part.type === RANGED_ATTACK) {
-                    enemyAttackParts++;
+                for (let part of body) {
+                    if (part.type === ATTACK || part.type === RANGED_ATTACK) {
+                        enemyAttackParts++;
+                    }
                 }
             }
         }
@@ -672,6 +677,28 @@ const getBody = {
         };
         return body;
 
+    },
+
+    dismantler: function (roomName) {
+        let energyAvailable = Game.rooms[roomName].energyCapacityAvailable;
+
+        let moveParts = 2;
+        let workParts = 2;
+        let cost = 300;
+        while (cost + 300 < energyAvailable && workParts + moveParts < 48) {
+            workParts += 2;
+            moveParts += 2;
+            cost += 300
+        }
+        let body = []
+        for (let i = 0; i < workParts; i++) {
+            body.push(WORK)
+        }
+        for (let i = 0; i < moveParts; i++) {
+            body.push(MOVE)
+        }
+
+        return body;
     },
 
     fastFiller: function (room) {
@@ -1650,7 +1677,10 @@ const getTargetCount = {
     remoteMaintainer: function (room, outpostRooms) {
 
         let roomCount = outpostRooms.length;
-        return 1;
+        if (roomCount > 0) {
+            return 1;
+        }
+        return 0;
 
     },
 

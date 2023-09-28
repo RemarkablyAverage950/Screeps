@@ -27,6 +27,7 @@ module.exports.loop = function () {
 
     const myRooms = getMyRooms()
 
+    expansionManager(myRooms);
 
     for (const roomName of myRooms) {
 
@@ -36,7 +37,6 @@ module.exports.loop = function () {
         manageMemory(room, creeps);
         outpostManager(room, creeps);
         manageLinks(room);
-        expansionManager(room, myRooms);
         roomPlanner(room);
         manageTowers(room);
         manageSpawns(room, creeps);

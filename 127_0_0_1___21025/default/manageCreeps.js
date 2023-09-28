@@ -476,7 +476,9 @@ function assignTask(room, creep) {
             let targetRoom = undefined;
 
             for (let outpostName of outpostNames) {
-                let lastMaintained = MEMORY.rooms[room.name].outposts[outpostName].lastMaintained
+                let lastMaintained = 0
+                if (MEMORY.rooms[room.name].outposts[outpostName])
+                    lastMaintained = MEMORY.rooms[room.name].outposts[outpostName].lastMaintained
                 if (lastMaintained < min) {
                     targetRoom = outpostName;
                     min = lastMaintained;
@@ -525,6 +527,10 @@ function assignTask(room, creep) {
         task = getRoleTasks.defender(room, creep)
     } else if (role === 'mineralMiner') {
         task = getRoleTasks.mineralMiner(room, creep)
+    } else if (role === 'dismantler') {
+        task = getRoleTasks.dismantler(creep)
+    } else if (role === 'soldier') {
+        task = getRoleTasks.soldier(creep)
     }
 
 
@@ -596,7 +602,9 @@ function executeTask(room, creep) {
 
             break;
         case 'DISMANTLE':
-            if (creep.dismantle(target) != 0) {
+            let ret = creep.dismantle(target)
+
+            if (ret === -9) {
 
                 moveCreep(creep, target.pos, 1, 1);
 
@@ -653,11 +661,14 @@ function executeTask(room, creep) {
 
             break;
         case 'MOVE_TO_ROOM':
-            try {
-                moveCreepToRoom(creep, task.roomName)
+            moveCreepToRoom(creep, task.roomName)
+            /*try {
+               
             } catch (e) {
                 console.log(creep.name, 'failed to move to room', task.roomName)
-            }
+                console.log(JSON.stringify(task))
+                console.log(e)
+            }*/
 
             break;
         case 'PICKUP':
@@ -908,10 +919,36 @@ const getRoleTasks = {
 
                 if (closest) {
                     return new HealTask(closest.id)
-                } else { return parkTask(creep.room, creep) }
+                } else {
+                    // console.log(JSON.stringify(MEMORY.rooms[creep.memory.home]))
+                    if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].monitoredRooms) {
+                        for (let rName of MEMORY.rooms[creep.memory.home].outposts) {
+                            if (MEMORY.monitoredRooms[rName].occupied) {
+                                creep.memory.assignedRoom = rName;
+                                return new MoveToRoomTask(rName)
+                            }
+                        }
+                    }
+
+
+                    return parkTask(creep.room, creep)
+                }
 
             }
 
+        }
+
+
+    },
+
+    dismantler: function (creep) {
+        let room = creep.room;
+        if (room.name !== creep.memory.assignedRoom) {
+            return new MoveToRoomTask(creep.memory.assignedRoom)
+        } else {
+            let targets = creep.room.find(FIND_HOSTILE_STRUCTURES)
+            let target = _.min(targets, t => t.pos.getRangeTo(creep))
+            return new DismantleTask(target.id)
         }
 
 
@@ -1319,9 +1356,9 @@ const getRoleTasks = {
 
             let targetScanRooms = [];
 
-            for (let name of Object.keys(monitoredRooms)) {
+            for (let name of monitoredRooms) {
 
-                let data = monitoredRooms[name]
+                let data = MEMORY.monitoredRooms[name]
 
                 if (data) {
                     targetScanRooms.push(name)
@@ -1337,7 +1374,7 @@ const getRoleTasks = {
             let targetRoom = undefined;
 
             for (let r of targetScanRooms) {
-                const lastScan = MEMORY.rooms[room.name].monitoredRooms[r].lastScan
+                const lastScan = MEMORY.monitoredRooms[r].lastScan
 
                 if (lastScan < minScanTime) {
                     targetRoom = r;
@@ -1365,6 +1402,66 @@ const getRoleTasks = {
         }
 
         return undefined;
+
+    },
+
+    soldier: function (creep,) {
+        const assignedRoom = creep.memory.assignedRoom
+
+        if (creep.room.name !== assignedRoom) {
+
+            return new MoveToRoomTask(assignedRoom)
+        } else {
+            let hostiles = creep.room.find(FIND_HOSTILE_CREEPS).concat(creep.room.find(FIND_HOSTILE_STRUCTURES))
+
+            if (hostiles.length) {
+                let closest = undefined;
+                let min = Infinity;
+                for (let h of hostiles) {
+                    let range = h.pos.getRangeTo(creep)
+                    if (range < min) {
+                        min = range,
+                            closest = h
+                    }
+                }
+                return new AttackTask(closest.id)
+            } else {
+
+                let creeps = creep.room.find(FIND_MY_CREEPS)
+                let closest = undefined;
+                let min = Infinity;
+
+                for (let c of creeps) {
+                    if (c.hits < c.hitsMax) {
+                        let range = c.pos.getRangeTo(creep)
+                        if (range < min) {
+                            min = range,
+                                closest = c
+                        }
+                    }
+                }
+
+                if (closest) {
+                    return new HealTask(closest.id)
+                } else {
+
+                    MEMORY.monitoredRooms[creep.room.name].occupied = false;
+                    // console.log(JSON.stringify(MEMORY.rooms[creep.memory.home]))
+                    if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].monitoredRooms) {
+                        for (let rName of MEMORY.rooms[creep.memory.home].monitoredRooms) {
+                            if (MEMORY.monitoredRooms[rName].occupied) {
+                                creep.memory.assignedRoom = rName;
+                                return new MoveToRoomTask(rName)
+                            }
+                        }
+                    }
+
+
+                    return parkTask(creep.room, creep)
+                }
+
+            }
+        }
 
     },
 
@@ -1899,9 +1996,11 @@ function validateTask(room, creep) {
 
         case 'DISMANTLE':
             if (!target) {
+                console.log(creep.name, 'no target')
                 return false;
             }
-            if (creep.store.getFreeCapacity() === 0) {
+            if (creep.memory.role === 'remoteMaintainer' && creep.store.getFreeCapacity() === 0) {
+                console.log(creep.name, 'B')
                 return false;
             }
             break;

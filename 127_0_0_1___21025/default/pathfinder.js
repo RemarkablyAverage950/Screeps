@@ -91,7 +91,7 @@ function moveCreep(creep, destination, range, maxRooms) {
     }
 
     if (lookCreeps.length > 0) {
-        
+
         const lookCreep = lookCreeps[0]
 
         if (lookCreep.my && MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] && !MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
@@ -123,7 +123,7 @@ function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
         // Use `findRoute` to calculate a high-level plan for this path,
         // prioritizing highways and owned rooms
 
-        nextRoom = Game.map.findRoute(from.roomName, to.roomName, {
+        let route = Game.map.findRoute(from.roomName, to.roomName, {
             routeCallback(roomName) {
                 let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
                 let isHighway = (parsed[1] % 10 === 0) ||
@@ -131,14 +131,20 @@ function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
                 let isMyRoom = Game.rooms[roomName] &&
                     Game.rooms[roomName].controller &&
                     Game.rooms[roomName].controller.my;
-                let isNotHostile = MEMORY.rooms[creep.memory.home].monitoredRooms[roomName] && !MEMORY.rooms[creep.memory.home].monitoredRooms[roomName].hostileTarget
+                let isNotHostile = MEMORY.monitoredRooms[roomName] && !MEMORY.monitoredRooms[roomName].hostileTarget
                 if (isHighway || isMyRoom || isNotHostile || roomName === targetRoomName || roomName === creep.room.name) {
                     return 1;
                 } else {
                     return hostileRoomValue;
                 }
             }
-        })[0].room
+        })
+
+        if (!route.length) {
+            return;
+        }
+
+        nextRoom = route[0].room
 
         MEMORY.rooms[creep.memory.home].creeps[creep.name].nextroom = nextRoom
     }
@@ -196,16 +202,16 @@ function getCostMatrix(room) {
             continue;
         };
 
-        if (structure.structureType === STRUCTURE_LINK && MEMORY.rooms[room.name].links.spawn && structure.id === MEMORY.rooms[room.name].links.spawn){
+        if (structure.structureType === STRUCTURE_LINK && MEMORY.rooms[room.name].links.spawn && structure.id === MEMORY.rooms[room.name].links.spawn) {
             let pos = structure.pos;
 
-            costMatrix.set(pos.x-1, pos.y-1, 10);
-            costMatrix.set(pos.x+1, pos.y-1, 10);
-            costMatrix.set(pos.x-1, pos.y+1, 10);
-            costMatrix.set(pos.x+1, pos.y+1, 10);
+            costMatrix.set(pos.x - 1, pos.y - 1, 10);
+            costMatrix.set(pos.x + 1, pos.y - 1, 10);
+            costMatrix.set(pos.x - 1, pos.y + 1, 10);
+            costMatrix.set(pos.x + 1, pos.y + 1, 10);
         }
-            // Structure is impassable
-            costMatrix.set(structure.pos.x, structure.pos.y, 0xff);
+        // Structure is impassable
+        costMatrix.set(structure.pos.x, structure.pos.y, 0xff);
     }
 
     for (let site of sites) {
