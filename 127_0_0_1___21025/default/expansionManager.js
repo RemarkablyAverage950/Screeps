@@ -42,6 +42,7 @@ class ScanData {
         const sources = room.find(FIND_SOURCES);
         const mineral = room.find(FIND_MINERALS)[0];
         const hostileCreeps = room.find(FIND_HOSTILE_CREEPS);
+        const hostileStructures = room.find(FIND_HOSTILE_STRUCTURES);
 
         this.controller_id = controller ? controller.id : null;
         this.distance = Game.map.findRoute(this.homeRoom, this.roomName).length
@@ -74,7 +75,9 @@ class ScanData {
 
 
         let hostileTarget = false;
-        if (hostileCreeps.length > 0) {
+        if (hostileStructures.length > 0) {
+            hostileTarget = true;
+        } else if (hostileCreeps.length > 0) {
             for (let creep of hostileCreeps) {
                 if (hostileTarget) { break; }
                 const body = creep.body
@@ -89,9 +92,7 @@ class ScanData {
 
         this.distanceRating = distanceRating
         this.hostileTarget = hostileTarget
-        this.occupied = ((this.reserved && this.reservedBy !== MEMORY.username)
-            || this.owned && !this.my
-            || this.hostileTarget) ? true : false;
+        this.occupied = this.hostileTarget ? true : false;
 
     }
 
@@ -99,6 +100,7 @@ class ScanData {
         const room = Game.rooms[this.roomName];
         const controller = room.controller;
         const hostileCreeps = room.find(FIND_HOSTILE_CREEPS);
+        const hostileStructures = room.find(FIND_HOSTILE_STRUCTURES);
 
         this.lastScan = Game.time;
         this.level = controller ? controller.level : null;
@@ -108,7 +110,9 @@ class ScanData {
         this.reserved = (controller && controller.reservation) ? true : false;
         this.reservedBy = this.reserved ? controller.reservation.username : null;
         let hostileTarget = false;
-        if (hostileCreeps.length > 0) {
+        if (hostileStructures.length > 0) {
+            hostileTarget = true;
+        } else if (hostileCreeps.length > 0) {
             for (let creep of hostileCreeps) {
                 if (hostileTarget) { break; }
                 const body = creep.body
@@ -121,9 +125,7 @@ class ScanData {
             }
         }
         this.hostileTarget = hostileTarget
-        this.occupied = ((this.reserved && this.reservedBy !== MEMORY.username)
-            || this.owned && !this.my
-            || this.hostileTarget) ? true : false;
+        this.occupied = this.hostileTarget ? true : false;
     }
 
 }
@@ -203,7 +205,7 @@ function expansionManager(myRooms) {
     // Claim/Assault mission here
 
     let mission = MEMORY.mission;
-    if (Game.time % 1 === 0 && (!mission || mission.complete)) {
+    if (Game.time % 100 === 0 && (!mission || mission.complete)) {
 
         // Get a new mission (Mining outpost, claim new room, attack room)
         mission = getMission(myRooms)
@@ -231,7 +233,7 @@ function expansionManager(myRooms) {
 
 
                         if (data.reserved && data.reservedBy === 'Invader' && hostiles.length === 0 && hostileStructures.length > 0) {
-                       
+
                             let unit = 'soldier';
 
 
@@ -263,7 +265,7 @@ function expansionManager(myRooms) {
                 let body = [];
                 while (soldierCount < targetSoldierCount) {
                     if (body.length === 0) {
-                        body = getBody.defender(Game.rooms[data.homeRoom].energyCapacityAvailable,undefined)
+                        body = getBody.defender(Game.rooms[data.homeRoom].energyCapacityAvailable, undefined)
                     }
                     options = {
                         memory: {
@@ -374,15 +376,15 @@ function getMonitoredRooms(myRooms) {
 function getMission(myRooms) {
 
     let monitoredRooms = MEMORY.monitoredRooms
-    console.log('A', monitoredRooms.length, JSON.stringify(monitoredRooms))
+
 
     for (let data of Object.values(monitoredRooms)) {
         if (data.lastScan === 0) {
             continue;
         }
-        console.log('B')
+
         for (let i = 1; i < 11; i++) {
-            console.log('C', data.roomName, data.distance === i, data.occupied, !data.hostileTarget, data.reservedBy === 'Invader')
+
             if (data.distance === i && data.occupied && !data.hostileTarget && data.reservedBy === 'Invader') {
                 console.log('Generating assault mission for', data.roomName)
                 return new AssaultMission(data.roomName)
@@ -450,7 +452,7 @@ function getMission(myRooms) {
         let next = false;
 
         for (let myRoom of myRooms) {
-            if (Game.rooms[myRoom].memory.outposts && Game.rooms[myRoom].memory.outposts.some(o => o === r.name)) {
+            if (Game.rooms[myRoom].memory.outposts && Game.rooms[myRoom].memory.outposts.some(o => o === r.roomName)) {
                 next = true;
                 break;
             }
@@ -460,7 +462,7 @@ function getMission(myRooms) {
         }
 
         //  {"name":"W4N1","controller_id":"79ad0773ec3f021","sources":["b8e80773ec3d49f"],"mineralType":"K","hostileCreeps":0,"reserved":false,"hostileTarget":false,"occupied":false,"lastScan":382826,"owned":false,"my":false,"distance":3,"distanceRating":64}
-        if (r.distance > 3 && r.controller_id && !r.occupied && !r.my) {
+        if (r.distance > 3 && r.controller_id && !r.reserved && !r.occupied && !r.my) {
 
 
             let score = 0;
@@ -472,7 +474,7 @@ function getMission(myRooms) {
             }
             score += r.distanceRating
 
-            let neighbors = Object.values(Game.map.describeExits(r.name))
+            let neighbors = Object.values(Game.map.describeExits(r.roomName))
             let preferred = true;
             for (let n of neighbors) {
                 let neighborData = monitoredRooms[n];
@@ -492,7 +494,7 @@ function getMission(myRooms) {
             }
 
             potentialSettlements.push({
-                roomName: r.name,
+                roomName: r.roomName,
                 score: score,
             })
         }

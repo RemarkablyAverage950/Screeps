@@ -1407,61 +1407,59 @@ const getRoleTasks = {
 
     soldier: function (creep,) {
         const assignedRoom = creep.memory.assignedRoom
-
-        if (creep.room.name !== assignedRoom) {
-
-            return new MoveToRoomTask(assignedRoom)
+        let hostiles = creep.room.find(FIND_HOSTILE_CREEPS).concat(creep.room.find(FIND_HOSTILE_STRUCTURES))
+        if (hostiles.length) {
+            let closest = undefined;
+            let min = Infinity;
+            for (let h of hostiles) {
+                let range = h.pos.getRangeTo(creep)
+                if (range < min) {
+                    min = range,
+                        closest = h
+                }
+            }
+            return new AttackTask(closest.id)
         } else {
-            let hostiles = creep.room.find(FIND_HOSTILE_CREEPS).concat(creep.room.find(FIND_HOSTILE_STRUCTURES))
 
-            if (hostiles.length) {
-                let closest = undefined;
-                let min = Infinity;
-                for (let h of hostiles) {
-                    let range = h.pos.getRangeTo(creep)
+            let creeps = creep.room.find(FIND_MY_CREEPS)
+            let closest = undefined;
+            let min = Infinity;
+
+            for (let c of creeps) {
+                if (c.hits < c.hitsMax) {
+                    let range = c.pos.getRangeTo(creep)
                     if (range < min) {
                         min = range,
-                            closest = h
+                            closest = c
                     }
                 }
-                return new AttackTask(closest.id)
-            } else {
+            }
 
-                let creeps = creep.room.find(FIND_MY_CREEPS)
-                let closest = undefined;
-                let min = Infinity;
-
-                for (let c of creeps) {
-                    if (c.hits < c.hitsMax) {
-                        let range = c.pos.getRangeTo(creep)
-                        if (range < min) {
-                            min = range,
-                                closest = c
-                        }
-                    }
-                }
-
-                if (closest) {
-                    return new HealTask(closest.id)
-                } else {
-
-                    MEMORY.monitoredRooms[creep.room.name].occupied = false;
-                    // console.log(JSON.stringify(MEMORY.rooms[creep.memory.home]))
-                    if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].monitoredRooms) {
-                        for (let rName of MEMORY.rooms[creep.memory.home].monitoredRooms) {
-                            if (MEMORY.monitoredRooms[rName].occupied) {
-                                creep.memory.assignedRoom = rName;
-                                return new MoveToRoomTask(rName)
-                            }
-                        }
-                    }
-
-
-                    return parkTask(creep.room, creep)
-                }
-
+            if (closest) {
+                return new HealTask(closest.id)
             }
         }
+        if (creep.room.name !== assignedRoom) {
+            return new MoveToRoomTask(assignedRoom)
+        }
+
+        MEMORY.monitoredRooms[creep.room.name].occupied = false;
+        // console.log(JSON.stringify(MEMORY.rooms[creep.memory.home]))
+        if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].monitoredRooms) {
+            for (let rName of MEMORY.rooms[creep.memory.home].monitoredRooms) {
+                if (MEMORY.monitoredRooms[rName].occupied) {
+                    creep.memory.assignedRoom = rName;
+                    return new MoveToRoomTask(rName)
+                }
+            }
+        }
+
+
+        return parkTask(creep.room, creep)
+
+
+
+
 
     },
 
