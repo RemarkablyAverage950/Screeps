@@ -837,7 +837,7 @@ function updateTile(x, y, structure, tiles, center, level) {
 
 function visualizeStructures(plans, room) {
 
-    const reqDisplayLevel = room.controller.level;
+    const reqDisplayLevel = 8//room.controller.level;
 
     if (plans === undefined) {
         return;

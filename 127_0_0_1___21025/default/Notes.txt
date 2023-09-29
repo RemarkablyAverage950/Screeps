@@ -11,9 +11,11 @@ PathFinding
 
 Auto Build Room.
     [] Owned room
-       [x] Basic blueprints.
-       [x] Migration.
-       [] In room outpost road sometimes building on non-optimal path
+        [x] Basic blueprints.
+        [x] Migration.
+        [] In room outpost road sometimes building on non-optimal path
+        [] Add spawn storages to spawn block at lvl 2.
+        [] Spawnlink before controller link.
     [] Outpost
         [] Ensure road pathing doesnt randomly dip off existing roads. This happened near a rampart in the home room.
 
@@ -42,8 +44,10 @@ Roles:
         [x] assigned to a source at spawn time.
         [x] Consider just in time arrival
         [] Smoother room-to-room transitions
-    [x] Hauler
+    [] Hauler
         - testing
+        [] Spawn @ lvl 2 if spawn containers present. 
+        [] When there is no storage, bring energy to spawn containers. 
         [x] More effecient body generation.
         [x] Gather dropped minerals and energy to conserve maximum amount.
     [] Remote builder
@@ -53,6 +57,8 @@ Roles:
         - testing
     [x] Wallbuilder
         - testing
+    [] Upgrader
+        [] does not stand on roads when upgrading.
     [] Remote Defender
         [x] Basic framework
         [] Refine attack code

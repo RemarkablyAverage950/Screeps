@@ -275,7 +275,7 @@ function expansionManager(myRooms) {
         if (spawns.length === 1) {
             maxRooms = 3;
         }
-       
+
         if (room.memory.outposts && room.memory.outposts.length < maxRooms) {
 
             for (let i = 1; i <= 2; i++) {
@@ -585,7 +585,9 @@ function getMission(myRooms) {
  
     */
 
-
+    if (myRooms.length === Game.gcl.level) {
+        return;
+    }
     let potentialSettlements = [];
     let ownedMinerals = [
         { constant: RESOURCE_HYDROGEN, count: 0 },

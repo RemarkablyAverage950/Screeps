@@ -807,7 +807,7 @@ function parkTask(room, creep) {
     let yStart = creep.pos.y;
 
     let avoidPos = [];
-    if (creep.memory.home === room.name) {
+    if (creep.memory.home === room.name && MEMORY.rooms[room.name].links) {
         let spawnLink = Game.getObjectById(MEMORY.rooms[room.name].links.spawn)
         if (spawnLink) {
             let pos = spawnLink.pos
@@ -962,7 +962,7 @@ const getRoleTasks = {
                     return new HealTask(closest.id)
                 } else {
                     // console.log(JSON.stringify(MEMORY.rooms[creep.memory.home]))
-                    if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].monitoredRooms) {
+                    if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].monitoredRooms && MEMORY.rooms[creep.memory.home].outposts.length) {
                         for (let rName of MEMORY.rooms[creep.memory.home].outposts) {
                             if (MEMORY.monitoredRooms[rName].occupied) {
                                 creep.memory.assignedRoom = rName;

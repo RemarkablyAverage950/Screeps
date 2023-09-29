@@ -78,8 +78,11 @@ function manageSpawns(room, creeps) {
                         MEMORY.rooms[room.name].spawnQueue = spawnQueue;
                         break;
 
-                    } else if (ret != 0) {
-                        console.log('ret', ret)
+                    } else if (ret == -6) {
+                        
+                        return;
+                    }else{
+                        console.log('ret', ret,name)
                         return;
                     }
 
@@ -366,9 +369,13 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         if (body.length === 0) {
             let ret = getBody.builder(energyBudget, room, storedEnergy);
             body = ret[0];
+            if (room.controller.level < 3) {
+                targetBuilderCount = ret[1] - 1;
+            } else {
 
-            if (ret[1] > 2 && storedEnergy > CONSERVE_ENERGY_VALUE) {
-                targetBuilderCount = 2;
+                if (ret[1] > 2 && storedEnergy > CONSERVE_ENERGY_VALUE) {
+                    targetBuilderCount = 2;
+                }
             }
             options = {
                 memory: {
@@ -724,7 +731,7 @@ const getBody = {
 
         let targetCapacity = budget / 2;
 
-        if (MEMORY.rooms[room.name].links.spawn) {
+        if (MEMORY.rooms[room.name].links && MEMORY.rooms[room.name].links.spawn) {
 
             if (room.controller.level === 8) {
                 targetCapacity = (budget - 3000 - (300 * room.find(FIND_MY_SPAWNS).length)) / 5
@@ -1257,7 +1264,7 @@ const getBody = {
         */
         let averageDistance = 0;
         const sources = room.find(FIND_SOURCES)
-        let controllerLink = MEMORY.rooms[room.name].links.controller
+        let controllerLink = MEMORY.rooms[room.name].links.controller;
         let spawn = room.find(FIND_MY_SPAWNS)[0];
         let maxCarryParts = 40
 
@@ -1535,7 +1542,7 @@ const getTargetCount = {
     },
 
     fastFiller: function (room) {
-        if (MEMORY.rooms[room.name].links.spawn) {
+        if (MEMORY.rooms[room.name].links && MEMORY.rooms[room.name].links.spawn) {
             return 4;
         }
         return 0;

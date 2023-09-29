@@ -6,12 +6,6 @@ let MEMORY = require('memory');
  */
 function manageLinks(room) {
 
-    if (room.controller.level < 5) {
-        return;
-    }
-
-
-
 
     let linkMem = undefined;
 
@@ -27,8 +21,12 @@ function manageLinks(room) {
             2: undefined,
             3: undefined,
             4: undefined,
-        }
 
+        }
+        MEMORY.rooms[room.name].links = linkMem
+        if (room.controller.level < 5) {
+            return;
+        }
         const links = room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_LINK);
         let linkNum = 1;
 
