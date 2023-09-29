@@ -59,21 +59,61 @@ class ScanData {
 
 
 
-        let distanceRating = null;
+        let rating = null;
 
         if (controller && sources.length && mineral) {
-            distanceRating = 0;
+            rating = 0
+            rating += 25 * this.exitCount
+            let distanceRating = 0;
+
+            if (sources.length == 2) {
+                rating += 500;
+            }
 
             for (let source of sources) {
                 distanceRating += controller.pos.getRangeTo(source)
             }
             distanceRating /= sources.length
-            distanceRating += controller.pos.getRangeTo(mineral)
-            distanceRating = 100 - distanceRating
+            distanceRating += controller.pos.getRangeTo(mineral) * .5
+            distanceRating = (100 - distanceRating) * 2
+            rating += distanceRating;
+
+            const terrain = new Room.Terrain(this.roomName)
+            let swamps = 0;
+            let plains = 0
+            for (let x = 0; x < 50; x++) {
+                for (let y = 0; y < 50; y++) {
+                    const t = terrain.get(x, y)
+                    if (t === 2) {
+                        swamps++;
+                    } else if (t === 0) {
+                        plains++;
+                    }
+                }
+            }
+
+            rating += 100 * ((plains + swamps) / 2500)
+
+            // 100 * (100 / (100+50))
+            rating += (100 * (plains / (plains + swamps)))
+
+
+            let exits = Object.values(Game.map.describeExits(this.roomName))
+
+            for (let exitRoom of exits) {
+                let erData = MEMORY.monitoredRooms[exitRoom]
+                if (erData && erData.lastScan !== 0 && !erData.occupied && !erData.reserved) {
+                    rating += 100;
+                    if (erData.sources) {
+                        for (let i = 0; i < erData.sources.length; i++) {
+                            rating += 25;
+                        }
+                    }
+
+                }
+            }
 
         }
-
-
         let hostileTarget = false;
         if (hostileStructures.length > 0) {
             hostileTarget = true;
@@ -90,7 +130,7 @@ class ScanData {
             }
         }
 
-        this.distanceRating = distanceRating
+        this.rating = rating
         this.hostileTarget = hostileTarget
         this.occupied = this.hostileTarget ? true : false;
 
@@ -101,6 +141,8 @@ class ScanData {
         const controller = room.controller;
         const hostileCreeps = room.find(FIND_HOSTILE_CREEPS);
         const hostileStructures = room.find(FIND_HOSTILE_STRUCTURES);
+        const sources = room.find(FIND_SOURCES)
+        const mineral = room.find(FIND_MINERALS)[0]
 
         this.lastScan = Game.time;
         this.level = controller ? controller.level : null;
@@ -124,8 +166,64 @@ class ScanData {
                 }
             }
         }
+        let rating = null;
+
+        if (controller && sources.length && mineral) {
+            rating = 0
+            rating += 25 * this.exitCount
+            let distanceRating = 0;
+
+            if (sources.length == 2) {
+                rating += 500;
+            }
+
+            for (let source of sources) {
+                distanceRating += controller.pos.getRangeTo(source)
+            }
+            distanceRating /= sources.length
+            distanceRating += controller.pos.getRangeTo(mineral) * .5
+            distanceRating = 100 - distanceRating
+            rating += distanceRating;
+
+            const terrain = new Room.Terrain(this.roomName)
+            let swamps = 0;
+            let plains = 0
+            for (let x = 0; x < 50; x++) {
+                for (let y = 0; y < 50; y++) {
+                    const t = terrain.get(x, y)
+                    if (t === 2) {
+                        swamps++;
+                    } else if (t === 0) {
+                        plains++;
+                    }
+                }
+            }
+
+            rating += 100 * ((plains + swamps) / 2500)
+
+            // 100 * (100 / (100+50))
+            rating += (100 * (plains / (plains + swamps)))
+
+
+            let exits = Object.values(Game.map.describeExits(this.roomName))
+
+            for (let exitRoom of exits) {
+                let erData = MEMORY.monitoredRooms[exitRoom]
+                if (erData && erData.lastScan !== 0 && !erData.occupied && !erData.reserved) {
+                    rating += 100;
+                    if (erData.sources) {
+                        for (let i = 0; i < erData.sources.length; i++) {
+                            rating += 25;
+                        }
+                    }
+                }
+            }
+
+        }
+
         this.hostileTarget = hostileTarget
         this.occupied = this.hostileTarget ? true : false;
+        this.rating = rating;
     }
 
 }
@@ -153,14 +251,22 @@ function expansionManager(myRooms) {
                 let data = monitoredRooms[r.name]
                 if (data) {
                     // We have a monitored room
-                    if (!data.lastScan || Game.time - data.lastScan > 100) {
+                    if (!data.lastScan) {
                         data = new ScanData(r.name, roomName)
+                        //console.log('DataCreated',JSON.stringify(data))
                         MEMORY.monitoredRooms[r.name] = data;
+                    } else {
+                        if (Game.time - data.lastScan > 100) {
+                            data.update()
+                            // console.log('DataUpdated',JSON.stringify(data))
+                        }
                     }
 
+                    MEMORY.monitoredRooms[r.name] = data;
                 }
             }
         }
+
 
         // Expand outposts here
         const room = Game.rooms[roomName]
@@ -169,8 +275,8 @@ function expansionManager(myRooms) {
         if (spawns.length === 1) {
             maxRooms = 3;
         }
-
-        if (room.memory.outposts.length < maxRooms) {
+       
+        if (room.memory.outposts && room.memory.outposts.length < maxRooms) {
 
             for (let i = 1; i <= 2; i++) {
                 for (let r of Object.values(MEMORY.monitoredRooms)) {
@@ -182,7 +288,7 @@ function expansionManager(myRooms) {
                     let next = false;
 
                     for (let myRoom of myRooms) {
-                        if (Game.rooms[myRoom].memory.outposts && Game.rooms[myRoom].memory.outposts.some(o => o === r.roomName)) {
+                        if (Game.rooms[myRoom].memory.outposts.length && Game.rooms[myRoom].memory.outposts.some(o => o === r.roomName)) {
                             next = true;
                             break;
                         }
@@ -214,11 +320,12 @@ function expansionManager(myRooms) {
     }
 
     if (mission) {
-
+        let body = [];
+        let data = MEMORY.monitoredRooms[mission.roomName]
         // Check status.
         switch (mission.type) {
             case 'ASSAULT':
-                let data = MEMORY.monitoredRooms[mission.roomName]
+
 
                 if (!mission.unitsReq) {
                     let unitsReq = []
@@ -251,7 +358,7 @@ function expansionManager(myRooms) {
                     }
                 }
                 for (let so of MEMORY.rooms[data.homeRoom].spawnQueue) {
-                    if (so.role === 'soldier') {
+                    if (so.role === 'soldier' && so.assignedRoom === mission.roomName) {
                         soldierCount++
                     }
                 }
@@ -262,7 +369,7 @@ function expansionManager(myRooms) {
                         targetSoldierCount++;
                     }
                 }
-                let body = [];
+                body = [];
                 while (soldierCount < targetSoldierCount) {
                     if (body.length === 0) {
                         body = getBody.defender(Game.rooms[data.homeRoom].energyCapacityAvailable, undefined)
@@ -280,6 +387,72 @@ function expansionManager(myRooms) {
 
                 break;
             case 'CLAIM':
+                let room = Game.rooms[mission.roomName]
+                let targetClaimerCount = 0;
+                let claimerCount = 0;
+                if (!room || !room.controller.my) {
+                    targetClaimerCount++;
+
+                    for (let creep of Object.values(Game.creeps)) {
+                        if (creep.memory.role === 'claimer' && creep.memory.assignedRoom === mission.roomName) {
+                            claimerCount++;
+                        }
+                    }
+                    for (let so of MEMORY.rooms[data.homeRoom].spawnQueue) {
+                        if (so.role === 'claimer' && so.assignedRoom === mission.roomName) {
+                            claimerCount++
+                        }
+                    }
+
+
+
+                    body = [];
+                    while (claimerCount < targetClaimerCount) {
+                        if (body.length === 0) {
+                            body = getBody.reserver(Game.rooms[data.homeRoom].energyCapacityAvailable)
+                        }
+                        options = {
+                            memory: {
+                                role: 'claimer',
+                                home: data.homeRoom,
+                                assignedRoom: mission.roomName,
+                            },
+                        };
+                        MEMORY.rooms[data.homeRoom].spawnQueue.push(new SpawnOrder('claimer', 6, body, options));
+                        claimerCount++;
+                    }
+                }
+                if (room && room.find(FIND_HOSTILE_CREEPS).length > 0) {
+                    let soldierCount = 0;
+                    for (let c of Object.values(Game.creeps)) {
+                        if (c.memory.role === 'soldier' && c.memory.assignedRoom === mission.roomName) {
+                            soldierCount++;
+                        }
+                    }
+                    for (let so of MEMORY.rooms[data.homeRoom].spawnQueue) {
+                        if (so.role === 'soldier' && so.assignedRoom === mission.roomName) {
+                            soldierCount++
+                        }
+                    }
+
+                    let targetSoldierCount = 1
+
+                    body = [];
+                    while (soldierCount < targetSoldierCount) {
+                        if (body.length === 0) {
+                            body = getBody.defender(Game.rooms[data.homeRoom].energyCapacityAvailable, undefined)
+                        }
+                        options = {
+                            memory: {
+                                role: 'soldier',
+                                home: data.homeRoom,
+                                assignedRoom: mission.roomName,
+                            },
+                        };
+                        MEMORY.rooms[data.homeRoom].spawnQueue.push(new SpawnOrder('soldier', 6, body, options));
+                        soldierCount++;
+                    }
+                }
 
                 break;
         }
@@ -465,33 +638,9 @@ function getMission(myRooms) {
         if (r.distance > 3 && r.controller_id && !r.reserved && !r.occupied && !r.my) {
 
 
-            let score = 0;
-            if (r.sources.length > 1) {
-                score += 50;
-            }
-            if (r.exitCount > 2) {
-                score += 50;
-            }
-            score += r.distanceRating
+            let score = r.rating;
 
-            let neighbors = Object.values(Game.map.describeExits(r.roomName))
-            let preferred = true;
-            for (let n of neighbors) {
-                let neighborData = monitoredRooms[n];
-                if (neighborData && neighborData.occupied || neighborData.my) {
-                    preferred = false;
-                }
-            }
 
-            if (preferredMinerals.some(m => m === r.mineralType)) {
-                score += 50;
-            }
-
-            if (preferred) {
-                score += 50;
-            } else {
-                score -= 50;
-            }
 
             potentialSettlements.push({
                 roomName: r.roomName,
@@ -500,7 +649,7 @@ function getMission(myRooms) {
         }
     }
 
-    console.log('Potential Settlements:', JSON.stringify(potentialSettlements), potentialSettlements.length)
+    //console.log('Potential Settlements:', JSON.stringify(potentialSettlements), potentialSettlements.length)
 
     if (potentialSettlements.length >= 10) {
         let bestTarget = _.max(potentialSettlements, s => s.score)

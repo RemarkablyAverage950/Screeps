@@ -1,4 +1,4 @@
-const { manageSpawns } = require('manageSpawns');
+const { manageSpawns,getBody,SpawnOrder } = require('manageSpawns');
 const { manageCreeps } = require('manageCreeps');
 const roomPlanner = require('roomPlanner');
 const { expansionManager } = require('expansionManager');
@@ -27,12 +27,49 @@ module.exports.loop = function () {
 
     const myRooms = getMyRooms()
 
+
     expansionManager(myRooms);
 
     for (const roomName of myRooms) {
 
         const room = Game.rooms[roomName];
         const creeps = Object.values(Game.creeps).filter(c => c.memory.home === roomName);
+
+        if (creeps.length === 0) {
+            let spawns = room.find(FIND_MY_SPAWNS)
+            if (spawns.length === 0) {
+                let cs = room.find(FIND_MY_CONSTRUCTION_SITES)
+                if (cs.length > 0) {
+                    let closest = _.min(myRooms.filter(r=> r != roomName), r => Game.map.getRoomLinearDistance(roomName, r))
+         
+                    let targetRemoteBuilderCount = 4;
+
+                    let remoteBuilderCount = Object.values(Game.creeps).filter(c => c.memory.home === closest && c.memory.role === 'remoteBuilder')
+                    let spawnQueue = MEMORY.rooms[closest].spawnQueue
+                    for (let so of spawnQueue) {
+                        if (so.role === 'remoteBuilder') {
+                            remoteBuilderCount++;
+                        }
+                    }
+
+                    body = [];
+                    while (remoteBuilderCount < targetRemoteBuilderCount) {
+                        body = getBody.remoteBuilder(Game.rooms[closest].energyCapacityAvailable, Game.rooms[closest], 100000)
+
+                        options = {
+                            memory: {
+                                role: 'remoteBuilder',
+                                home: room.name,
+                                assignedRoom: roomName,
+                            },
+                        };
+                        spawnQueue.push(new SpawnOrder('remoteBuilder', 6, body, options));
+                        remoteBuilderCount++;
+                    }
+                }
+            }
+        }
+
 
         manageMemory(room, creeps);
         outpostManager(room, creeps);
@@ -58,6 +95,12 @@ function getMyRooms() {
         if (Game.rooms[roomName].controller && Game.rooms[roomName].controller.my) {
 
             myRooms.push(roomName);
+
+            if (!MEMORY.rooms[roomName]) {
+                InitializeRoom(Game.rooms[roomName])
+                console.log('Initialized MEMORY for ' + roomName)
+
+            }
 
         };
     };
@@ -108,8 +151,10 @@ function InitializeRoom(room) {
     let minerNumber = 0;
 
     if (!room.memory.outposts) {
-        room.memory.outposts = {};
+        room.memory.outposts = [];
+
     }
+
     for (let source of sources) {
 
         sourceObjects[source.id] = {

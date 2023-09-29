@@ -44,7 +44,7 @@ class Tile {
 function roomPlanner(room) {
 
 
-   //room.memory.plans = undefined;
+    //room.memory.plans = undefined;
 
     let plans = room.memory.plans;
 
@@ -106,13 +106,13 @@ function validateStructures(room, plans) {
                     console.log('removing structure', s.structureType, JSON.stringify(s.pos))
                     s.destroy()
                     spawnCount--;
-                    
+
                 }
 
             } else {
                 console.log('removing structure', s.structureType, JSON.stringify(s.pos))
                 s.destroy()
-                
+
             }
         }
     }
@@ -534,7 +534,9 @@ function setRamparts(room, tiles, storagePos) {
 
     while (BUILDINGS.length > 0) {
         for (let center of centers) {
-
+            if(BUILDINGS.length === 0){
+                break;
+            }
             let building = BUILDINGS.pop()
             // get roadPath from center to storage
             let path = getPath(center, storagePos, 1, tiles, room)
@@ -548,11 +550,18 @@ function setRamparts(room, tiles, storagePos) {
                         for (let y = p.y - 1; y <= p.y + 1; y++) {
 
                             let tile = tiles.find(t => t.x === x && t.y === y)
-                            if (tile.available) {
-                                updateTile(x, y, building[0], tiles, false, building[1]);
-                                updateTile(x, y, STRUCTURE_RAMPART, tiles, false, building[1]);
-                                placed = true;
-                                break;
+                            if (!tile) {
+                                console.log('Tile', x, y, room.name, 'unavailable')
+                            }
+                            try {
+                                if (tile && tile.available) {
+                                    updateTile(x, y, building[0], tiles, false, building[1]);
+                                    updateTile(x, y, STRUCTURE_RAMPART, tiles, false, building[1]);
+                                    placed = true;
+                                    break;
+                                }
+                            }catch (e){
+                                console.log('Failed',e,x,y,building[0])
                             }
 
 
@@ -591,16 +600,19 @@ function setRoads(room, tiles, origin, destination, range, level) {
  * @param {Tile[]} tiles
  * @returns {PathFinderPath}
  */
-function getPath(origin, destination, range, tiles) {
+function getPath(origin, destination, range, tiles, maxRooms = 0) {
     let target = { pos: destination, range: range };
 
     let ret = PathFinder.search(
         origin, target, {
         plainCost: 2,
         swampCost: 2,
+        maxRooms: maxRooms,
         roomCallback: function (roomName) {
-
-
+            if (!Game.rooms[roomName]) {
+                return;
+            }
+            console.log(roomName, JSON.stringify(Game.rooms[roomName]))
             const costs = getPlannerCostMatrix(tiles, Game.rooms[roomName]);
             return costs;
         },

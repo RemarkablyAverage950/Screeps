@@ -32,6 +32,17 @@ class BuildTask extends Task {
     };
 };
 
+class ClaimTask extends Task {
+    /**
+ * @constructor
+ * @param {string} id 
+ */
+    constructor(id) {
+        super('CLAIM');
+        this.id = id;
+    };
+}
+
 class DismantleTask extends Task {
     constructor(id) {
         super('DISMANTLE');
@@ -531,6 +542,8 @@ function assignTask(room, creep) {
         task = getRoleTasks.dismantler(creep)
     } else if (role === 'soldier') {
         task = getRoleTasks.soldier(creep)
+    } else if (role === 'claimer') {
+        task = getRoleTasks.claimer(creep)
     }
 
 
@@ -600,6 +613,19 @@ function executeTask(room, creep) {
 
             };
 
+            break;
+
+        case 'CLAIM':
+            if (creep.claimController(target) !== 0) {
+
+                moveCreep(creep, target.pos, 1, 1);
+
+            } else {
+
+                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
+                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+
+            };
             break;
         case 'DISMANTLE':
             let ret = creep.dismantle(target)
@@ -879,6 +905,21 @@ const getRoleTasks = {
         };
 
         return tasks;
+    },
+
+    claimer: function (creep) {
+        if (creep.room.name !== creep.memory.assignedRoom) {
+            return new MoveToRoomTask(creep.memory.assignedRoom)
+        }
+
+        let controller = Game.rooms[creep.memory.assignedRoom].controller
+        if (!controller) {
+            return undefined;
+        }
+        if (!controller.my) {
+            return new ClaimTask(controller.id)
+        }
+
     },
 
     defender: function (room, creep) {
@@ -1638,19 +1679,19 @@ const getTasks = {
 
         };
 
-        if (tasks.length === 0) {
-            for (let s of towers) {
-                const forecast = s.forecast(RESOURCE_ENERGY);
-                const capacity = s.store.getCapacity(RESOURCE_ENERGY);
+        if (tasks.length === 0 && towers.length) {
 
-                if (forecast < capacity - 40) {
+            let target = _.min(towers, t => t.forecast(RESOURCE_ENERGY))
+            const forecast = target.forecast(RESOURCE_ENERGY);
+            const capacity = target.store.getCapacity(RESOURCE_ENERGY);
 
-                    tasks.push(new TransferTask(s.id, RESOURCE_ENERGY, Math.min(capacity - forecast, heldEnergy)));
+            if (forecast < capacity - 40) {
 
-                };
+                tasks.push(new TransferTask(target.id, RESOURCE_ENERGY, Math.min(capacity - forecast, heldEnergy)));
             }
-        }
 
+
+        }
         return tasks;
 
     },
@@ -1991,7 +2032,14 @@ function validateTask(room, creep) {
             };
 
             break;
-
+        case 'CLAIM':
+            if (!target) {
+                return false;
+            }
+            if (target.my) {
+                return false;
+            }
+            break;
         case 'DISMANTLE':
             if (!target) {
                 console.log(creep.name, 'no target')

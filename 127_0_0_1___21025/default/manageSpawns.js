@@ -727,10 +727,10 @@ const getBody = {
         if (MEMORY.rooms[room.name].links.spawn) {
 
             if (room.controller.level === 8) {
-                targetCapacity = (budget - 3000 - (300 * room.find(FIND_MY_SPAWNS).length)) / 2
+                targetCapacity = (budget - 3000 - (300 * room.find(FIND_MY_SPAWNS).length)) / 5
             }
             if (room.controller.level === 7) {
-                targetCapacity = (budget - 1500 - (300 * room.find(FIND_MY_SPAWNS).length)) / 2
+                targetCapacity = (budget - 1500 - (300 * room.find(FIND_MY_SPAWNS).length)) / 5
             } else {
                 targetCapacity = (budget - 750 - (300 * room.find(FIND_MY_SPAWNS).length)) / 2
             }
