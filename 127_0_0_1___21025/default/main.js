@@ -1,10 +1,11 @@
-const { manageSpawns,getBody,SpawnOrder } = require('manageSpawns');
+const { manageSpawns, getBody, SpawnOrder } = require('manageSpawns');
 const { manageCreeps } = require('manageCreeps');
 const roomPlanner = require('roomPlanner');
 const { expansionManager } = require('expansionManager');
 const manageTowers = require('manageTowers');
 const manageLinks = require('manageLinks');
 const outpostManager = require('outpostManager');
+const manageRoomDefense = require('manageRoomDefense')
 let MEMORY = require('memory');
 require('prototypes');
 require('RoomVisual');
@@ -13,7 +14,7 @@ require('RoomVisual');
 
 module.exports.loop = function () {
 
-
+    
     // Remove dead creeps from memory.
     for (let name in Memory.creeps) {
         if (!Game.creeps[name]) {
@@ -40,8 +41,8 @@ module.exports.loop = function () {
             if (spawns.length === 0) {
                 let cs = room.find(FIND_MY_CONSTRUCTION_SITES)
                 if (cs.length > 0) {
-                    let closest = _.min(myRooms.filter(r=> r != roomName), r => Game.map.getRoomLinearDistance(roomName, r))
-         
+                    let closest = _.min(myRooms.filter(r => r != roomName), r => Game.map.getRoomLinearDistance(roomName, r))
+
                     let targetRemoteBuilderCount = 4;
 
                     let remoteBuilderCount = Object.values(Game.creeps).filter(c => c.memory.home === closest && c.memory.role === 'remoteBuilder')
@@ -72,6 +73,7 @@ module.exports.loop = function () {
 
 
         manageMemory(room, creeps);
+        manageRoomDefense(room);
         outpostManager(room, creeps);
         manageLinks(room);
         roomPlanner(room);
@@ -105,8 +107,8 @@ function getMyRooms() {
         };
     };
 
-    for(const roomName of Object.keys(Memory.rooms)){
-        if(!myRooms.some(r=> r === roomName)){
+    for (const roomName of Object.keys(Memory.rooms)) {
+        if (!myRooms.some(r => r === roomName)) {
             delete Memory.rooms[roomName]
         }
     }

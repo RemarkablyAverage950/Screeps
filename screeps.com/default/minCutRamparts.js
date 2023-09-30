@@ -5,6 +5,7 @@
  * adapted (for Typescript by Chobobobo , is it somewhere?)
  * some readability added by Chobobobo @typescript was included here
  * (15Aug2019) Updated Game.map.getTerrainAt to Game.map.getRoomTerrain method -Shibdib
+ * (2023) Converted back to js.
  */
 
 const UNWALKABLE = -1;
@@ -238,7 +239,7 @@ var util_mincut = {
                 y = 0;
                 for (; y < max; y++) {
                     if (room_array[x][y] === UNWALKABLE)
-                        visual.circle(x, y, { radius: 0.5, fill: '#111166', opacity: 0.3 });
+                        visual.circle(x, y, { radius: 0.2, fill: '#111166', opacity: 0.3 });
                     else if (room_array[x][y] === NORMAL)
                         visual.circle(x, y, { radius: 0.5, fill: '#e8e863', opacity: 0.3 });
                     else if (room_array[x][y] === PROTECTED)
@@ -384,15 +385,16 @@ var util_mincut = {
         return positions;
     },
     // Example function: demonstrates how to get a min cut with 2 rectangles, which define a "to protect" area
-    test: function (roomname, tiles) {
+    test: function (roomName, tiles) {
 
         let baseTiles = tiles.filter(s =>
-            s.structure != undefined
-            && s.structure != STRUCTURE_ROAD
-            && s.structure != STRUCTURE_CONTAINER
-            && s.structure != STRUCTURE_EXTRACTOR
-            && s.structure != STRUCTURE_LINK
-            && s.structure != STRUCTURE_RAMPART)
+            s.structure !== undefined
+            && s.structure !== 'BUFFER'
+            && s.structure !== STRUCTURE_ROAD
+            && s.structure !== STRUCTURE_CONTAINER
+            && s.structure !== STRUCTURE_EXTRACTOR
+            && s.structure !== STRUCTURE_LINK
+            && s.structure !== STRUCTURE_RAMPART)
 
         /*let left = _.min(baseTiles, t => t.x).x - 1
         let right = _.max(baseTiles, t => t.x).x + 1
@@ -403,13 +405,15 @@ var util_mincut = {
         //    return 'O noes, no room';
         let cpu = Game.cpu.getUsed();
         // Rectangle Array, the Rectangles will be protected by the returned tiles
-        let rect_array = genRectangles(baseTiles)
+        let rect_array = genRectangles(baseTiles, roomName)
+
+        console.log('rectangles', JSON.stringify(rect_array))
 
 
         // Boundary Array for Maximum Range
         let bounds = { x1: 0, y1: 0, x2: 49, y2: 49 };
         // Get Min cut
-        let positions = util_mincut.GetCutTiles(roomname, rect_array, bounds); // Positions is an array where to build walls/ramparts
+        let positions = util_mincut.GetCutTiles(roomName, rect_array, bounds); // Positions is an array where to build walls/ramparts
         // Test output
         console.log('Positions returned', positions.length);
         cpu = Game.cpu.getUsed() - cpu;
@@ -421,30 +425,203 @@ var util_mincut = {
 
 module.exports = util_mincut;
 
-function genRectangles(baseTiles) {
+function genRectangles(baseTiles, roomName) {
+    const terrain = new Room.Terrain(roomName);
+    const rect_array = [];
+
+    // Function to check if a tile is a terrain wall
+    function isWall(x, y) {
+        return terrain.get(x, y) === TERRAIN_MASK_WALL;
+    }
+
+
+    // Define the range around structures
+    const range = 3;
+
+    for (const baseTile of baseTiles) {
+        const x = baseTile.x;
+        const y = baseTile.y;
+
+        // Calculate the boundaries of the rectangle around the structure
+        let left = Math.max(x - range, 3); // Ensure a minimum distance of 3 tiles
+        let right = Math.min(x + range, 47); // Ensure a minimum distance of 3 tiles
+        let top = Math.max(y - range, 3); // Ensure a minimum distance of 3 tiles
+        let bottom = Math.min(y + range, 47); // Ensure a minimum distance of 3 tiles
+
+        // Adjust the boundaries to avoid terrain walls
+        /*for (let i = left; i <= right; i++) {
+            for (let j = top; j <= bottom; j++) {
+                if (isWall(i, j)) {
+                    if (i === left) left = i + 2;
+                    if (i === right) right = i - 2;
+                    if (j === top) top = j + 2;
+                    if (j <>) bottom = j - 2;
+                }
+            }
+        }*/
+
+        // Ensure that the rectangle dimensions are valid
+        if(left > right){right = left}
+        if(top > bottom){bottom = top}
+        if (left === right) right++;
+        if (top === bottom) bottom++;
+        rect_array.push({ x1: left, y1: top, x2: right, y2: bottom });
+
+    }
+
+    return rect_array;
+}
+
+/*
+function genRectangles(baseTiles, roomName) {
+
+    let terrain = new Room.Terrain(roomName)
+
     let rect_array = []
+
     while (baseTiles.length > 0) {
-        let start = _.min(baseTiles, t => t.x)
-       
-        let left = start.x
-        let right = start.x
-        let top = start.y
-        let bottom = start.y
-        for (let x = start.x; x <= start.x + 5; x++) {
-            for (let y = start.y - 5; y <= start.y + 5; y++) {
-                let tile = baseTiles.find(t => t.x == x && t.y == y)
+        let start = _.min(baseTiles, t => t.x);
+        let furthestRight = 0;
+        let furthestBottom = 0;
+
+        let left = start.x;
+        let right = start.x + 3;
+        let top = start.y;
+        let bottom = start.y + 3;
+
+        for (let x = left; x <= right; x++) {
+            for (let y = top; y <= bottom; y++) {
+                let tile = baseTiles.find(t => t.x === x && t.y === y);
                 if (tile) {
-                    let idx = baseTiles.findIndex(t => t.x == x && t.y == y)
-                    baseTiles.splice(idx, 1)
-                    if (x > right) right = x;
-                    if (y < top) top = y;
-                    if (y > bottom) bottom = y;
+                    if (tile.x > furthestRight) furthestRight = tile.x
+                    if (tile.y > furthestBottom) furthestBottom = tile.y
+                    let idx = baseTiles.findIndex(t => t.x === x && t.y === y);
+                    baseTiles.splice(idx, 1);
+                } else if (terrain.get(x, y) === TERRAIN_MASK_WALL) {
+                    // Adjust the rectangle boundaries based on the wall position
+                    if (x < start.x) {
+                        left = x + 1;
+                    } else if (x > start.x) {
+                        right = x;
+                    }
+
+                    if (y < start.y) {
+                        top = y + 1;
+                    } else if (y > start.y) {
+                        bottom = y;
+                    }
                 }
             }
         }
+        bottom = furthestBottom
+        right = furthestRight
 
 
-        rect_array.push({ x1: left - 1, y1: top - 1, x2: right + 1, y2: bottom + 1 })
+        // Ensure that the resulting rectangle is valid
+        if (left === right) right++
+        if (top === bottom) bottom++
+
+        let rect = { x1: left, y1: top, x2: right, y2: bottom }
+        console.log('initial rectangle', JSON.stringify(rect))
+        // left
+        for (let x = rect.x1; x > rect.x1 - 4; x--) {
+            if (terrain.get(x, rect.y1) === TERRAIN_MASK_WALL) {
+                left = x;
+                break;
+            } else if (terrain.get(x, rect.y2) === TERRAIN_MASK_WALL) {
+                left = x;
+                break;
+            } else {
+                left = x;
+
+            }
+        }
+        // right
+        for (let x = rect.x2; x < rect.x2 + 4; x++) {
+            if (terrain.get(x, rect.y1) === TERRAIN_MASK_WALL) {
+                right = x;
+                break
+            } else if (terrain.get(x, rect.y2) === TERRAIN_MASK_WALL) {
+                right = x;
+                break
+            }
+            else {
+                right = x;
+
+            }
+        }
+
+        // top
+        for (let y = rect.y1; y > rect.y1 - 4; y--) {
+            if (terrain.get(rect.x1, y) === TERRAIN_MASK_WALL) {
+                top = y;
+                break;
+            } else if (terrain.get(rect.x2, y) === TERRAIN_MASK_WALL) {
+                top = y;
+                break;
+            } else {
+                top = y;
+
+            }
+        }
+
+        // bottom
+        for (let y = rect.y2; y > rect.y2 + 4; y++) {
+            if (terrain.get(rect.x1, y) === TERRAIN_MASK_WALL) {
+                bottom = y;
+                break;
+            } else if (terrain.get(rect.x2, y) === TERRAIN_MASK_WALL) {
+                bottom = y;
+                break;
+            } else {
+                bottom = y;
+
+            }
+        }
+
+        if (left < 2) { left = 2 }
+        if (right > 48) { right = 48 }
+        if (top < 2) { top = 2 }
+        if (bottom > 48) { bottom = 48 }
+        console.log('updated to', JSON.stringify({ x1: left, y1: top, x2: right, y2: bottom }))
+
+        rect_array.push({ x1: left, y1: top, x2: right, y2: bottom });
+
+
+
+
+
     }
+
+
+
     return rect_array
 }
+
+/*while (baseTiles.length > 0) {
+    let start = _.min(baseTiles, t => t.x)
+   
+    let left = start.x
+    let right = start.x
+    let top = start.y
+    let bottom = start.y
+    
+    
+    for (let x = start.x; x <= start.x + 5; x++) {
+        for (let y = start.y; y <= start.y + 5; y++) {
+            
+            
+            let tile = baseTiles.find(t => t.x == x && t.y == y)
+            if (tile) {
+                let idx = baseTiles.findIndex(t => t.x == x && t.y == y)
+                baseTiles.splice(idx, 1)
+                if (x > right) right = x;
+                if (y < top) top = y;
+                if (y > bottom) bottom = y;
+            }
+        }
+    }
+ 
+ 
+    rect_array.push({ x1: left - 4, y1: top - 4, x2: right + 4, y2: bottom + 4 })
+}*/

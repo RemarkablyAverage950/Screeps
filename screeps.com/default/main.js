@@ -1,226 +1,187 @@
-let roleWorker = require('role.worker2');
-let roleMiner = require('role.miner');
-const roleBuilder = require('role.builder')
-let autoBuild = require('autobuild2');
-let spawnCreeps = require('spawncreeps');
-let taskManagerOld = require('taskManager2')
-let { paths, resetMatricies } = require('pathfinding');
-let towers = require('towers');
-let roleHauler = require('role.hauler');
-let roleSoldier = require('role.soldier')
-let roleHealer = require('role.healer')
-let roleScout = require('role.scout')
-let expansionManager = require('expansionManager')
-let roleRemoteWorker = require('role.remoteWorker2')
-let roleRemoteMiner = require('role.remoteMiner')
-let roleRemoteHauler = require('role.remoteHauler');
-let roleReserver = require('role.reserver')
-let roleClaimer = require('role.claimer')
-const { roleHub } = require('role.hub')
-const { roleFiller } = require('role.filler')
-const roleFastFiller = require('role.fastFiller')
-const { manageTasks } = require('tasks')
-const roleWallBuilder = require('role.wallBuilder')
-const { linkManager } = require('links')
-const roleUpgrader = require('role.upgrader')
-const roleMaintainer = require('role.maintainer')
+const { manageSpawns, getBody, SpawnOrder } = require('manageSpawns');
+const { manageCreeps } = require('manageCreeps');
+const roomPlanner = require('roomPlanner');
+const { expansionManager } = require('expansionManager');
+const manageTowers = require('manageTowers');
+const manageLinks = require('manageLinks');
+const outpostManager = require('outpostManager');
+const manageRoomDefense = require('manageRoomDefense')
+let MEMORY = require('memory');
+require('prototypes');
+require('RoomVisual');
 
-require('RoomVisual')
-require('prototypes')
-let start = true
+
 
 module.exports.loop = function () {
-    if (start) {
-        if (Game.cpu.bucket < 100) {
-            return
-        } else {
-            start = false
+
+    
+    // Remove dead creeps from memory.
+    for (let name in Memory.creeps) {
+        if (!Game.creeps[name]) {
+            const roomName = Memory.creeps[name].home
+            delete Memory.creeps[name];
+            delete MEMORY.rooms[roomName].creeps[name]
+            //console.log('Cleared memory for ' + name)
         }
     }
-    clearCreepsFromMemory()
-    resetMatricies()
-    const myRooms = findMyRooms();
-    for (const room of myRooms) {
 
 
-        let spawns = room.find(FIND_MY_SPAWNS)
-        if (spawns.length == 0) {
-            if (room.find(FIND_MY_CONSTRUCTION_SITES).filter(s => s.structureType == STRUCTURE_SPAWN).length == 0) {
-                const flags = Object.values(Game.flags).filter(flag => flag.room && flag.room.name === room.name && flag.name === 'spawn');
-                if (flags.length > 0) {
-                    const spawnFlag = flags[0];
-                    const result = room.createConstructionSite(spawnFlag.pos, STRUCTURE_SPAWN);
-                    if (result === OK) {
-                        console.log("Spawn construction site created successfully at flag 'spawn' location");
-                    } else {
-                        console.log("Error creating spawn construction site: " + result);
+    const myRooms = getMyRooms()
+
+
+    expansionManager(myRooms);
+
+    for (const roomName of myRooms) {
+
+        const room = Game.rooms[roomName];
+        const creeps = Object.values(Game.creeps).filter(c => c.memory.home === roomName);
+
+        if (creeps.length === 0) {
+            let spawns = room.find(FIND_MY_SPAWNS)
+            if (spawns.length === 0) {
+                let cs = room.find(FIND_MY_CONSTRUCTION_SITES)
+                if (cs.length > 0) {
+                    let closest = _.min(myRooms.filter(r => r != roomName), r => Game.map.getRoomLinearDistance(roomName, r))
+
+                    let targetRemoteBuilderCount = 4;
+
+                    let remoteBuilderCount = Object.values(Game.creeps).filter(c => c.memory.home === closest && c.memory.role === 'remoteBuilder')
+                    let spawnQueue = MEMORY.rooms[closest].spawnQueue
+                    for (let so of spawnQueue) {
+                        if (so.role === 'remoteBuilder') {
+                            remoteBuilderCount++;
+                        }
+                    }
+
+                    body = [];
+                    while (remoteBuilderCount < targetRemoteBuilderCount) {
+                        body = getBody.remoteBuilder(Game.rooms[closest].energyCapacityAvailable, Game.rooms[closest], 100000)
+
+                        options = {
+                            memory: {
+                                role: 'remoteBuilder',
+                                home: room.name,
+                                assignedRoom: roomName,
+                            },
+                        };
+                        spawnQueue.push(new SpawnOrder('remoteBuilder', 6, body, options));
+                        remoteBuilderCount++;
                     }
                 }
             }
-            continue
         }
-        baseDefense(room)
-        expansionManager.expansionManager(room)
-        safeModeManagement(room)
-        towers(room)
-        linkManager(room)
-        autoBuild(room, spawns)
-        let roomCreeps = Object.values(Game.creeps).filter(creep => creep.memory.home === room.name && !creep.spawning)
-        manageTasks(room, roomCreeps)
-        spawnCreeps(room, roomCreeps, spawns)
-        taskManagerOld(room, roomCreeps)
-        //pathfinding.managePathfinding(room)
-
-        runCreeps(roomCreeps)
-        sandbox(room, roomCreeps)
-    }
-
-    // Generate pixels at bucket 90% full.
-    if (Game.cpu.bucket >= 10000) {
-        Game.cpu.generatePixel();
-    }
-    console.log(Game.cpu.getUsed(), Game.cpu.bucket)
 
 
-};
+        manageMemory(room, creeps);
+        manageRoomDefense(room);
+        outpostManager(room, creeps);
+        manageLinks(room);
+        roomPlanner(room);
+        manageTowers(room);
+        manageSpawns(room, creeps);
+        manageCreeps(room, creeps);
 
-
-function sandbox(room, creeps) {
-
-
-}
-
-/*
-BODYPART_COST: {
-        "move": 50,
-        "work": 100,
-        "attack": 80,
-        "carry": 50,
-        "heal": 250,
-        "ranged_attack": 150,
-        "tough": 10,
-        "claim": 600
-    },
-
-    soldier block cost = 10+80+50
-
-*/
-function baseDefense(room) {
-    const hostiles = room.find(FIND_HOSTILE_CREEPS)
-    if (hostiles.length > 0) {
-        let soldierHitPoints = Math.floor(room.energyCapacityAvailable / 140) * 90
-        let target = Math.floor(_.sum(hostiles, h => h.hits))
-        room.memory.targetSoldiers = Math.min(Math.ceil(target / soldierHitPoints), 3)
-        room.memory.targetHealers = 1
-    } else {
-        room.memory.targetSoldiers = 0
-        room.memory.targetHealers = 0
     }
 
 }
 
 /**
- * Clears dead creeps from memory.
+ * Returns an array of names for rooms owned by me.
+ * @returns {string[]}  
  */
-function clearCreepsFromMemory() {
-    for (let name in Memory.creeps) {
-        if (!Game.creeps[name]) {
-            let room = Memory.creeps[name].home
-            delete Memory.creeps[name];
-            if (paths[room] && paths[room][name]) {
-                delete paths[room][name]
+function getMyRooms() {
+
+    let myRooms = [];
+
+    for (const roomName of Object.keys(Game.rooms)) {
+        if (Game.rooms[roomName].controller && Game.rooms[roomName].controller.my) {
+
+            myRooms.push(roomName);
+
+            if (!MEMORY.rooms[roomName]) {
+                InitializeRoom(Game.rooms[roomName])
+                console.log('Initialized MEMORY for ' + roomName)
+
             }
+
+        };
+    };
+
+    for (const roomName of Object.keys(Memory.rooms)) {
+        if (!myRooms.some(r => r === roomName)) {
+            delete Memory.rooms[roomName]
         }
     }
+
+    return myRooms;
 }
 
 /**
- * @returns {Room[]} Array of room objects that I have a controller in.
- */
-function findMyRooms() {
-    // Get an array of all the rooms in the game
-    // Filter the array to only include rooms with a controller owned by you
-    let rooms = Object.values(Game.rooms).filter(room => room.controller && room.controller.my);
-
-    // clear rooms I do not own from Memory.rooms
-    for (let roomName in Memory.rooms) {
-        if (!rooms.find(room => room.name === roomName)) {
-            delete Memory.rooms[roomName];
-            console.log(`Cleared ${roomName} from Memory.rooms.`);
-        }
-    }
-    return rooms
-}
-
-/**
- * Activated safe mode if needed.
+ * Initializes and maintains heap memory.
  * @param {Room} room 
  */
-function safeModeManagement(room) {
-    if (room.controller.safeMode || !room.controller.safeModeAvailable) return;
+function manageMemory(room, creeps) {
 
-    let structures = room.find(FIND_STRUCTURES).filter(s =>
-        s.structureType == STRUCTURE_SPAWN
-        || s.structureType == STRUCTURE_STORAGE
-        || s.structureType == STRUCTURE_TOWER
-        || s.structureType == STRUCTURE_TERMINAL
-        || s.structureType == STRUCTURE_OBSERVER
-        || s.structureType == STRUCTURE_FACTORY
-        || s.structureType == STRUCTURE_POWER_SPAWN
-        || s.structureType == STRUCTURE_NUKER)
+    if (!MEMORY.rooms[room.name]) {
+        InitializeRoom(room)
+        console.log('Initialized MEMORY for ' + room.name)
 
-    for (let i in structures) {
-        if (structures[i].hits < structures[i].hitsMax * 0.5) {
-            room.controller.activateSafeMode();
-            console.log(`Safe mode activated in ${room.name}`);
-            break;
+    }
+
+    for (let creep of creeps) {
+        // initialize creep memory if nescessary.
+        if (!MEMORY.rooms[room.name].creeps[creep.name]) {
+
+            initializeCreepMemory(creep)
+
         }
     }
+
 }
 
 /**
- * Calls functions to operate creeps.
- * @param {Creep[]} creeps Creeps belonging to a room
+ * Initializes heap memory for an individual creep.
+ * @param {Creep} creep 
  */
-function runCreeps(creeps) {
-    creeps.forEach(c => {
-        const role = c.memory.role
-        if (role == 'worker') {
-            roleWorker.run(c)
-        } else if (role == 'filler') {
-            roleFiller.run(c)
-        } else if (role == 'miner') {
-            roleMiner.run(c)
-        } else if (role == 'upgrader') {
-            roleUpgrader.run(c)
-        } else if (role == 'builder') {
-            roleBuilder.run(c)
-        } else if (role == 'hauler') {
-            roleHauler.run(c)
-        } else if (role == 'soldier') {
-            roleSoldier.run(c)
-        } else if (role == 'healer') {
-            roleHealer.run(c)
-        } else if (role == 'scout') {
-            roleScout.run(c)
-        } else if (role == 'remoteWorker') {
-            roleRemoteWorker.run(c)
-        } else if (role == 'remoteMiner') {
-            roleRemoteMiner.run(c)
-        } else if (role == 'remoteHauler') {
-            roleRemoteHauler.run(c)
-        } else if (role == 'reserver') {
-            roleReserver.run(c)
-        } else if (role == 'claimer') {
-            roleClaimer.run(c)
-        } else if (role == 'hub') {
-            roleHub.run(c)
-        } else if (role == 'wallBuilder') {
-            roleWallBuilder.run(c)
-        } else if (role == 'maintainer') {
-            roleMaintainer.run(c)
-        } else if (role == 'fastFiller') {
-            roleFastFiller.run(c)
-        }
-    })
+function initializeCreepMemory(creep) {
+
+    MEMORY.rooms[creep.memory.home].creeps[creep.name] = {
+        moving: true,
+        task: undefined,
+        path: undefined,
+    }
+};
+
+function InitializeRoom(room) {
+
+    const sources = room.find(FIND_SOURCES)
+    let sourceObjects = {};
+    let minerNumber = 0;
+
+    if (!room.memory.outposts) {
+        room.memory.outposts = [];
+
+    }
+
+    for (let source of sources) {
+
+        sourceObjects[source.id] = {
+            maxCreeps: source.maxCreeps(),
+            container: source.getContainer(),
+            minerNumber: minerNumber.toString(),
+        };
+
+        minerNumber++;
+    }
+
+    MEMORY.rooms[room.name] = {
+        spawnQueue: [],
+        spawnTimer: 0,
+        creeps: {},
+        tasks: {},
+        sources: sourceObjects,
+        outposts: {},
+    }
 }
+
+
