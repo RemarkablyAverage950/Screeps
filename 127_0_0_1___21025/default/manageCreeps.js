@@ -482,7 +482,9 @@ function assignTask(room, creep) {
     } else if (role === 'remoteMaintainer') {
 
         if (!creep.memory.assignedRoom) {
+
             let outpostNames = room.memory.outposts
+
             let min = Infinity;
             let targetRoom = undefined;
 
@@ -496,6 +498,7 @@ function assignTask(room, creep) {
                 }
             }
             creep.memory.assignedRoom = targetRoom
+
             MEMORY.rooms[room.name].outposts[targetRoom].lastMaintained = Game.time;
         }
 
@@ -764,6 +767,91 @@ function executeTask(room, creep) {
             break;
 
         case 'UPGRADE':
+            if (creep.pos.getRangeTo(target) > 3) {
+                moveCreep(creep, target.pos, 1, 1);
+            } else if (creep.pos.lookFor(LOOK_STRUCTURES).length > 0) {
+                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                let range = 0;
+                let xStart = creep.pos.x;
+                let yStart = creep.pos.y;
+
+                let avoidPos = [];
+                if (creep.memory.home === room.name && MEMORY.rooms[room.name].links) {
+                    let spawnLink = Game.getObjectById(MEMORY.rooms[room.name].links.spawn)
+                    if (spawnLink) {
+                        let pos = spawnLink.pos
+                        avoidPos.push([pos.x + 1, pos.y + 1])
+                        avoidPos.push([pos.x + 1, pos.y - 1])
+                        avoidPos.push([pos.x - 1, pos.y + 1])
+                        avoidPos.push([pos.x - 1, pos.y - 1])
+
+                    }
+                }
+
+                while (range < 7) {
+                    for (let x = xStart - range; x <= xStart + range; x++) {
+                        for (let y = yStart - range; y <= yStart + range; y++) {
+
+                            if (x < 1 || x > 48 || y < 1 || y > 48) {
+                                continue;
+                            }
+                            const pos = new RoomPosition(x, y, room.name);
+                            if (target.pos.getRangeTo(pos) > 3) {
+                                continue;
+                            }
+
+                            let valid = true;
+                            if (avoidPos.length) {
+                                for (let p of avoidPos) {
+                                    if (p.x === x && p.y === y) {
+                                        valid = false;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (!valid) {
+                                continue;
+                            }
+
+
+
+                            const look = pos.look(pos);
+
+                            for (let l of look) {
+
+                                if (l.type === LOOK_STRUCTURES || l.type === LOOK_CONSTRUCTION_SITES) {
+                                    valid = false;
+                                    break;
+                                } else if (l.type === LOOK_TERRAIN && l.terrain === 'wall') {
+                                    valid = false;
+                                    break;
+                                } else if (l.type === LOOK_CREEPS && l.creep.name != creep.name) {
+                                    valid = false;
+                                }
+
+                            }
+
+
+
+                            if (valid) {
+
+                                if (range === 0) {
+                                    MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
+                                    return undefined;
+                                }
+
+                                //console.log('moving', creep.name, 'to', JSON.stringify(pos))
+                                moveCreep(creep, pos, 0, 1);
+                                return
+
+                            }
+
+                        }
+                    }
+                    range++;
+                }
+            }
+
             if (creep.upgradeController(target) != 0) {
 
                 moveCreep(creep, target.pos, 1, 1);
@@ -1325,7 +1413,9 @@ const getRoleTasks = {
         };
 
         if (tasks.length === 0) {
+            try{
             tasks.push(...getTasks.dismantle(room, creep));
+            } catch (e) {}
         }
 
         return tasks;
@@ -1351,6 +1441,7 @@ const getRoleTasks = {
         if (container
             && creep.store.getFreeCapacity() === 0
             && container.hits < container.hitsMax
+            && Memory.rooms[creep.memory.home].plans
             && Memory.rooms[creep.memory.home].plans[creep.room.name]
                 .some(p => p.x === container.pos.x && p.y === container.pos.y)) {
             return new RepairTask(container.id)
@@ -1632,7 +1723,13 @@ const getTasks = {
 
     dismantle: function (room, creep) {
         let tasks = [];
+        if(!Memory.rooms[creep.memory.home].plans){
+            return tasks
+        }
         let plans = Memory.rooms[creep.memory.home].plans[creep.room.name]
+        if(!plans){
+            return;
+        }
         let structures = room.find(FIND_STRUCTURES)
         for (let s of structures) {
             if (s.structureType === STRUCTURE_CONTROLLER) {
@@ -1820,7 +1917,7 @@ const getTasks = {
 
             if (s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax) {
 
-                if (Memory.rooms[creep.memory.home].plans[room.name].some(p => p.x === s.pos.x && p.y === s.pos.y)) {
+                if (Memory.rooms[creep.memory.home].plans && Memory.rooms[creep.memory.home].plans[room.name] !== undefined && Memory.rooms[creep.memory.home].plans[room.name].some(p => p.x === s.pos.x && p.y === s.pos.y)) {
                     tasks.push(new RepairTask(s.id));
                 }
 

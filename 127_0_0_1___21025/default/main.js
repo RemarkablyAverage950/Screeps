@@ -105,6 +105,12 @@ function getMyRooms() {
         };
     };
 
+    for(const roomName of Object.keys(Memory.rooms)){
+        if(!myRooms.some(r=> r === roomName)){
+            delete Memory.rooms[roomName]
+        }
+    }
+
     return myRooms;
 }
 
