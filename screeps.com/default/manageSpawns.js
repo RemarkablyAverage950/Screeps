@@ -386,7 +386,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
         };
 
-        spawnQueue.push(new SpawnOrder('builder', 5, body, options));
+        spawnQueue.push(new SpawnOrder('builder', 4, body, options));
         builderCount++;
     };
 

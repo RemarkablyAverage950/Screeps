@@ -1,0 +1,26 @@
+
+
+
+Version 0.1
+
+    SPAWNING:
+    - Set spawn priority for builder to 4.
+    - Clamped builder count to <= 4
+    - Clamped remote hauler count to <= 2 per outpost.
+    - Set max remote miner count to 1.
+
+    OUTPOSTS:
+
+        - Fix bug in finding distance to outpost sources.
+        
+
+
+    ROLES:
+
+        Remote haulers
+
+            - Units now deliver to spawn containers if there is no storage present.
+
+    MANAGE CREEPS:
+
+        - Withdraw tasks now require there to be at least some of the resource in the withdraw target store.           

@@ -1,0 +1,46 @@
+Room Planner:
+
+    [] Create a function for placing all connecting roads.
+        [] Roads place after all stamps are placed, before ramparts and before additional structures
+        [] Spawn block center to Hub, sources
+        [] Each extension to hub
+        [] Each source and mineral to hub
+        [] Leave labs to hub, let lab stamp handle it.
+
+    Low Priority:
+
+    [] Rampart roads should stay inside base area
+
+Pathfinding:
+
+    [] Creeps can/should path all the way to destinations, including in other rooms.
+    [] Initial cost matrix does not looks for creeps, enemy or otherwise.
+    [] Some units bounce in and out when transitioning between rooms.
+
+    getPath: (for creeps)
+        [] When generating a path for creeps, avoid stationary creeps in range of 2
+        
+        [] Avoid hostile creeps by a range of 4, with +10 costs in range
+
+    moveCreep:
+        [] Scan for hostile creeps and re-gen if in range of 5
+        [] Scan path for stationary creeps in next position (including fatigued), regen path if nescessary
+
+    
+
+Roles:
+
+    Hauler:
+        [] Can deposit into spawn containers (if no storage exists)
+
+    Remote Hauler:
+        [x] Can deposit into spawn containers (if no storage exists)
+
+Room Defense:
+
+    [] Spawn defender(s) to handle units if no towers, or if towers cannot damage on their own.
+
+Spawning:
+
+    [] Only need to spawn a remote maintainer if there are outpost plans present.
+    

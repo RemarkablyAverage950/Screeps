@@ -455,8 +455,8 @@ function assignTask(room, creep) {
             }
         }
     } else if (role === 'remoteHauler') {
-
-        if (creep.store.getFreeCapacity() === 0) {
+        task = getRoleTasks.remoteHauler(creep.room, creep)
+        /*if (creep.store.getUsedCapacity() === 0) {
             if (creep.room.name !== creep.memory.home) {
                 task = new MoveToRoomTask(creep.memory.home)
             } else {
@@ -488,9 +488,10 @@ function assignTask(room, creep) {
 
         if (!task) {
             task = parkTask(creep.room, creep)
-        }
+        }*/
 
     } else if (role === 'remoteMaintainer') {
+
 
         if (!creep.memory.assignedRoom) {
 
@@ -1409,14 +1410,51 @@ const getRoleTasks = {
     },
 
     remoteHauler: function (room, creep) {
-        let tasks = [];
 
-        if (creep.store.getFreeCapacity() > 0) {
-            tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY));
-            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY));
+        let tasks = []
+        let task = [];
 
+        if (room.name === creep.memory.home) {
+            // We are in homeRoom
+            if (creep.store[RESOURCE_ENERGY] > 0) {
+                if (room.storage) {
+                    tasks.push(...getTasks.deliver(room.creep))
+                } else {
+                    tasks.push(...getTasks.fill(room, creep))
+                }
+
+                if (tasks.length === 0) {
+                    return parkTask(room, creep)
+                }
+
+            } else {
+                return new MoveToRoomTask(creep.memory.assignedRoom)
+            }
+
+        } else if (room.name === creep.memory.assignedRoom) {
+            // We are in assigned room.
+            if (creep.store.getFreeCapacity() > 0) {
+                tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY));
+                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY));
+
+                if (tasks.length === 0) {
+                    return parkTask(room, creep)
+                }
+
+            } else {
+                return new MoveToRoomTask(creep.memory.home)
+
+            }
+        } else {
+            if (creep.store.getFreeCapacity() === 0) {
+                return new MoveToRoomTask(creep.memory.home)
+            }
         }
-        return tasks;
+
+        task = _.min(tasks, t => Game.getObjectById(t.id).pos.getRangeTo(creep))
+
+
+        return task;
     },
 
     remoteMaintainer: function (room, creep) {
@@ -2194,7 +2232,7 @@ function validateTask(room, creep) {
                 return false;
             }
             if (creep.memory.role === 'remoteMaintainer' && creep.store.getFreeCapacity() === 0) {
-              
+
                 //return false;
             }
             break;

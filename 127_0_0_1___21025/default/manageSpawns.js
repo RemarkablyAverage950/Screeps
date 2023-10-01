@@ -82,8 +82,8 @@ function manageSpawns(room, creeps) {
 
                         return;
                     } else {
-                        console.log('ret', ret, name)
-                        return;
+                        console.log('ret', ret, name, JSON.stringify(spawnQueue[i]))
+                        continue;
                     }
 
                 };
@@ -370,7 +370,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
             let ret = getBody.builder(energyBudget, room, storedEnergy);
             body = ret[0];
             if (room.controller.level < 3) {
-                targetBuilderCount = ret[1] - 1;
+                targetBuilderCount = Math.min(targetBuilderCount = ret[1] - 1, 4);
             } else {
 
                 if (ret[1] > 2 && storedEnergy > CONSERVE_ENERGY_VALUE) {
@@ -386,7 +386,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
         };
 
-        spawnQueue.push(new SpawnOrder('builder', 5, body, options));
+        spawnQueue.push(new SpawnOrder('builder', 4, body, options));
         builderCount++;
     };
 
