@@ -105,13 +105,13 @@ function outpostManager(homeRoom, creeps) {
                 defenderCount++;
             }
 
-            
+
 
 
 
 
         }
-        
+
         heap.occupied = occupied
         MEMORY.rooms[homeRoom.name].outposts[outpostName] = heap;
 
@@ -238,41 +238,9 @@ function outpostManager(homeRoom, creeps) {
                                 containerPos = c.pos;
                             }
                         }
-                        let startPos = homeRoom.find(FIND_MY_SPAWNS)[0].pos
-
-                        if (homeRoom.storage) {
-                            startPos = homeRoom.storage.pos
-                        }
-                        path = PathFinder.search(startPos, { pos: s.pos, range: 1 }, {
-                            plainCost: 2,
-                            roomCallback: function (roomName) {
-
-                                let room = Game.rooms[roomName];
-                                // In this example `room` will always exist, but since 
-                                // PathFinder supports searches which span multiple rooms 
-                                // you should be careful!
-                                if (!room) return;
-                                let costs = new PathFinder.CostMatrix;
-
-                                room.find(FIND_STRUCTURES).forEach(function (struct) {
-                                    if (struct.structureType === STRUCTURE_ROAD) {
-                                        // Favor roads over plain tiles
-                                        costs.set(struct.pos.x, struct.pos.y, 1);
-                                    } else if (struct.structureType !== STRUCTURE_CONTAINER &&
-                                        (struct.structureType !== STRUCTURE_RAMPART ||
-                                            !struct.my)) {
-                                        // Can't walk through non-walkable buildings
-                                        costs.set(struct.pos.x, struct.pos.y, 0xff);
-                                    }
-                                });
-
-                                return costs;
-                            },
-                        }).path;
-                        distance = path.length;
 
 
-
+                        distance = getRemoteSourceDistance(homeRoom, s);
 
                         for (let c of creeps) {
                             if (c.memory.role === 'remoteMiner' && c.memory.assignedSource === s.id) {
@@ -289,9 +257,9 @@ function outpostManager(homeRoom, creeps) {
                 for (let s of Object.values(heap.sources)) {
 
                     if (!s.distance) {
-
+                        s.distance = getRemoteSourceDistance(homeRoom, s)
                     }
-                    if (!creeps.some(c => c.memory.role === 'remoteMiner' && c.memory.assignedSource === s.id && (c.spawning || c.ticksToLive > s.distance + 20))) {
+                    if (!creeps.some(c => c.memory.role === 'remoteMiner' && c.memory.assignedSource === s.id && (c.spawning || (s.distance && c.ticksToLive > s.distance + 20)))) {
 
                         heap.sources[s.id].assignedMiner = undefined;
 
@@ -366,7 +334,7 @@ function outpostManager(homeRoom, creeps) {
 
                 let maxCapacity = Math.min(Math.floor(energyCapacityAvailable / 150) * 100, 1600);
 
-                let haulerCountRequired = Math.ceil(heap.haulerCapacityReq / maxCapacity);
+                let haulerCountRequired = Math.min(Math.ceil(heap.haulerCapacityReq / maxCapacity), 2);
                 let capacityRequiredPerHauler = Math.ceil(heap.haulerCapacityReq / haulerCountRequired)
 
                 //console.log('totalCapcityReq', heap.haulerCapacityReq, 'CapacityReqPerHauler', capacityRequiredPerHauler, 'haulerCountReq', haulerCountRequired)
@@ -444,6 +412,53 @@ function outpostManager(homeRoom, creeps) {
             }
         }
     }
+}
+
+/**
+ * 
+ * @param {Room} homeRoom 
+ * @param {Source} s 
+ * @returns {Number}
+ */
+function getRemoteSourceDistance(homeRoom, s) {
+
+    console.log('Getting distance for source',JSON.stringify(s.pos))
+
+    let startPos = homeRoom.find(FIND_MY_SPAWNS)[0].pos
+
+    if (homeRoom.storage) {
+        startPos = homeRoom.storage.pos
+    }
+    path = PathFinder.search(startPos, { pos: s.pos, range: 1 }, {
+        plainCost: 2,
+        roomCallback: function (roomName) {
+
+            let room = Game.rooms[roomName];
+            // In this example `room` will always exist, but since 
+            // PathFinder supports searches which span multiple rooms 
+            // you should be careful!
+            if (!room) return;
+            let costs = new PathFinder.CostMatrix;
+
+            room.find(FIND_STRUCTURES).forEach(function (struct) {
+                if (struct.structureType === STRUCTURE_ROAD) {
+                    // Favor roads over plain tiles
+                    costs.set(struct.pos.x, struct.pos.y, 1);
+                } else if (struct.structureType !== STRUCTURE_CONTAINER &&
+                    (struct.structureType !== STRUCTURE_RAMPART ||
+                        !struct.my)) {
+                    // Can't walk through non-walkable buildings
+                    costs.set(struct.pos.x, struct.pos.y, 0xff);
+                }
+            });
+
+            return costs;
+        },
+    }).path;
+
+    console.log('Returning',path.length)
+    return path.length;
+
 }
 
 module.exports = outpostManager;

@@ -8,6 +8,7 @@ Version 0.1
     - Clamped builder count to <= 4
     - Clamped remote hauler count to <= 2 per outpost.
     - Set max remote miner count to 1.
+    - Fixed issue where manageSpawns was creating a more expensive defender than room spawn capacity.
 
     OUTPOSTS:
 
@@ -17,10 +18,25 @@ Version 0.1
 
     ROLES:
 
-        Remote haulers
+        Remote builder:
+
+            - Units no longer clear assigned room when finished building. Units focus on upgrading controller if no construction tasks available.
+
+        Remote hauler:
 
             - Units now deliver to spawn containers if there is no storage present.
 
     MANAGE CREEPS:
 
-        - Withdraw tasks now require there to be at least some of the resource in the withdraw target store.           
+        - Withdraw tasks now require there to be at least some of the resource in the withdraw target store.         
+
+    EXPANSION MANAGER: 
+
+        - Set max new outpost range to 1 when there is no storage present.
+        - Now only declares new outposts for rooms that are not reserved by another player.  
+
+    ROOM PLANNER:
+
+        - Changed road placement to after stamps are placed.
+        - Adjusted lab placement start search position.
+        - Fixed rampart room edge boundry clamping.

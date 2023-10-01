@@ -443,9 +443,9 @@ function genRectangles(baseTiles, roomName) {
         const y = baseTile.y;
 
         // Calculate the boundaries of the rectangle around the structure
-        let left = Math.max(x - range, 3); // Ensure a minimum distance of 3 tiles
+        let left = Math.max(x - range, 2); // Ensure a minimum distance of 3 tiles
         let right = Math.min(x + range, 47); // Ensure a minimum distance of 3 tiles
-        let top = Math.max(y - range, 3); // Ensure a minimum distance of 3 tiles
+        let top = Math.max(y - range, 2); // Ensure a minimum distance of 3 tiles
         let bottom = Math.min(y + range, 47); // Ensure a minimum distance of 3 tiles
 
         // Adjust the boundaries to avoid terrain walls

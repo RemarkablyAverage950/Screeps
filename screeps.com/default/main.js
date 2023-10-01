@@ -14,6 +14,8 @@ require('RoomVisual');
 
 module.exports.loop = function () {
 
+
+    
     // Remove dead creeps from memory.
     for (let name in Memory.creeps) {
         if (!Game.creeps[name]) {

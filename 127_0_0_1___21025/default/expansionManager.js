@@ -272,13 +272,18 @@ function expansionManager(myRooms) {
         const room = Game.rooms[roomName]
         let spawns = room.find(FIND_MY_SPAWNS)
         let maxRooms = 9;
+        let maxRange = 2;
+
         if (spawns.length === 1) {
             maxRooms = 3;
+        }
+        if (!room.storage) {
+            maxRange = 1;
         }
 
         if (room.memory.outposts && room.memory.outposts.length < maxRooms) {
 
-            for (let i = 1; i <= 2; i++) {
+            for (let i = 1; i <= maxRange; i++) {
                 for (let r of Object.values(MEMORY.monitoredRooms)) {
 
                     if (r.lastScan === 0) {
@@ -297,7 +302,7 @@ function expansionManager(myRooms) {
                         continue;
                     }
 
-                    if (r.distance === i && r.controller_id && !r.occupied && !r.my && !room.memory.outposts.some(o => o === r.roomName)) {
+                    if (r.distance === i && r.controller_id && !(r.reserved && !r.reservedBy === MEMORY.username) && !r.occupied && !r.my && !room.memory.outposts.some(o => o === r.roomName)) {
 
                         room.memory.outposts.push(r.roomName)
                         console.log(r.roomName, 'is now an outpost for', roomName)

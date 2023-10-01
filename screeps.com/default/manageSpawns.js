@@ -78,12 +78,12 @@ function manageSpawns(room, creeps) {
                         MEMORY.rooms[room.name].spawnQueue = spawnQueue;
                         break;
 
-                    } else if (ret == -6) {
+                    }else if (ret == -6) {
 
                         return;
                     } else {
-                        console.log('ret', ret, name)
-                        return;
+                        console.log('ret', ret, name, JSON.stringify(spawnQueue[i]))
+                        continue;
                     }
 
                 };
@@ -370,7 +370,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
             let ret = getBody.builder(energyBudget, room, storedEnergy);
             body = ret[0];
             if (room.controller.level < 3) {
-                targetBuilderCount = ret[1] - 1;
+                targetBuilderCount = Math.min(targetBuilderCount = ret[1] - 1, 4);
             } else {
 
                 if (ret[1] > 2 && storedEnergy > CONSERVE_ENERGY_VALUE) {
@@ -646,6 +646,13 @@ const getBody = {
         let healParts = 1; // 250
         let rangedAttackParts = 1; // 150
         let cost = 660;
+        if(budget < 660){
+            attackParts = 2;
+            moveParts = 1
+            rangedAttackParts = 0
+            healParts = 0
+            cost = 210
+        }
 
         while (cost + 210 <= budget && attackParts < enemyAttackParts + 1 && attackParts + moveParts + toughParts < 47) {
             attackParts++;

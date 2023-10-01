@@ -447,10 +447,7 @@ function assignTask(room, creep) {
                 task = parkTask(creep.room, creep);
             } else {
                 task = getRoleTasks.remoteBuilder(creep.room, creep)
-                if (!task) {
-                    creep.memory.assignedRoom = undefined;
-
-                }
+           
 
             }
         }
@@ -1006,7 +1003,15 @@ const getRoleTasks = {
 
             tasks.push(...getTasks.build(room));
 
+            if(tasks.length === 0){
+                tasks.push(...getTasks.upgrade(room))
+            }
+
         };
+
+        if(creep.role === 'remoteBuilder'){
+            console.log(JSON.stringify(tasks))
+        }
 
         return tasks;
     },

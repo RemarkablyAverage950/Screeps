@@ -155,7 +155,7 @@ function outpostPlanner(homeRoom) {
             //console.log('not in outpost room')
             continue;
         }
-   
+
         let outpostPlans = homeRoom.memory.plans[outpostName]
 
 
@@ -334,7 +334,6 @@ function getRoomPlans(room) {
     const spawnCenter = new RoomPosition(spawnX, spawnY, room.name)
     // Set source containers
     setStamp.container(room, tiles, hubCenter, sources, mineral);
-
     setStamp.controller(room, tiles, hubCenter)
 
     const storagePos = setStamp.hub(room, tiles, hubCenter); // Roads from containers & controller link to storage @ lvl 2
@@ -343,6 +342,7 @@ function getRoomPlans(room) {
     setStamp.spawn(room, tiles, spawnCenter, storagePos); // roads from each spawn to storage @ lvl 2
     setStamp.extension(room, tiles, hubCenter, storagePos); // Roads from each extension block center to storage @ extension block lvl
 
+    setRoads(room, tiles, storagePos, sources, mineral)
 
     setIndividualStructures(tiles, room)
 
@@ -476,37 +476,6 @@ function setRamparts(room, tiles, storagePos) {
         blocks.push(block)
     }
 
-    /*for (let o of output) {
-        let placed = false;
-        let thisPos = new RoomPosition(o.x, o.y, room.name)
-        
-        for (let block of blocks) {
-            if (placed) {
-                break
-            }
-            for (let pos of block) {
-                if (pos.isNearTo(thisPos)) {
-                    console.log(JSON.stringify(thisPos),'is near to',JSON.stringify(pos))
-                    block.push(thisPos)
-                    console.log(block)
-                    placed = true;
-                    break;
-                }
-            }
-        }
-        if (placed) {
-
-            continue;
-
-        } else {
-
-            blocks.push([thisPos])
-
-        }
-    }*/
-
-
-
 
     blocks = blocks.sort((a, b) => b.length - a.length)
 
@@ -549,7 +518,7 @@ function setRamparts(room, tiles, storagePos) {
             }
             if (center) {
                 let destination = new RoomPosition(r.x, r.y, room.name)
-                setRoads(room, tiles, storagePos, destination, 0, 4)
+                setRoad(room, tiles, storagePos, destination, 0, 4)
             }
             updateTile(r.x, r.y, STRUCTURE_RAMPART, tiles, center, 4);
 
@@ -624,7 +593,7 @@ function setRamparts(room, tiles, storagePos) {
  * @param {number} range 
  * @param {number} level 
  */
-function setRoads(room, tiles, origin, destination, range, level) {
+function setRoad(room, tiles, origin, destination, range, level) {
 
     let path = getPath(origin, destination, range, tiles, room)
 
@@ -633,6 +602,93 @@ function setRoads(room, tiles, origin, destination, range, level) {
     }
 
 };
+
+
+
+/**
+ * 
+ * @param {Room} room 
+ * @param {Tile[]} tiles 
+ * @param {RoomPosition} storagePos 
+ * @param {Source[]} sources
+ * @param {Mineral} mineral
+ */
+function setRoads(room, tiles, storagePos, sources, mineral) {
+
+    let sourceContainerTiles = [];
+    let mineralContainerTile = undefined;
+    let spawnContainerTiles = [];
+    let extensionCenterTiles = [];
+    let controllerLinkTile = undefined;
+
+    for (let t of tiles) {
+        let next = false;
+        if (t.structure === STRUCTURE_EXTENSION) {
+            if (t.center) {
+                extensionCenterTiles.push(t);
+            }
+        } else if (t.structure === STRUCTURE_LINK) {
+            let pos = new RoomPosition(t.x, t.y, room.name)
+            if (pos.getRangeTo(room.controller) === 2) {
+                controllerLinkTile = t;
+            }
+        } else if (t.structure === STRUCTURE_CONTAINER) {
+
+            let tPos = new RoomPosition(t.x, t.y, room.name)
+
+            for (let s of sources) {
+                if (tPos.isNearTo(s)) {
+                    sourceContainerTiles.push(t)
+                    next = true;
+                    break;
+                }
+            }
+
+            if (next) {
+                continue;
+            }
+
+            if (tPos.isNearTo(mineral)) {
+                mineralContainerTile = t
+            } else {
+                spawnContainerTiles.push(t)
+            }
+
+        }
+
+    }
+
+    // Sources to storage
+    for (let s of sourceContainerTiles) {
+        let startPos = new RoomPosition(s.x, s.y, room.name)
+        setRoad(room, tiles, startPos, storagePos, 1, 4)
+    }
+
+    // Mineral to storage
+    let minPos = new RoomPosition(mineralContainerTile.x, mineralContainerTile.y, room.name)
+    setRoad(room, tiles, minPos, storagePos, 1, 6)
+
+    // Spawn to sources, spawn to storage
+    for (let spawnContainer of spawnContainerTiles) {
+        let startPos = new RoomPosition(spawnContainer.x, spawnContainer.y, room.name);
+        for (let sc of sourceContainerTiles) {
+            let destPos = new RoomPosition(sc.x, sc.y, room.name);
+            setRoad(room, tiles, startPos, destPos, 1, 1);
+        }
+        setRoad(room, tiles, startPos, storagePos, 1, 2);
+    }
+
+    // Extensions to storage
+    for (let e of extensionCenterTiles) {
+        let startPos = new RoomPosition(e.x, e.y, room.name);
+        setRoad(room, tiles, startPos, storagePos, 1, e.level)
+    }
+
+    // Controller to storage
+    let clPos = new RoomPosition(controllerLinkTile.x, controllerLinkTile.y, room.name)
+    setRoad(room, tiles, clPos, storagePos, 1, 2)
+
+}
 
 /**
  * 
@@ -1210,7 +1266,7 @@ let setStamp = {
                 updateTile(center.x + b[0], center.y + b[1], b[2], tiles, isCenter, RCL[i])
             });
 
-            setRoads(room, tiles, center, storagePos, 1, RCL[i]);
+
         }
     },
 
@@ -1244,32 +1300,23 @@ let setStamp = {
             [0, 2, STRUCTURE_ROAD, 4],
         ];
 
-
+        let storagePos = undefined;
         const center = getStampStart(BUILDINGS, hubCenter, tiles, room, true)
 
         BUILDINGS.forEach(b => {
             let isCenter = (b[0] == 0 && b[1] == 0)
+
+            if (b[2] === STRUCTURE_STORAGE) {
+
+                storagePos = new RoomPosition(center.x + b[0], center.y + b[1], room.name)
+            }
+
             updateTile(center.x + b[0], center.y + b[1], b[2], tiles, isCenter, b[3])
         });
 
-        const storageTile = tiles.find(t => t.structure === STRUCTURE_STORAGE)
-        const destination = new RoomPosition(storageTile.x, storageTile.y, room.name)
-        // Build roads from each container or link to storage
-        for (let tile of tiles) {
-            if (tile.structure === STRUCTURE_CONTAINER) {
 
-                const origin = new RoomPosition(tile.x, tile.y, room.name);
-                setRoads(room, tiles, origin, destination, 1, tile.level)
 
-            } else if (tile.structure === STRUCTURE_LINK) {
-
-                const origin = new RoomPosition(tile.x, tile.y, room.name);
-                setRoads(room, tiles, origin, destination, 1, 2);
-
-            };
-        };
-
-        return destination
+        return storagePos
 
     },
 
@@ -1298,8 +1345,12 @@ let setStamp = {
             [1, 1, STRUCTURE_LAB, 8],
         ];
 
+        let startPos = new RoomPosition(storagePos.x + 2, storagePos.y - 2, room.name)
+        if (room.getTerrain().get(startPos.x, startPos.y) === 'wall') {
+            startPos = storagePos
+        }
 
-        const center = getStampStart(BUILDINGS, storagePos, tiles, room)
+        const center = getStampStart(BUILDINGS, startPos, tiles, room)
 
         BUILDINGS.forEach(b => {
             let isCenter = (b[0] == 0 && b[1] == 0)
@@ -1307,7 +1358,7 @@ let setStamp = {
         });
 
 
-        setRoads(room, tiles, center, storagePos, 1, 6);
+        setRoad(room, tiles, center, storagePos, 1, 6);
 
     },
 
@@ -1388,9 +1439,7 @@ let setStamp = {
 
         })
 
-        for (let origin of spawns) {
-            setRoads(room, tiles, origin, storagePos, 1, 2);
-        }
+
 
 
     },

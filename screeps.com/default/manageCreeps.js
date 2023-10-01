@@ -447,10 +447,7 @@ function assignTask(room, creep) {
                 task = parkTask(creep.room, creep);
             } else {
                 task = getRoleTasks.remoteBuilder(creep.room, creep)
-                if (!task) {
-                    creep.memory.assignedRoom = undefined;
-
-                }
+           
 
             }
         }
@@ -1006,7 +1003,15 @@ const getRoleTasks = {
 
             tasks.push(...getTasks.build(room));
 
+            if(tasks.length === 0){
+                tasks.push(...getTasks.upgrade(room))
+            }
+
         };
+
+        if(creep.role === 'remoteBuilder'){
+            console.log(JSON.stringify(tasks))
+        }
 
         return tasks;
     },
@@ -1409,6 +1414,13 @@ const getRoleTasks = {
 
     },
 
+
+    /**
+     * 
+     * @param {Room} room 
+     * @param {Creep} creep 
+     * @returns 
+     */
     remoteHauler: function (room, creep) {
 
         let tasks = []
@@ -1420,6 +1432,20 @@ const getRoleTasks = {
                 if (room.storage) {
                     tasks.push(...getTasks.deliver(room.creep))
                 } else {
+                    const sources = room.find(FIND_SOURCES)
+                    const mineral = room.find(FIND_MINERALS)[0]
+                    let containers = room.find(FIND_STRUCTURES)
+                        .filter(s => s.structureType === STRUCTURE_CONTAINER
+                            && !sources.some(source => s.pos.isNearTo(source))
+                            && !s.pos.isNearTo(mineral))
+
+                    for (let s of containers) {
+
+                        if (s.forecast(RESOURCE_ENERGY) < s.store.getCapacity(RESOURCE_ENERGY)) {
+                            tasks.push(new TransferTask(s.id, RESOURCE_ENERGY, Math.min(s.store.getFreeCapacity(RESOURCE_ENERGY), creep.store[RESOURCE_ENERGY])))
+                        }
+                    }
+
                     tasks.push(...getTasks.fill(room, creep))
                 }
 
@@ -1448,6 +1474,8 @@ const getRoleTasks = {
         } else {
             if (creep.store.getFreeCapacity() === 0) {
                 return new MoveToRoomTask(creep.memory.home)
+            } else {
+                return new MoveToRoomTask(creep.memory.assignedRoom)
             }
         }
 
@@ -2081,7 +2109,7 @@ const getTasks = {
 
                 const forecast = s.forecast(resourceType);
 
-                if (forecast >= capacity) {
+                if (forecast >= capacity && s.store[RESOURCE_ENERGY] > 0) {
 
                     tasks.push(new WithdrawTask(s.id, resourceType, Math.min(forecast, capacity)));
 

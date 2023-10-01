@@ -78,7 +78,7 @@ function manageSpawns(room, creeps) {
                         MEMORY.rooms[room.name].spawnQueue = spawnQueue;
                         break;
 
-                    } else if (ret == -6) {
+                    }else if (ret == -6) {
 
                         return;
                     } else {
@@ -646,6 +646,13 @@ const getBody = {
         let healParts = 1; // 250
         let rangedAttackParts = 1; // 150
         let cost = 660;
+        if(budget < 660){
+            attackParts = 2;
+            moveParts = 1
+            rangedAttackParts = 0
+            healParts = 0
+            cost = 210
+        }
 
         while (cost + 210 <= budget && attackParts < enemyAttackParts + 1 && attackParts + moveParts + toughParts < 47) {
             attackParts++;

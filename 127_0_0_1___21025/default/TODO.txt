@@ -1,15 +1,16 @@
 Room Planner:
 
     [] Create a function for placing all connecting roads.
-        [] Roads place after all stamps are placed, before ramparts and before additional structures
-        [] Spawn block center to Hub, sources
-        [] Each extension to hub
-        [] Each source and mineral to hub
-        [] Leave labs to hub, let lab stamp handle it.
+        [x] Roads place after all stamps are placed, before ramparts and before additional structures
+        [x] Spawn block center to Hub, sources
+        [x] Each extension to hub
+        [x] Each source and mineral to hub
+        [x] Leave labs to hub, let lab stamp handle it.
 
     Low Priority:
 
     [] Rampart roads should stay inside base area
+        - May be able to use minimum cut to generate a costMatrix for area outside of ramparts. 
 
 Pathfinding:
 
@@ -33,8 +34,13 @@ Roles:
     Hauler:
         [] Can deposit into spawn containers (if no storage exists)
 
+    Maintainer:
+        [] Seems to only be generating a 1work/1carry/1move creep when no storage present. Some structures are too degraded.
+
     Remote Hauler:
         [x] Can deposit into spawn containers (if no storage exists)
+
+    
 
 Room Defense:
 
@@ -43,4 +49,8 @@ Room Defense:
 Spawning:
 
     [] Only need to spawn a remote maintainer if there are outpost plans present.
-    
+
+Outposts:
+
+    [] If taking an outpost from an enemy is uneffective, cancel outpost and asses what is needed before targeting as an outpost again.
+
