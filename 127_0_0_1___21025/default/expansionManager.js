@@ -597,10 +597,11 @@ function getMission(myRooms) {
         for (let i = 1; i < 11; i++) {
 
             if (data.distance === i && data.occupied && !data.hostileTarget && data.reservedBy === 'Invader') {
-                console.log('Generating assault mission for', data.roomName)
+                
                 if(Game.rooms[data.homeRoom].controller.level < 5){
                     continue;
                 }
+                console.log('Generating assault mission for', data.roomName)
                 return new AssaultMission(data.roomName)
             }
         }

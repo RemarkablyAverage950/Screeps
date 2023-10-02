@@ -126,9 +126,8 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
             conserveEnergy = false
             break;
         case 2:
-            if (storedEnergy < 500 * sources.length) {
-                conserveEnergy = true;
-            }
+            conserveEnergy = false;
+            break;
         case 3:
             if (storedEnergy < 750 * sources.length) {
                 conserveEnergy = true;
@@ -401,8 +400,9 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         if (body.length === 0) {
             let ret = getBody.builder(energyBudget, room, conserveEnergy);
             body = ret[0];
+            console.log('conserveEnergy',conserveEnergy)
             if (!conserveEnergy) {
-                targetBuilderCount = Math.max(1, Math.min(ret[1] - 1, 4))
+                targetBuilderCount = Math.max(1, Math.min(ret[1], 4))
             }
 
 

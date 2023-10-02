@@ -41,6 +41,9 @@ Roles:
     Hauler:
         [] Can deposit into spawn containers (if no storage exists)
 
+    Hub:
+        [] Only spawn this unit if there are 2 links, and one is the hub link.
+
     Maintainer:
         [x] Seems to only be generating a 1work/1carry/1move creep when no storage present. Some structures are too degraded.
 
