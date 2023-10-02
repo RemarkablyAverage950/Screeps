@@ -320,12 +320,10 @@ function expansionManager(myRooms) {
                     if (next) {
                         continue;
                     }
-                    if (r.roomName === 'W8N3' && r.distance === 1) {
-                        console.log(r.reserved, !r.reservedBy === MEMORY.username, !(r.reserved && !r.reservedBy === MEMORY.username))
-                    }
+                 
                     if (r.distance === i && r.controller_id && !(r.reserved && !r.reservedBy === MEMORY.username) && !r.occupied && !r.my && !room.memory.outposts.some(o => o === r.roomName)) {
 
-                        room.memory.outposts.push(r.roomName)
+                        //room.memory.outposts.push(r.roomName)
                         console.log(r.roomName, 'is now an outpost for', roomName)
 
                     }

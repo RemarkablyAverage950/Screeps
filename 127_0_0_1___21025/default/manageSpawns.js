@@ -650,7 +650,7 @@ const getBody = {
      */
     defender: function (budget, hostiles) {
         let enemyAttackParts = 0;
-        console.log(hostiles)
+       
         if (hostiles === undefined) {
             enemyAttackParts = 50;
         } else {
@@ -711,6 +711,8 @@ const getBody = {
         for (let i = 0; i < healParts; i++) {
             body.push(HEAL);
         };
+
+        console.log('Generating body for defender',JSON.stringify(body))
         return body;
 
     },

@@ -19,6 +19,7 @@ Pathfinding:
     [] Creeps can/should path all the way to destinations, including in other rooms.
     [] Initial cost matrix does not looks for creeps, enemy or otherwise.
     [] Some units bounce in and out when transitioning between rooms.
+    [] Better classification of what rooms are safe to travel through to prevent erratic paths avoiding safe rooms (one hostile structure that is not a tower, etc.)
 
     getPath: (for creeps)
         [] When generating a path for creeps, avoid stationary creeps in range of 2
@@ -51,6 +52,17 @@ Roles:
         [] Fix multiple scouts are targeting the same room due to lastScanTime.
             - Need to target room not assigned to a scout.
 
+    RoomWorker
+        [] Continues spawning until room level 2
+        [] Harvests
+        [] Picks up dropped energy
+        [] Withdraws energy
+        [] Builds spawn
+        [] Upgrades controller if downgrade in < 10k ticks
+        When spawn built:
+            [] 1. Fills spawn
+            [] 2. Builds other structures
+            
     
 Room Defense:
 
@@ -64,4 +76,15 @@ Outposts:
 
     [x] Only declare new outpost if the room is not currently reserved by another player.
     [] If taking an outpost from an enemy is uneffective, cancel outpost and asses what is needed before targeting as an outpost again.
+    [] Send defender if an invader core pops up in outpost.
 
+Expansion Manager:
+
+    Invader Reserved Rooms:
+        [] Better classify via ScanData these reserved rooms.
+        [] Create more specific type of mission to destroy these invader cores.
+        [] Currently generating multiple (too many) assault missions but does not seem to be executing them.
+
+    [x] W7N3 set up an outpost way over in W4N2. There is an issue with range/homeroom assignment.
+
+    

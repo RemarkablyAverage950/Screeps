@@ -1061,6 +1061,8 @@ const getRoleTasks = {
             return new MoveToRoomTask(assignedRoom)
         } else {
             let hostiles = creep.room.find(FIND_HOSTILE_CREEPS)
+            let hostileStructures = creep.room.find(FIND_HOSTILE_STRUCTURES)
+
             if (!creep.getActiveBodyparts(ATTACK)) {
                 // No attack parts
                 if (creep.getActiveBodyparts(RANGED_ATTACK)) {
@@ -1105,6 +1107,9 @@ const getRoleTasks = {
 
                 if (closest) {
                     return new HealTask(closest.id)
+                }else if (hostileStructures.length){
+                    let closest = _.min(hostileStructures,s=> s.pos.getRangeTo(creep))
+                    return new AttackTask(closest.id)
                 } else {
                     // console.log(JSON.stringify(MEMORY.rooms[creep.memory.home]))
                     if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].monitoredRooms && MEMORY.rooms[creep.memory.home].outposts.length) {
@@ -2187,7 +2192,7 @@ const getTasks = {
 
                 const forecast = s.forecast(resourceType);
 
-                if (forecast > 20) {
+                if (s.store[resourceType] > 20) {
 
                     tasks.push(new WithdrawTask(s.id, resourceType, forecast));
 

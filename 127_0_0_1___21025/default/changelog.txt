@@ -16,7 +16,7 @@ Version 0.1
     OUTPOSTS:
 
         - Fix bug in finding distance to outpost sources.
-        
+        - Calls defender if hostile structure (Invader Core) spawns in room.
 
 
     ROLES:
@@ -33,6 +33,7 @@ Version 0.1
         Defender:
 
             - Creep now uses ranged attack or heal when no healthy attack parts
+            - Now attacks hostile structures.
 
     MANAGE CREEPS:
 

@@ -17,7 +17,9 @@ class SO {
  * @param {Creep[]} creeps
  */
 function outpostManager(homeRoom, creeps) {
-
+    if (!homeRoom) {
+        return;
+    }
     let outposts = homeRoom.memory.outposts;
 
 
@@ -47,8 +49,13 @@ function outpostManager(homeRoom, creeps) {
             continue;
         }
 
-        let hostiles = outpostRoom.find(FIND_HOSTILE_CREEPS)
         let occupied = false
+        let hostileStructures = outpostRoom.find(FIND_HOSTILE_STRUCTURES)
+        if(hostileStructures.length){
+            occupied = true;
+        }
+        let hostiles = outpostRoom.find(FIND_HOSTILE_CREEPS)
+        
         if (hostiles.length) {
             if (!occupied) {
                 for (let hCreep of hostiles) {
@@ -225,7 +232,7 @@ function outpostManager(homeRoom, creeps) {
                     heap.sources = {};
                     const sources = outpostRoom.find(FIND_SOURCES);
                     const containers = outpostRoom.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_CONTAINER);
-
+                  
                     for (let s of sources) {
 
                         let containerPos = undefined;
@@ -422,8 +429,14 @@ function outpostManager(homeRoom, creeps) {
  */
 function getRemoteSourceDistance(homeRoom, s) {
 
-    console.log('Getting distance for source',JSON.stringify(s.pos))
+    //console.log('Getting distance for source', JSON.stringify(s.pos))
+    if (!homeRoom) {
+        return;
+    }
+    if (homeRoom.find(FIND_MY_SPAWNS).length === 0) {
 
+        return;
+    }
     let startPos = homeRoom.find(FIND_MY_SPAWNS)[0].pos
 
     if (homeRoom.storage) {
@@ -456,7 +469,7 @@ function getRemoteSourceDistance(homeRoom, s) {
         },
     }).path;
 
-    console.log('Returning',path.length)
+    console.log('Returning', path.length)
     return path.length;
 
 }

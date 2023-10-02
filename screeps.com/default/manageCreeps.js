@@ -2187,7 +2187,7 @@ const getTasks = {
 
                 const forecast = s.forecast(resourceType);
 
-                if (forecast > 20) {
+                if (s.store[resourceType] > 20) {
 
                     tasks.push(new WithdrawTask(s.id, resourceType, forecast));
 
