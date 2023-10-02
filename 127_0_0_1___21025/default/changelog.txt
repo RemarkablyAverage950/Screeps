@@ -9,7 +9,10 @@ Version 0.1
     - Clamped remote hauler count to <= 2 per outpost.
     - Set max remote miner count to 1.
     - Fixed issue where manageSpawns was creating a more expensive defender than room spawn capacity.
-
+    - Only spawning remote maintainer if rcl >= 4.
+    - Changed how conserve energy value is set based on room level and storage being present. 
+        Integrated body generating and target counts with multiple role types
+ 
     OUTPOSTS:
 
         - Fix bug in finding distance to outpost sources.
@@ -20,11 +23,16 @@ Version 0.1
 
         Remote builder:
 
-            - Units no longer clear assigned room when finished building. Units focus on upgrading controller if no construction tasks available.
+            - Units no longer clear assigned room when finished building. 
+                Units focus on upgrading controller if no construction tasks available.
 
         Remote hauler:
 
             - Units now deliver to spawn containers if there is no storage present.
+
+        Defender:
+
+            - Creep now uses ranged attack or heal when no healthy attack parts
 
     MANAGE CREEPS:
 
@@ -34,9 +42,11 @@ Version 0.1
 
         - Set max new outpost range to 1 when there is no storage present.
         - Now only declares new outposts for rooms that are not reserved by another player.  
+        - Now correctly determines closest home room on construction and update. 
 
     ROOM PLANNER:
 
         - Changed road placement to after stamps are placed.
         - Adjusted lab placement start search position.
         - Fixed rampart room edge boundry clamping.
+        - Fixed bug where outpost roads build orders would not be set when passing through a rampart.

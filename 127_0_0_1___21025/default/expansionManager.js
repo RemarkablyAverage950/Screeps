@@ -33,9 +33,19 @@ class AssaultMission extends Mission {
 }
 
 class ScanData {
-    constructor(roomName, homeRoom) {
+    constructor(roomName, myRooms) {
         this.roomName = roomName
-        this.homeRoom = homeRoom
+
+        let minDist = Infinity
+        for (let roomName of myRooms) {
+            let distance = Game.map.findRoute(roomName, this.roomName).length
+            if (distance < minDist) {
+                minDist = distance
+                this.distance = distance
+                this.homeRoom = roomName
+            }
+        }
+
 
         const room = Game.rooms[this.roomName];
         const controller = room.controller;
@@ -45,7 +55,7 @@ class ScanData {
         const hostileStructures = room.find(FIND_HOSTILE_STRUCTURES);
 
         this.controller_id = controller ? controller.id : null;
-        this.distance = Game.map.findRoute(this.homeRoom, this.roomName).length
+
         this.exitCount = Object.values(Game.map.describeExits(this.roomName)).length;
         this.lastScan = Game.time;
         this.level = controller ? controller.level : null;
@@ -136,13 +146,22 @@ class ScanData {
 
     }
 
-    update() {
+    update(myRooms) {
         const room = Game.rooms[this.roomName];
         const controller = room.controller;
         const hostileCreeps = room.find(FIND_HOSTILE_CREEPS);
         const hostileStructures = room.find(FIND_HOSTILE_STRUCTURES);
         const sources = room.find(FIND_SOURCES)
         const mineral = room.find(FIND_MINERALS)[0]
+        let minDist = Infinity
+        for (let roomName of myRooms) {
+            let distance = Game.map.findRoute(roomName, this.roomName).length
+            if (distance < minDist) {
+                minDist = distance
+                this.distance = distance
+                this.homeRoom = roomName
+            }
+        }
 
         this.lastScan = Game.time;
         this.level = controller ? controller.level : null;
@@ -252,12 +271,12 @@ function expansionManager(myRooms) {
                 if (data) {
                     // We have a monitored room
                     if (!data.lastScan) {
-                        data = new ScanData(r.name, roomName)
+                        data = new ScanData(r.name, myRooms)
                         //console.log('DataCreated',JSON.stringify(data))
                         MEMORY.monitoredRooms[r.name] = data;
                     } else {
                         if (Game.time - data.lastScan > 100) {
-                            data.update()
+                            data.update(myRooms)
                             // console.log('DataUpdated',JSON.stringify(data))
                         }
                     }
@@ -301,7 +320,9 @@ function expansionManager(myRooms) {
                     if (next) {
                         continue;
                     }
-
+                    if (r.roomName === 'W8N3' && r.distance === 1) {
+                        console.log(r.reserved, !r.reservedBy === MEMORY.username, !(r.reserved && !r.reservedBy === MEMORY.username))
+                    }
                     if (r.distance === i && r.controller_id && !(r.reserved && !r.reservedBy === MEMORY.username) && !r.occupied && !r.my && !room.memory.outposts.some(o => o === r.roomName)) {
 
                         room.memory.outposts.push(r.roomName)

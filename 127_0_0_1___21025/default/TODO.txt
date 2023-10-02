@@ -1,11 +1,13 @@
 Room Planner:
 
-    [] Create a function for placing all connecting roads.
+    [x] Create a function for placing all connecting roads.
         [x] Roads place after all stamps are placed, before ramparts and before additional structures
         [x] Spawn block center to Hub, sources
         [x] Each extension to hub
         [x] Each source and mineral to hub
         [x] Leave labs to hub, let lab stamp handle it.
+        
+    [x] Fix bug where outpost road does not get placed at a boundry rampart.
 
     Low Priority:
 
@@ -35,12 +37,14 @@ Roles:
         [] Can deposit into spawn containers (if no storage exists)
 
     Maintainer:
-        [] Seems to only be generating a 1work/1carry/1move creep when no storage present. Some structures are too degraded.
+        [x] Seems to only be generating a 1work/1carry/1move creep when no storage present. Some structures are too degraded.
 
     Remote Hauler:
         [x] Can deposit into spawn containers (if no storage exists)
 
-    
+    Scout:
+        [] Fix multiple scouts are targeting the same room due to lastScanTime.
+            - Need to target room not assigned to a scout.
 
 Room Defense:
 
@@ -48,9 +52,10 @@ Room Defense:
 
 Spawning:
 
-    [] Only need to spawn a remote maintainer if there are outpost plans present.
+    [x] Only need to spawn a remote maintainer if home room RCL >= 4.
 
 Outposts:
 
+    [x] Only declare new outpost if the room is not currently reserved by another player.
     [] If taking an outpost from an enemy is uneffective, cancel outpost and asses what is needed before targeting as an outpost again.
 

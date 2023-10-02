@@ -110,6 +110,13 @@ class PickupTask extends Task {
     };
 };
 
+class RangedAttackTask extends Task {
+    constructor(id) {
+        super('RANGED_ATTACK');
+        this.id = id;
+    }
+}
+
 class RepairTask extends Task {
     /**
      * @constructor
@@ -180,8 +187,8 @@ class WithdrawTask extends Task {
 const BUILD_PRIORITY = [
     STRUCTURE_SPAWN,
     STRUCTURE_EXTENSION,
-    STRUCTURE_CONTAINER,
     STRUCTURE_ROAD,
+    STRUCTURE_CONTAINER,
     STRUCTURE_STORAGE,
     STRUCTURE_TOWER,
     STRUCTURE_WALL,
@@ -447,7 +454,7 @@ function assignTask(room, creep) {
                 task = parkTask(creep.room, creep);
             } else {
                 task = getRoleTasks.remoteBuilder(creep.room, creep)
-           
+
 
             }
         }
@@ -724,6 +731,13 @@ function executeTask(room, creep) {
                 MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
 
             };
+            break;
+
+        case 'RANGED_ATTACK':
+            creep.rangedAttack(target) !== 0
+            if (creep.pos.getRangeTo(target) > 1) {
+                moveCreep(creep, target.pos, 1, 1);
+            }
             break;
 
         case 'REPAIR':
@@ -1003,15 +1017,17 @@ const getRoleTasks = {
 
             tasks.push(...getTasks.build(room));
 
-            if(tasks.length === 0){
-                tasks.push(...getTasks.upgrade(room))
+            if (tasks.length === 0) {
+                if (creep.room.controller.my) {
+                    tasks.push(...getTasks.upgrade(room))
+                } else {
+                    creep.memory.assignedRoom = undefined;
+                }
             }
 
         };
 
-        if(creep.role === 'remoteBuilder'){
-            console.log(JSON.stringify(tasks))
-        }
+
 
         return tasks;
     },
@@ -1045,6 +1061,17 @@ const getRoleTasks = {
             return new MoveToRoomTask(assignedRoom)
         } else {
             let hostiles = creep.room.find(FIND_HOSTILE_CREEPS)
+            if (!creep.getActiveBodyparts(ATTACK)) {
+                // No attack parts
+                if (creep.getActiveBodyparts(RANGED_ATTACK)) {
+                    if (hostiles.filter(c => c.pos.getRangeTo(creep) < 4).length) {
+                        let closest = _.min(hostiles, c => c.pos.getRangeTo(creep))
+                        return new RangedAttackTask(closest.id)
+                    }
+                } else {
+                    return new HealTask(creep.id)
+                }
+            }
             if (!hostiles.some(c => c.body.some(b => b.type === ATTACK || b.type === RANGED_ATTACK)) && creep.hits < creep.hitsMax) {
                 return new HealTask(creep.id)
             }
@@ -1430,7 +1457,7 @@ const getRoleTasks = {
             // We are in homeRoom
             if (creep.store[RESOURCE_ENERGY] > 0) {
                 if (room.storage) {
-                    tasks.push(...getTasks.deliver(room.creep))
+                    tasks.push(...getTasks.deliver(creep.room, creep))
                 } else {
                     const sources = room.find(FIND_SOURCES)
                     const mineral = room.find(FIND_MINERALS)[0]
@@ -1441,7 +1468,7 @@ const getRoleTasks = {
 
                     for (let s of containers) {
 
-                        if (s.forecast(RESOURCE_ENERGY) < s.store.getCapacity(RESOURCE_ENERGY)) {
+                        if (s.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
                             tasks.push(new TransferTask(s.id, RESOURCE_ENERGY, Math.min(s.store.getFreeCapacity(RESOURCE_ENERGY), creep.store[RESOURCE_ENERGY])))
                         }
                     }
@@ -1766,7 +1793,9 @@ const getRoleTasks = {
         if (creep.store[RESOURCE_ENERGY] > 0) {
 
             tasks.push(...getTasks.fill(room, creep));
-
+            if (tasks.length === 0) {
+                tasks.push(...getTasks.build(room, creep));
+            };
             if (tasks.length === 0) {
                 tasks.push(...getTasks.upgrade(room, creep));
             };
@@ -1790,6 +1819,12 @@ const getTasks = {
         const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
         const structures = room.find(FIND_STRUCTURES);
         let tasks = [];
+        for (let s of structures) {
+            if (s.structureType === STRUCTURE_RAMPART && s.hits < 2000) {
+                tasks.push(new RepairTask(s.id))
+            }
+        }
+
         for (let type of BUILD_PRIORITY) {
             if (tasks.length > 0) {
                 return tasks;
@@ -2328,6 +2363,15 @@ function validateTask(room, creep) {
             }
             break;
 
+        case 'RANGED_ATTACK':
+            if (!target) return false;
+            if (target.pos.getRangeTo(creep) > 3) {
+                return false;
+            }
+            if (!creep.getActiveBodyparts(RANGED_ATTACK)) return false;
+
+            break;
+
         case 'REPAIR':
             if (!target) {
                 return false;
@@ -2335,6 +2379,12 @@ function validateTask(room, creep) {
             if (target.hits === target.hitsMax || creep.store[RESOURCE_ENERGY] === 0) {
                 return false;
             }
+            if (creep.memory.role === 'builder') {
+                if (target.hits > 2000) {
+                    return false;
+                }
+            }
+
             break;
         case 'SIGN':
             if (!target) {

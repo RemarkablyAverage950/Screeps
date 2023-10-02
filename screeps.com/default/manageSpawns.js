@@ -951,8 +951,11 @@ const getBody = {
 
         if (room.storage) {
             averageRoadDistance /= roadCount;
+            averageContainerDistance /= containerCount
         } else {
+            averageRoadDistance /= (roadCount * sources.length);
             averageContainerDistance /= (containerCount * sources.length);
+
         }
         const roadWorkNeededPerLife = (roadCount * 150) * 2; // 2x extra to account for any non road/container buildings that need repairs + road damage from movement.
         const conatinerWorkNeededPerLife = (containerCount * 15000) * 1.1
@@ -1256,8 +1259,10 @@ const getBody = {
      * @returns {BodyPartConstant[]}
      */
     upgrader: function (budget, room, storedEnergy) {
-
+        let sources = room.find(FIND_SOURCES)
         if (room.storage && storedEnergy < 5000) {
+            return [WORK, CARRY, MOVE]
+        } else if (storedEnergy < 1000 * sources.length) {
             return [WORK, CARRY, MOVE]
         }
 
@@ -1266,7 +1271,7 @@ const getBody = {
             Note we are going to increase the number of upgraders as we acquire more energy.
         */
         let averageDistance = 0;
-        const sources = room.find(FIND_SOURCES)
+       
         let controllerLink = MEMORY.rooms[room.name].links.controller;
         let spawn = room.find(FIND_MY_SPAWNS)[0];
         let maxCarryParts = 40
@@ -1486,7 +1491,7 @@ const getBody = {
         let moveParts = 0;
         let body = [];
 
-        while (totalCost + blockCost <= budget && workParts + carryParts + moveParts < 48) {
+        while (totalCost + blockCost <= budget && workParts + carryParts + moveParts < 24) {
             workParts++;
             carryParts++;
             moveParts++;
