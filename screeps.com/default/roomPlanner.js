@@ -70,7 +70,8 @@ function roomPlanner(room) {
     }
 
 
-    if (plans && Game.time % 20 === 0 && Game.cpu.bucket > 100) {
+    if (plans && Game.time % 20 === 0 && Game.cpu.bucket > 20) {
+
         placeSites(room, plans);
     };
 
@@ -210,9 +211,9 @@ function getOutpostPlans(outpostRoom, homeRoom) {
 
 
                 if (structures) {
-                    structures.forEach(function (struct) {
+                    for (let struct of structures) {
                         if (struct.structure === STRUCTURE_RAMPART) {
-                            return;
+                            continue;
                         }
                         if (struct.structure === STRUCTURE_ROAD) {
                             // Favor roads over plain tiles
@@ -220,7 +221,9 @@ function getOutpostPlans(outpostRoom, homeRoom) {
                         } else {
                             costs.set(struct.x, struct.y, 0xff);
                         }
-                    });
+
+                    }
+                    
                 }
 
                 return costs;
@@ -228,7 +231,7 @@ function getOutpostPlans(outpostRoom, homeRoom) {
 
         }).path
 
-        console.log('plans keys', Object.keys(plans))
+        console.log('plans keys', Object.values(plans))
         for (let i = 0; i < path.length; i++) {
 
             let pos = path[i];
@@ -246,6 +249,7 @@ function getOutpostPlans(outpostRoom, homeRoom) {
             let bo = plans[pos.roomName].find(b => b.x === pos.x && b.y === pos.y)
             if (bo) {
                 bo.level = Math.min(4, bo.level);
+                plans[pos.roomName].push(new BuildOrder(pos.x, pos.y, STRUCTURE_ROAD, 4))
             } else {
                 plans[pos.roomName].push(new BuildOrder(pos.x, pos.y, STRUCTURE_ROAD, 4));
             }
@@ -544,11 +548,12 @@ function setRamparts(room, tiles, storagePos) {
     }
 
     while (BUILDINGS.length > 0) {
+
         for (let center of centers) {
             if (BUILDINGS.length === 0) {
                 break;
             }
-            let building = BUILDINGS.pop()
+
             // get roadPath from center to storage
             let path = getPath(center, storagePos, 1, tiles, room)
             let placed = false;
@@ -566,6 +571,7 @@ function setRamparts(room, tiles, storagePos) {
                             }
                             try {
                                 if (tile && tile.available) {
+                                    let building = BUILDINGS.shift()
                                     updateTile(x, y, building[0], tiles, false, building[1]);
                                     updateTile(x, y, STRUCTURE_RAMPART, tiles, false, building[1]);
                                     placed = true;
@@ -1455,7 +1461,7 @@ function placeSites(homeRoom, plans) {
     const RCL = homeRoom.controller.level
     let rooms = [homeRoom.name, ...homeRoom.memory.outposts]
 
-    //console.log('rooms', JSON.stringify(rooms))
+    //console.log('Placing construction sites for',homeRoom.name)
     for (let roomName of rooms) {
         let room = Game.rooms[roomName]
         if (!room) {
@@ -1466,12 +1472,16 @@ function placeSites(homeRoom, plans) {
             console.log('No roomPlans found for', roomName)
             continue;
         }
-
+        //console.log('Placing construction sites for',homeRoom.name)
         for (let order of roomPlans) {
             updatePlacedStatus(order, room)
 
             if (order.level <= RCL && !order.placed) {
-                room.createConstructionSite(order.x, order.y, order.structure)
+                let ret = room.createConstructionSite(order.x, order.y, order.structure)
+                if (ret === -8) {
+                    return;
+                }
+
             }
         }
     }

@@ -77,7 +77,7 @@ function moveCreep(creep, destination, range, maxRooms) {
     if (path.length === 0) {
         MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
         MEMORY.rooms[creep.memory.home].creeps[creep.name].task = undefined;
-        console.log('Failed to generate path for', creep.name);
+        console.log('Failed to generate path for', creep.name,JSON.stringify(creep.pos));
         return;
     }
 

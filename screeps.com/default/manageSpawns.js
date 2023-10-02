@@ -78,7 +78,7 @@ function manageSpawns(room, creeps) {
                         MEMORY.rooms[room.name].spawnQueue = spawnQueue;
                         break;
 
-                    }else if (ret == -6) {
+                    } else if (ret == -6) {
 
                         return;
                     } else {
@@ -108,6 +108,7 @@ function manageSpawns(room, creeps) {
  */
 function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
+    const sources = room.find(FIND_SOURCES)
     const energyBudget = room.energyCapacityAvailable;
     const structures = room.find(FIND_STRUCTURES);
     let storedEnergy = 0;
@@ -117,6 +118,37 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
             storedEnergy += s.store[RESOURCE_ENERGY];
         };
     };
+
+    let conserveEnergy = false;
+
+    switch (room.controller.level) {
+        case 1:
+            conserveEnergy = false
+            break;
+        case 2:
+            if (storedEnergy < 500 * sources.length) {
+                conserveEnergy = true;
+            }
+        case 3:
+            if (storedEnergy < 750 * sources.length) {
+                conserveEnergy = true;
+            }
+            break;
+        case 4:
+            if (room.storage && storedEnergy < 25000) {
+                conserveEnergy = true;
+            } else if (!room.storage && storedEnergy < 1000 * sources.length) {
+                conserveEnergy = true;
+            }
+            break;
+        default:
+            if (room.storage && storedEnergy < 50000) {
+                conserveEnergy = true;
+            } else if (!room.storage && storedEnergy < 1000 * sources.length) {
+                conserveEnergy = true;
+            }
+            break;
+    }
 
     let spawnQueue = [];
 
@@ -171,7 +203,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     while (workerCount < targetWorkerCount) {
 
         if (workerCount == 0) {
-            body = getBody.worker(room.energyAvailable)
+            body = getBody.worker(room.energyAvailable, conserveEnergy)
 
             if (body.length === 0) return spawnQueue;
 
@@ -183,7 +215,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
             }
 
         } else if (body.length === 0) {
-            body = getBody.worker(energyBudget)
+            body = getBody.worker(energyBudget, conserveEnergy)
 
             options = {
                 memory: {
@@ -299,7 +331,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
     let mineralMinerCount = creepsCount['mineralMiner'] || 0;
 
-    const targetUpgraderCount = getTargetCount.upgrader(room);
+    const targetUpgraderCount = getTargetCount.upgrader(room, conserveEnergy);
     let targetBuilderCount = getTargetCount.builder(room);
     const targetMaintainerCount = getTargetCount.maintainer(room);
     const targetWallBuilderCount = getTargetCount.wallBuilder(room);
@@ -348,7 +380,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     while (upgraderCount < targetUpgraderCount) {
 
         if (body.length === 0) {
-            body = getBody.upgrader(energyBudget, room, storedEnergy);
+            body = getBody.upgrader(energyBudget, room, conserveEnergy);
             options = {
                 memory: {
                     role: 'upgrader',
@@ -367,16 +399,13 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     while (builderCount < targetBuilderCount) {
 
         if (body.length === 0) {
-            let ret = getBody.builder(energyBudget, room, storedEnergy);
+            let ret = getBody.builder(energyBudget, room, conserveEnergy);
             body = ret[0];
-            if (room.controller.level < 3) {
-                targetBuilderCount = Math.min(targetBuilderCount = ret[1] - 1, 4);
-            } else {
-
-                if (ret[1] > 2 && storedEnergy > CONSERVE_ENERGY_VALUE) {
-                    targetBuilderCount = 2;
-                }
+            if (!conserveEnergy) {
+                targetBuilderCount = Math.max(1, Math.min(ret[1] - 1, 4))
             }
+
+
             options = {
                 memory: {
                     role: 'builder',
@@ -412,7 +441,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     while (wallBuilderCount < targetWallBuilderCount) {
 
         if (body.length === 0) {
-            body = getBody.wallBuilder(energyBudget, room, storedEnergy);
+            body = getBody.wallBuilder(energyBudget, room, conserveEnergy);
             options = {
                 memory: {
                     role: 'wallBuilder',
@@ -446,7 +475,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
     body = [];
     while (remoteBuilderCount < targetRemoteBuilderCount) {
-        body = getBody.remoteBuilder(energyBudget, room, storedEnergy)
+        body = getBody.remoteBuilder(energyBudget, room, conserveEnergy)
 
         options = {
             memory: {
@@ -478,7 +507,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
     body = [];
     while (mineralMinerCount < targetMineralMinerCount) {
-        body = getBody.mineralMiner(energyBudget, room);
+        body = getBody.mineralMiner(energyBudget, room, conserveEnergy);
         options = {
             memory: {
                 role: 'mineralMiner',
@@ -512,15 +541,12 @@ const getBody = {
      * @param {number} storedEnergy
      * @returns {BodyPartConstant[]}
      */
-    builder: function (budget, room, storedEnergy) {
+    builder: function (budget, room, conserveEnergy) {
         /*
             Most effecient builder will complete all existing construction sites using the least amount of spawn cost.
             More than one builder can be used to complete construction.
         */
 
-        if (room.storage && storedEnergy < 5000) {
-            return [WORK, CARRY, MOVE]
-        }
 
         const sources = room.find(FIND_SOURCES);
         const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
@@ -593,7 +619,7 @@ const getBody = {
             };
         };
 
-        if (room.storage && storedEnergy < CONSERVE_ENERGY_VALUE) {
+        if (conserveEnergy) {
 
             bestBody[0] = Math.max(Math.floor(bestBody[0] / 2), 1)
             bestBody[1] = Math.max(Math.floor(bestBody[1] / 2), 1)
@@ -646,7 +672,7 @@ const getBody = {
         let healParts = 1; // 250
         let rangedAttackParts = 1; // 150
         let cost = 660;
-        if(budget < 660){
+        if (budget < 660) {
             attackParts = 2;
             moveParts = 1
             rangedAttackParts = 0
@@ -1079,7 +1105,7 @@ const getBody = {
      * @param {Room} room 
      * @return {BodyPartConstant[]}
      */
-    mineralMiner: function (energyBudget, room) {
+    mineralMiner: function (energyBudget, room, conserveEnergy) {
         let mineral = room.find(FIND_MINERALS)[0]
         let mineralAmountRemaining = mineral.mineralAmount
         let distance = room.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(mineral);
@@ -1106,6 +1132,11 @@ const getBody = {
             }
         }
 
+        if (conserveEnergy) {
+            bestBody[0] = Math.max(Math.floor(bestBody[0] / 2), 1)
+            bestBody[1] = Math.max(Math.floor(bestBody[1] / 2), 1)
+        }
+
         let body = [];
 
         for (let i = 0; i < bestBody[0]; i++) {
@@ -1118,9 +1149,9 @@ const getBody = {
         return body;
     },
 
-    remoteBuilder: function (energyBudget, room, storedEnergy) {
+    remoteBuilder: function (energyBudget, room, conserveEnergy) {
 
-        if (room.storage && storedEnergy < 5000) {
+        if (conserveEnergy) {
             return [WORK, CARRY, MOVE]
         }
 
@@ -1258,11 +1289,9 @@ const getBody = {
      * @param {number} storedEnergy
      * @returns {BodyPartConstant[]}
      */
-    upgrader: function (budget, room, storedEnergy) {
-        let sources = room.find(FIND_SOURCES)
-        if (room.storage && storedEnergy < 5000) {
-            return [WORK, CARRY, MOVE]
-        } else if (storedEnergy < 1000 * sources.length) {
+    upgrader: function (budget, room, conserveEnergy) {
+
+        if (!room.storage && conserveEnergy) {
             return [WORK, CARRY, MOVE]
         }
 
@@ -1271,7 +1300,7 @@ const getBody = {
             Note we are going to increase the number of upgraders as we acquire more energy.
         */
         let averageDistance = 0;
-       
+        const sources = room.find(FIND_SOURCES)
         let controllerLink = MEMORY.rooms[room.name].links.controller;
         let spawn = room.find(FIND_MY_SPAWNS)[0];
         let maxCarryParts = 40
@@ -1343,7 +1372,7 @@ const getBody = {
             };
         };
 
-        if (room.storage && storedEnergy < CONSERVE_ENERGY_VALUE) {
+        if (conserveEnergy) {
             bestBody[0] = Math.max(Math.floor(bestBody[0] / 2), 1)
             bestBody[1] = Math.max(Math.floor(bestBody[1] / 2), 1)
             bestBody[2] = Math.max(Math.floor(bestBody[2] / 2), 1)
@@ -1367,11 +1396,9 @@ const getBody = {
 
     },
 
-    wallBuilder: function (budget, room, storedEnergy) {
-
-        if (room.storage && storedEnergy < 5000) {
-            return [WORK, CARRY, MOVE]
-        }
+    wallBuilder: function (budget, room, conserveEnergy) {
+        
+      
 
 
         let averageDistance = 0;
@@ -1453,7 +1480,7 @@ const getBody = {
 
 
 
-        if (room.storage && storedEnergy < CONSERVE_ENERGY_VALUE) {
+        if (conserveEnergy) {
             bestBody[0] = Math.max(Math.floor(bestBody[0] / 2), 1)
             bestBody[1] = Math.max(Math.floor(bestBody[1] / 2), 1)
             bestBody[2] = Math.max(Math.floor(bestBody[2] / 2), 1)
@@ -1497,6 +1524,12 @@ const getBody = {
             moveParts++;
             totalCost += blockCost;
         };
+
+        if (conserveEnergy) {
+            workParts = Math.max(Math.floor(workParts / 2), 1)
+            carryParts = Math.max(Math.floor(carryParts / 2), 1)
+            moveParts = Math.max(Math.floor(moveParts / 2), 1)
+        }
 
         for (let i = 0; i < workParts; i++) {
             body.push(WORK);
@@ -1690,7 +1723,9 @@ const getTargetCount = {
     },
 
     remoteMaintainer: function (room, outpostRooms) {
-
+        if (room.controller.level < 4) {
+            return 0;
+        }
         let roomCount = outpostRooms.length;
         if (roomCount > 0) {
             return 1;
@@ -1713,7 +1748,11 @@ const getTargetCount = {
      * 
      * @param {Room} room 
      */
-    upgrader: function (room) {
+    upgrader: function (room, conserveEnergy) {
+
+        if (conserveEnergy) {
+            return 1;
+        }
 
         // Count total energy available.
         const structures = room.find(FIND_STRUCTURES);

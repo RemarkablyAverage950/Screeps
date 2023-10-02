@@ -33,6 +33,10 @@ Pathfinding:
 
 Roles:
 
+    Defender:
+        [] When there are no live parts of a type, disable that type of part.
+        
+
     Hauler:
         [] Can deposit into spawn containers (if no storage exists)
 
@@ -41,11 +45,13 @@ Roles:
 
     Remote Hauler:
         [x] Can deposit into spawn containers (if no storage exists)
+        [] Fix: When assigned room is under attack, even if they are full they are not delivering to storage.
 
     Scout:
         [] Fix multiple scouts are targeting the same room due to lastScanTime.
             - Need to target room not assigned to a scout.
 
+    
 Room Defense:
 
     [] Spawn defender(s) to handle units if no towers, or if towers cannot damage on their own.

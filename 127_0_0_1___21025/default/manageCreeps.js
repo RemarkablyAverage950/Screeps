@@ -211,7 +211,7 @@ function manageCreeps(room, creeps) {
 
 
     for (const creep of creeps) {
-        /*if(creep.name === 'W38S4_builder_0'){
+        /*if(creep.name === 'W38S4_filler_0'){
             console.log('Task:',JSON.stringify(MEMORY.rooms[room.name].creeps[creep.name].task))
             console.log('Path:',MEMORY.rooms[room.name].creeps[creep.name].path)
         }*/
@@ -1230,7 +1230,7 @@ const getRoleTasks = {
 
             tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY));
 
-            if (room.storage && room.storage.forecast(RESOURCE_ENERGY) > creep.store.getFreeCapacity()) {
+            if (room.storage && room.storage.store[RESOURCE_ENERGY] > creep.store.getFreeCapacity()) {
                 tasks.push(new WithdrawTask(room.storage.id, RESOURCE_ENERGY, creep.store.getFreeCapacity()))
             } else {
                 tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY));
@@ -2144,7 +2144,7 @@ const getTasks = {
 
                 const forecast = s.forecast(resourceType);
 
-                if (forecast >= capacity && s.store[RESOURCE_ENERGY] > 0) {
+                if (forecast >= capacity && s.store[resourceType] > 0) {
 
                     tasks.push(new WithdrawTask(s.id, resourceType, Math.min(forecast, capacity)));
 
