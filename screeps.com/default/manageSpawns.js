@@ -1510,7 +1510,7 @@ const getBody = {
      * @param {number} budget Energy budget.
      * @returns {BodyPartConstant[]}
      */
-    worker: function (budget) {
+    worker: function (budget,conserveEnergy) {
         const blockCost = 200;
         let totalCost = 0;
         let workParts = 0;
