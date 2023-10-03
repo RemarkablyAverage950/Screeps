@@ -126,9 +126,8 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
             conserveEnergy = false
             break;
         case 2:
-            if (storedEnergy < 500 * sources.length) {
-                conserveEnergy = true;
-            }
+            conserveEnergy = false;
+            break;
         case 3:
             if (storedEnergy < 750 * sources.length) {
                 conserveEnergy = true;
@@ -166,7 +165,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     const targetFastFillerCount = getTargetCount.fastFiller(room);
     const targetHubCount = getTargetCount.hub(room, storedEnergy);
     const targetHaulerCount = getTargetCount.hauler(room);
-    const targetMineralMinerCount = getTargetCount.mineralMiner(room);
+    const targetMineralMinerCount = getTargetCount.mineralMiner(room, conserveEnergy);
 
     for (let order of existingSpawnQueue) {
 
@@ -401,8 +400,9 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         if (body.length === 0) {
             let ret = getBody.builder(energyBudget, room, conserveEnergy);
             body = ret[0];
+            console.log('conserveEnergy', conserveEnergy)
             if (!conserveEnergy) {
-                targetBuilderCount = Math.max(1, Math.min(ret[1] - 1, 4))
+                targetBuilderCount = Math.max(1, Math.min(ret[1], 4))
             }
 
 
@@ -650,7 +650,7 @@ const getBody = {
      */
     defender: function (budget, hostiles) {
         let enemyAttackParts = 0;
-        console.log(hostiles)
+
         if (hostiles === undefined) {
             enemyAttackParts = 50;
         } else {
@@ -711,6 +711,8 @@ const getBody = {
         for (let i = 0; i < healParts; i++) {
             body.push(HEAL);
         };
+
+        console.log('Generating body for defender', JSON.stringify(body))
         return body;
 
     },
@@ -804,14 +806,28 @@ const getBody = {
     hauler: function (budget, room, haulMinerals) {
 
         const sources = room.find(FIND_SOURCES);
+        const spawn = room.find(FIND_MY_SPAWNS)[0];
 
         let distance = 0;
-        for (let s of sources) {
-            distance += s.pos.getRangeTo(room.storage);
-        };
-        if (haulMinerals) {
-            const mineral = room.find(FIND_MINERALS)[0]
-            distance += mineral.pos.getRangeTo(room.storage)
+
+        if (room.storage) {
+            for (let s of sources) {
+
+                distance += s.pos.getRangeTo(room.storage);
+            };
+            if (haulMinerals) {
+                const mineral = room.find(FIND_MINERALS)[0]
+                distance += mineral.pos.getRangeTo(room.storage)
+            }
+        } else {
+            for (let s of sources) {
+
+                distance += s.pos.getRangeTo(spawn);
+            };
+            if (haulMinerals) {
+                const mineral = room.find(FIND_MINERALS)[0]
+                distance += mineral.pos.getRangeTo(spawn)
+            }
         }
 
         distance /= (sources.length + haulMinerals);
@@ -1291,7 +1307,7 @@ const getBody = {
      */
     upgrader: function (budget, room, conserveEnergy) {
 
-        if (!room.storage && conserveEnergy) {
+        if ((!room.storage && conserveEnergy) || (room.storage && room.storage.store[RESOURCE_ENERGY] < 10000)) {
             return [WORK, CARRY, MOVE]
         }
 
@@ -1397,8 +1413,8 @@ const getBody = {
     },
 
     wallBuilder: function (budget, room, conserveEnergy) {
-        
-      
+
+
 
 
         let averageDistance = 0;
@@ -1510,7 +1526,7 @@ const getBody = {
      * @param {number} budget Energy budget.
      * @returns {BodyPartConstant[]}
      */
-    worker: function (budget,conserveEnergy) {
+    worker: function (budget, conserveEnergy) {
         const blockCost = 200;
         let totalCost = 0;
         let workParts = 0;
@@ -1612,9 +1628,16 @@ const getTargetCount = {
      * @returns {number}
      */
     hauler: function (room) {
+
         if (room.storage) {
             return 1;
         };
+        let containers = room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_CONTAINER)
+        if (containers.length > 2) {
+            return 1;
+        }
+
+
         return 0;
     },
 
@@ -1670,11 +1693,14 @@ const getTargetCount = {
      * @param {Room} room 
      * @returns {number}
      */
-    mineralMiner: function (room) {
+    mineralMiner: function (room, conserveEnergy) {
 
         if (room.controller.level < 6) {
             return 0;
-        } else {
+        } else if (conserveEnergy) {
+            return 0;
+        }
+        else {
             const extractor = room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_EXTRACTOR)[0]
             if (extractor) {
                 let mineral = room.find(FIND_MINERALS)[0]

@@ -1107,8 +1107,8 @@ const getRoleTasks = {
 
                 if (closest) {
                     return new HealTask(closest.id)
-                }else if (hostileStructures.length){
-                    let closest = _.min(hostileStructures,s=> s.pos.getRangeTo(creep))
+                } else if (hostileStructures.length) {
+                    let closest = _.min(hostileStructures, s => s.pos.getRangeTo(creep))
                     return new AttackTask(closest.id)
                 } else {
                     // console.log(JSON.stringify(MEMORY.rooms[creep.memory.home]))
@@ -1617,6 +1617,8 @@ const getRoleTasks = {
         // Find nearest room needing a scan update.
 
         let monitoredRooms = MEMORY.rooms[room.name].monitoredRooms
+
+
         if (monitoredRooms) {
 
             let targetScanRooms = [];
@@ -1630,7 +1632,29 @@ const getRoleTasks = {
                 }
 
             }
+          
+            for (let c of Object.values(Game.creeps)) {
+                if (c.name === creep.name) {
+                    continue;
+                }
+                if (c.memory.role === 'scout') {
 
+                    if (MEMORY.rooms[c.memory.home] && MEMORY.rooms[c.memory.home].creeps[c.name]) {
+
+                        let task = MEMORY.rooms[c.memory.home].creeps[c.name].task
+
+
+                        if (task && task.type === 'MOVE_TO_ROOM') {
+                            let targetRoom = task.roomName
+                            let idx = targetScanRooms.findIndex(t => t.roomName === targetRoom)
+                           
+                            targetScanRooms.splice(idx, 1)
+
+
+                        }
+                    } 
+                }
+            }
 
 
             // Find closest room.
@@ -1657,7 +1681,7 @@ const getRoleTasks = {
 
 
             if (targetRoom) {
-
+                console.log(creep.name, 'moving to', targetRoom)
                 return new MoveToRoomTask(targetRoom)
             }
 
@@ -1841,12 +1865,6 @@ const getTasks = {
             }
         };
 
-        for (let s of structures) {
-            if (s.structureType === STRUCTURE_RAMPART && s.hits < 5000) {
-                tasks.push(new RepairTask(s.id))
-            }
-        }
-
 
         return tasks;
 
@@ -1858,6 +1876,22 @@ const getTasks = {
             for (let r of Object.keys(creep.store)) {
                 tasks.push(new TransferTask(room.storage.id, r, creep.store[r]));
             };
+        } else {
+            const sources = room.find(FIND_SOURCES)
+            const mineral = room.find(FIND_MINERALS)[0]
+            let containers = room.find(FIND_STRUCTURES)
+                .filter(s => s.structureType === STRUCTURE_CONTAINER
+                    && !sources.some(source => s.pos.isNearTo(source))
+                    && !s.pos.isNearTo(mineral))
+
+            for (let s of containers) {
+
+                if (s.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+                    tasks.push(new TransferTask(s.id, RESOURCE_ENERGY, Math.min(s.store.getFreeCapacity(RESOURCE_ENERGY), creep.store[RESOURCE_ENERGY])))
+                }
+            }
+
+            tasks.push(...getTasks.fill(room, creep))
         };
         return tasks;
     },
@@ -1909,7 +1943,7 @@ const getTasks = {
 
                 if (forecast < capacity) {
 
-                    tasks.push(new TransferTask(s.id, RESOURCE_ENERGY, Math.min(capacity - forecast, heldEnergy)));
+                    tasks.push(new TransferTask(s.id, RESOURCE_ENERGY, heldEnergy));
 
                 };
 
@@ -1925,7 +1959,7 @@ const getTasks = {
 
             if (forecast < capacity - 40) {
 
-                tasks.push(new TransferTask(target.id, RESOURCE_ENERGY, Math.min(capacity - forecast, heldEnergy)));
+                tasks.push(new TransferTask(target.id, RESOURCE_ENERGY, heldEnergy));
             }
 
 
@@ -1986,24 +2020,32 @@ const getTasks = {
             };
         };
 
-
+        if (!room.storage) {
+            return tasks;
+        }
 
         const dropped = room.find(FIND_DROPPED_RESOURCES);
         const tombstones = room.find(FIND_TOMBSTONES);
         const ruins = room.find(FIND_RUINS);
 
         for (let r of dropped) {
-            tasks.push(new PickupTask(r.id, Math.min(capacity, r.forecast(r.resourceType))))
+            if (r.forecast() > 0) {
+                tasks.push(new PickupTask(r.id, capacity))
+            }
         }
 
         for (let t of tombstones) {
             for (let r of Object.keys(t.store)) {
-                tasks.push(new WithdrawTask(t.id, r, Math.min(t.forecast(r), capacity)))
+                if (t.forecast(r) > 0) {
+                    tasks.push(new WithdrawTask(t.id, r, capacity))
+                }
             }
         }
         for (let ruin of ruins) {
             for (let r of Object.keys(ruin.store)) {
-                tasks.push(new WithdrawTask(ruin.id, r, Math.min(ruin.forecast(r), capacity)))
+                if (ruin.forecast(r) > 0) {
+                    tasks.push(new WithdrawTask(ruin.id, r, capacity))
+                }
             }
         }
 
@@ -2029,7 +2071,7 @@ const getTasks = {
             const forecast = r.forecast();
             if (r.resourceType === resourceType && forecast > capacity) {
 
-                tasks.push(new PickupTask(r.id, Math.min(forecast, capacity)));
+                tasks.push(new PickupTask(r.id, capacity));
 
             };
         };
@@ -2039,7 +2081,7 @@ const getTasks = {
                 const forecast = r.forecast();
                 if (r.resourceType === resourceType && forecast > 0) {
 
-                    tasks.push(new PickupTask(r.id, Math.min(forecast, capacity)));
+                    tasks.push(new PickupTask(r.id, capacity));
 
                 };
             };
@@ -2296,7 +2338,7 @@ function validateTask(room, creep) {
             break;
         case 'DISMANTLE':
             if (!target) {
-                console.log(creep.name, 'no target')
+
                 return false;
             }
             if (creep.memory.role === 'remoteMaintainer' && creep.store.getFreeCapacity() === 0) {
@@ -2363,7 +2405,8 @@ function validateTask(room, creep) {
             break;
         case 'PICKUP':
             if (!target) return false;
-            if (creep.store.getFreeCapacity() === 0) {
+
+            if (target.amount === 0 || creep.store.getFreeCapacity() === 0) {
                 return false;
             }
             break;

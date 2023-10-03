@@ -12,14 +12,21 @@ Version 0.1
     - Only spawning remote maintainer if rcl >= 4.
     - Changed how conserve energy value is set based on room level and storage being present. 
         Integrated body generating and target counts with multiple role types
+    - Now spawning a work/move/carry upgrader if storage and energy in storage < 20k
+    - Will not spawn a mineral miner if conserving energy. Resulting from this, hauler is also normal size.
  
     OUTPOSTS:
 
         - Fix bug in finding distance to outpost sources.
         - Calls defender if hostile structure (Invader Core) spawns in room.
-
+        - Now only finding new outposts in rooms that are not occupied (hostiles/reserved/owned)
 
     ROLES:
+
+        Hauler:
+
+            - Spawns units if more than 2 containers.
+            - Units now only withdraw energy from source containers and deliver to spawn containers if there is no storage.
 
         Remote builder:
 
@@ -30,6 +37,10 @@ Version 0.1
 
             - Units now deliver to spawn containers if there is no storage present.
 
+        Scout:
+
+            - Now only targets rooms that a different scout is not going to.
+
         Defender:
 
             - Creep now uses ranged attack or heal when no healthy attack parts
@@ -38,12 +49,14 @@ Version 0.1
     MANAGE CREEPS:
 
         - Withdraw tasks now require there to be at least some of the resource in the withdraw target store.         
+        - Adjusted some parameters on withdraw and pickup tasks.
 
     EXPANSION MANAGER: 
 
         - Set max new outpost range to 1 when there is no storage present.
         - Now only declares new outposts for rooms that are not reserved by another player.  
         - Now correctly determines closest home room on construction and update. 
+        - Fixed bug where duplicate monitored rooms were getting pushed into MEMORY.rooms[roomName].monitoredRooms.
 
     ROOM PLANNER:
 
@@ -51,3 +64,7 @@ Version 0.1
         - Adjusted lab placement start search position.
         - Fixed rampart room edge boundry clamping.
         - Fixed bug where outpost roads build orders would not be set when passing through a rampart.
+
+    LINKS:
+
+        - Improved detection of spawn link.

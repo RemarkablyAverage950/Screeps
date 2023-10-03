@@ -9,6 +9,8 @@ Room Planner:
         
     [x] Fix bug where outpost road does not get placed at a boundry rampart.
 
+    [] Bug where 2 ramparts did not place on road leading away from center of rampart wall.
+
     Low Priority:
 
     [] Rampart roads should stay inside base area
@@ -37,9 +39,9 @@ Roles:
     Defender:
         [] When there are no live parts of a type, disable that type of part.
         
-
     Hauler:
-        [] Can deposit into spawn containers (if no storage exists)
+        [x] Can deposit into spawn containers (if no storage exists)
+        [x] Spawn if container count > 2.
 
     Hub:
         [] Only spawn this unit if there are 2 links, and one is the hub link.
@@ -74,6 +76,7 @@ Room Defense:
 Spawning:
 
     [x] Only need to spawn a remote maintainer if home room RCL >= 4.
+    [] Spawn multiple scouts if scanned room count < 10.
 
 Outposts:
 
@@ -82,6 +85,25 @@ Outposts:
     [] Send defender if an invader core pops up in outpost.
 
 Expansion Manager:
+    
+    Implement Mission types:
+
+        [] Invader core no towers
+            [] Send single soldier.
+
+        [] Invader core with towers
+            [] Assess, most likely send multiple quads
+
+        [] Player room lower level.
+            [] Assess
+
+        [] Player room no units.
+            [] Soldiers
+
+        [] Other player's outpost
+
+        [] Player room same level.
+
 
     Invader Reserved Rooms:
         [] Better classify via ScanData these reserved rooms.
@@ -90,4 +112,15 @@ Expansion Manager:
 
     [x] W7N3 set up an outpost way over in W4N2. There is an issue with range/homeroom assignment.
 
-    
+    Claim Missions:
+
+        [] End claim mission when controller.my and RCL >= 2
+
+    Invade undefended room mission:
+
+        [] Detect and assign this mission if controller is owned but there are no units.
+        [] Consider following up with claiming the room for myself.
+
+    Bugs:
+
+        [] ScanRoom data being duplicated in monitoredRooms (MEMORY.rooms[room.name].monitoredRooms)

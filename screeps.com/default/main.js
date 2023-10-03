@@ -13,8 +13,11 @@ require('RoomVisual');
 
 
 module.exports.loop = function () {
-
-    
+    /*let rn = 'W5N1'
+    delete Memory.rooms[rn].outposts
+    delete Memory.rooms[rn].plans
+    */
+ 
     // Remove dead creeps from memory.
     for (let name in Memory.creeps) {
         if (!Game.creeps[name]) {
@@ -41,7 +44,7 @@ module.exports.loop = function () {
             if (spawns.length === 0) {
                 let cs = room.find(FIND_MY_CONSTRUCTION_SITES)
                 if (cs.length > 0) {
-                    let closest = _.min(myRooms.filter(r => r != roomName), r => Game.map.getRoomLinearDistance(roomName, r))
+                    let closest = _.min(myRooms.filter(r => r != roomName), r => Game.map.findRoute(roomName, r).length)
 
                     let targetRemoteBuilderCount = 4;
 
@@ -55,16 +58,17 @@ module.exports.loop = function () {
 
                     body = [];
                     while (remoteBuilderCount < targetRemoteBuilderCount) {
-                        body = getBody.remoteBuilder(Game.rooms[closest].energyCapacityAvailable, Game.rooms[closest], 100000)
+                        body = getBody.remoteBuilder(Game.rooms[closest].energyCapacityAvailable, Game.rooms[closest], 0)
 
                         options = {
                             memory: {
                                 role: 'remoteBuilder',
-                                home: room.name,
+                                home: roomName,
                                 assignedRoom: roomName,
                             },
                         };
-                        spawnQueue.push(new SpawnOrder('remoteBuilder', 6, body, options));
+                        console.log('Ordering remote builder for',room.name,'from',closest)
+                        spawnQueue.push(new SpawnOrder('remoteBuilder', 4, body, options));
                         remoteBuilderCount++;
                     }
                 }

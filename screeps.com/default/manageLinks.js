@@ -27,7 +27,23 @@ function manageLinks(room) {
         if (room.controller.level < 5) {
             return;
         }
-        const links = room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_LINK);
+
+        const structures = room.find(FIND_STRUCTURES)
+        let links = [];
+        let containers = [];
+        let extensions = [];
+
+        for (let s of structures) {
+            if (s.structureType === STRUCTURE_EXTENSION) {
+                extensions.push(s)
+            } else if (s.structureType == STRUCTURE_CONTAINER) {
+                containers.push(s)
+            } else if (s.structureType === STRUCTURE_LINK) {
+                links.push(s)
+            }
+        }
+
+
         let linkNum = 1;
 
         for (let s of links) {
@@ -40,12 +56,34 @@ function manageLinks(room) {
                 continue;
             }
 
-            let spawnLink = true;
+            let spawnLink = false;
             for (let spawn of room.find(FIND_MY_SPAWNS)) {
-                if (spawn.pos.getRangeTo(s) !== 2) {
-                    spawnLink = false;
-                };
+                if (spawn.pos.getRangeTo(s) == 2) {
+                    spawnLink = true;
+                }
+
+            } if (!spawnLink) {
+                let count = 0
+                for (let c of containers) {
+                    if (s.pos.getRangeTo(c) === 2) {
+                        count++;
+                    }
+                }
+                if (count === 2) {
+                    spawnLink = true;
+                } else {
+                    for (let e of extensions) {
+                        count = 0;
+                        if (s.pos.isNearTo(e)) {
+                            count++
+                        }
+                    }
+                    if (count === 4) {
+                        spawnLink = true;
+                    }
+                }
             };
+
 
             if (spawnLink) {
                 linkMem.spawn = s.id;
@@ -67,7 +105,7 @@ function manageLinks(room) {
     if (linkMem.hub) {
 
         const hubLink = Game.getObjectById(linkMem.hub);
-        if(!hubLink){
+        if (!hubLink) {
             linkMem.hub = undefined
             return;
         }

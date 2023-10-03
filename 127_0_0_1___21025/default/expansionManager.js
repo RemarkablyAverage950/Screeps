@@ -149,7 +149,7 @@ class ScanData {
 
         this.rating = rating
         this.hostileTarget = hostileTarget
-        this.occupied = hostileTarget || hostileStructures.length || (this.reserved && !this.reservedBy === MEMORY.username) ? true : false;
+        this.occupied = hostileTarget || hostileStructures.length || (this.reserved && this.reservedBy !== MEMORY.username) ? true : false;
 
     }
 
@@ -255,7 +255,7 @@ class ScanData {
         }
 
         this.hostileTarget = hostileTarget
-        this.occupied = hostileTarget || hostileStructures.length || (this.reserved && !this.reservedBy === MEMORY.username) ? true : false;
+        this.occupied = hostileTarget || hostileStructures.length || (this.reserved && this.reservedBy !== MEMORY.username) ? true : false;
         this.rating = rating;
     }
 
@@ -522,22 +522,21 @@ function getMonitoredRooms(myRooms) {
         let monitoredRoomNames = MEMORY.rooms[roomName].monitoredRooms;
 
         if (!monitoredRoomNames) {
-            monitoredRoomNames = [];
-            let queue = [roomName];
+            monitoredRoomNames = [roomName];
+            let queue = [...Object.values(Game.map.describeExits(roomName))];
 
             while (queue.length > 0) {
 
                 let next = queue.pop();
-                monitoredRoomNames.push(next)
-
                 const neighbors = Object.values(Game.map.describeExits(next))
 
                 for (let neighbor of neighbors) {
-                    if (monitoredRoomNames.some(r => r === neighbor)) {
+                    if (monitoredRoomNames.includes(neighbor)) {
                         continue;
                     }
                     if (Game.map.getRoomLinearDistance(roomName, neighbor) <= RANGE) {
                         queue.push(neighbor);
+                        monitoredRoomNames.push(neighbor)
                     }
                 }
             }
@@ -597,8 +596,8 @@ function getMission(myRooms) {
         for (let i = 1; i < 11; i++) {
 
             if (data.distance === i && data.occupied && !data.hostileTarget && data.reservedBy === 'Invader') {
-                
-                if(Game.rooms[data.homeRoom].controller.level < 5){
+
+                if (Game.rooms[data.homeRoom].controller.level < 5) {
                     continue;
                 }
                 console.log('Generating assault mission for', data.roomName)
