@@ -1,3 +1,5 @@
+storage.db['rooms.objects'].update({ _id: 'cf030773144fccf' },{ $set: { level: 6 }})
+
 Room Planner:
 
     [x] Create a function for placing all connecting roads.
@@ -6,7 +8,11 @@ Room Planner:
         [x] Each extension to hub
         [x] Each source and mineral to hub
         [x] Leave labs to hub, let lab stamp handle it.
-        
+    
+    [] Try to snap extension blocks to existing extension blocks.
+    [] Keep structures a little further from exits. This can be done by declaring those tiles near exits unavailable initially.
+    [] Place towers at closest optimal positions (where filler cannot get range attacked.)
+
     [x] Fix bug where outpost road does not get placed at a boundry rampart.
 
     [] Bug where 2 ramparts did not place on road leading away from center of rampart wall.
@@ -52,6 +58,7 @@ Roles:
     Remote Hauler:
         [x] Can deposit into spawn containers (if no storage exists)
         [] Fix: When assigned room is under attack, even if they are full they are not delivering to storage.
+        [] Unit was ignoring one overflowing source container and trying to pick up crumbs from the closer one.
 
     Scout:
         [] Fix multiple scouts are targeting the same room due to lastScanTime.

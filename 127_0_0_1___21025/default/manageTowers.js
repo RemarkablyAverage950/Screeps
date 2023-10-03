@@ -37,7 +37,7 @@ function manageTowers(room) {
         }
 
         for (let s of structures) {
-            if (s.pos.getRangeTo(tower) > 3) {
+            if (s.pos.getRangeTo(tower) > 5) {
                 continue;
             }
 
@@ -50,7 +50,7 @@ function manageTowers(room) {
 
                 }
 
-            } else if (s.structureType !== STRUCTURE_ROAD && s.hits < s.hitsMax) {
+            } else if (s.structureType !== STRUCTURE_ROAD && s.hits < s.hitsMax - 800) {
 
                 tower.repair(s);
                 break;
