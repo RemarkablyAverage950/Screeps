@@ -31,8 +31,8 @@ Pathfinding:
 
     getPath: (for creeps)
         [] When generating a path for creeps, avoid stationary creeps in range of 2
-        
         [] Avoid hostile creeps by a range of 4, with +10 costs in range
+        [] Creeps (scouts) unable to path to exit due to enemy in way. They just freeze.
 
     moveCreep:
         [] Scan for hostile creeps and re-gen if in range of 5

@@ -21,19 +21,18 @@ class Tile {
      * @constructor
      * @param {number} x 
      * @param {number} y 
-     * @param {string} roomName 
      * @param {boolean} available 
-     * @param {number} level
-     * @param {number} priority
+     * @param {boolean} nearExit
      */
-    constructor(x, y, available) {
+    constructor(x, y, available, nearExit) {
         this.x = x;
         this.y = y;
         this.available = available;
         this.structure = undefined;
         this.center = false;
         this.level = 8;
-        this.placed = false;
+        this.nearExit = nearExit;
+        this.inside = false;
     };
 };
 
@@ -65,7 +64,7 @@ function roomPlanner(room) {
     }
 
     if (plans && Game.time % 1000 == 0 && Game.cpu.bucket > 100) {
-        console.log('validating structures', room.name)
+        //console.log('validating structures', room.name)
         validateStructures(room, plans)
     }
 
@@ -175,13 +174,13 @@ function outpostPlanner(homeRoom) {
  * @param {BuildOrder[]} plans 
  */
 function getOutpostPlans(outpostRoom, homeRoom) {
-    console.log('Entering getOutpostPlans', outpostRoom.name)
+    //console.log('Entering getOutpostPlans', outpostRoom.name)
     const sources = outpostRoom.find(FIND_SOURCES);
     const storageTile = homeRoom.memory.plans[homeRoom.name].find(bo => bo.structure === STRUCTURE_STORAGE);
     const route = Game.map.findRoute(outpostRoom.name, homeRoom.name).map(r => r.room);
     const destination = new RoomPosition(storageTile.x, storageTile.y, homeRoom.name)
     const plans = homeRoom.memory.plans
-    console.log('plans', JSON.stringify(plans))
+    //console.log('plans', JSON.stringify(plans))
     for (let roomName of route) {
         if (!plans[roomName]) {
 
@@ -223,7 +222,7 @@ function getOutpostPlans(outpostRoom, homeRoom) {
                         }
 
                     }
-                    
+
                 }
 
                 return costs;
@@ -231,7 +230,7 @@ function getOutpostPlans(outpostRoom, homeRoom) {
 
         }).path
 
-        console.log('plans keys', Object.values(plans))
+        //console.log('plans keys', Object.values(plans))
         for (let i = 0; i < path.length; i++) {
 
             let pos = path[i];
@@ -294,14 +293,60 @@ function getOutpostPlans(outpostRoom, homeRoom) {
 function getTiles(room) {
     let terrain = new Room.Terrain(room.name);
     let tiles = [];
+    let exits = Object.values(Game.map.describeExits(room.name))
 
-    for (let x = 2; x < 49; x++) {
+    let topExits = room.find(FIND_EXIT_TOP)
+    let bottomExits = room.find(FIND_EXIT_BOTTOM)
+    let leftExits = room.find(FIND_EXIT_LEFT)
+    let rightExits = room.find(FIND_EXIT_RIGHT)
+
+    for (let x = 1; x < 49; x++) {
         for (let y = 1; y < 49; y++) {
+
+
 
             if (terrain.get(x, y) === TERRAIN_MASK_WALL) {
                 tiles.push(new Tile(x, y, false));
             } else {
-                tiles.push(new Tile(x, y, true));
+
+                if (topExits.length && y < 5) {
+
+                    let pos = new RoomPosition(x, y, room.name)
+                    let closest = pos.findClosestByRange(topExits)
+                    if (closest.getRangeTo(pos) < 5) {
+                        tiles.push(new Tile(x, y, true, true));
+                        continue;
+                    }
+                }
+                if (bottomExits.length && y > 44) {
+                    let pos = new RoomPosition(x, y, room.name)
+                    let closest = pos.findClosestByRange(bottomExits)
+                    if (closest.getRangeTo(pos) < 5) {
+                        tiles.push(new Tile(x, y, true, true));
+                        continue;
+                    }
+                }
+                if (leftExits.length && x < 5) {
+                    let pos = new RoomPosition(x, y, room.name)
+                    let closest = pos.findClosestByRange(leftExits)
+                    if (closest.getRangeTo(pos) < 5) {
+                        tiles.push(new Tile(x, y, true, true));
+                        continue;
+                    }
+                }
+                if (rightExits.length && x > 44) {
+
+                    let pos = new RoomPosition(x, y, room.name)
+                    let closest = pos.findClosestByRange(rightExits)
+                    if (closest.getRangeTo(pos) < 5) {
+                        tiles.push(new Tile(x, y, true, true));
+                        continue;
+                    }
+
+                }
+
+
+                tiles.push(new Tile(x, y, true, false));
             };
 
 
@@ -322,7 +367,7 @@ function getRoomPlans(room) {
 
     let tiles = getTiles(room);
     let buildOrders = [];
-
+    console.log('A', room.name, tiles.length)
     // Create a 50x50 grid.
     // Mark all terrain walls as unavailable, open spaces as available.
 
@@ -338,20 +383,24 @@ function getRoomPlans(room) {
     const spawnCenter = new RoomPosition(spawnX, spawnY, room.name)
     // Set source containers
     setStamp.container(room, tiles, hubCenter, sources, mineral);
+    console.log('B', tiles.length)
     setStamp.controller(room, tiles, hubCenter)
+    console.log('C', tiles.length)
 
     const storagePos = setStamp.hub(room, tiles, hubCenter); // Roads from containers & controller link to storage @ lvl 2
-
+    console.log('D', tiles.length)
     setStamp.lab(room, tiles, storagePos); // roads from lab center to storage @ lvl 6
+    console.log('E', tiles.length)
     setStamp.spawn(room, tiles, spawnCenter, storagePos); // roads from each spawn to storage @ lvl 2
+    console.log('F', tiles.length)
     setStamp.extension(room, tiles, hubCenter, storagePos); // Roads from each extension block center to storage @ extension block lvl
-
+    console.log('G', tiles.length)
     setRoads(room, tiles, storagePos, sources, mineral)
-
+    console.log('H', tiles.length)
     setIndividualStructures(tiles, room)
-
+    console.log('I', tiles.length)
     setRamparts(room, tiles, storagePos)
-
+    console.log('J', tiles.length)
     tiles.sort((a, b) => a.level - b.level)
 
     for (let tile of tiles) {
@@ -457,35 +506,58 @@ function setRamparts(room, tiles, storagePos) {
     let found = false
     while (output.length > 0) {
 
-        let block = [];
 
         let o = output.pop();
+        let oPos = new RoomPosition(o.x, o.y, room.name)
+        let found = false;
 
-        let queue = [o]
-        while (queue.length) {
-
-            let qPop = queue.pop()
-            let qp = new RoomPosition(qPop.x, qPop.y, room.name)
-            block.push(qp)
-            for (let p of output) {
-                let pos = new RoomPosition(p.x, p.y, room.name)
-                if (pos.isNearTo(qp)) {
-                    queue.push(p)
-                    let idx = output.findIndex(x => x.x === p.x && x.y === p.y)
-                    output.splice(idx, 1)
+        for (let i = 0; i < blocks.length; i++) {
+            if (found) {
+                break;
+            }
+            for (let pos of blocks[i]) {
+                if (pos.isNearTo(oPos)) {
+                    blocks[i].push(oPos)
+                    found = true;
+                    break;
                 }
+
             }
         }
 
-        blocks.push(block)
+        if (!found) {
+            blocks.push([oPos])
+        }
+
     }
 
+    updateInsideTiles(room, tiles, blocks, storagePos)
+
+    for (let i = blocks.length - 1; i >= 0; i--) {
+        if (!blocks[i].some(pos => {
+            let tile = tiles.find(t => t.x === pos.x && t.y === pos.y)
+            if (tile.inside) {
+                return true;
+            } else {
+                return false;
+            }
+
+        })) {
+
+
+            blocks.splice(i, 1)
+
+        }
+    }
 
     blocks = blocks.sort((a, b) => b.length - a.length)
 
 
 
     for (let block of blocks) {
+
+        let tester = block
+
         // Get block center
         let x = 0;
         let y = 0;
@@ -588,6 +660,77 @@ function setRamparts(room, tiles, storagePos) {
             }
         }
     }
+}
+
+
+function updateInsideTiles(room, tiles, blocks, storagePos) {
+
+    let terrain = new Room.Terrain(room.name)
+    let insideTiles = [storagePos];
+    let queue = [storagePos]
+
+    while (queue.length) {
+
+        let pos = queue.pop()
+
+        const offsets = [
+            [0, 1],
+            [0, - 1],
+            [1, 0],
+            [- 1, 0],
+            [1, 1],
+            [1, -1],
+            [-1, 1],
+            [-1, -1],
+
+        ];
+
+        for (let offset of offsets) {
+
+            let x = pos.x + offset[0]
+            let y = pos.y + offset[1]
+
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) {
+                continue;
+            }
+
+            if (insideTiles.some(t => t.x === x && t.y === y)) {
+
+                continue;
+            }
+
+            let inside = true;
+            let edgeRampart = false;
+            for (let block of blocks) {
+                if (!inside) {
+                    break;
+                }
+                for (let ramPos of block) {
+                    if (ramPos.x === x && ramPos.y === y) {
+                        edgeRampart = true;
+                    }
+                }
+            }
+
+            if (inside) {
+                let nextPos = new RoomPosition(x, y, room.name)
+                insideTiles.push(nextPos)
+                if (!edgeRampart) {
+                    queue.push(nextPos)
+                }
+            }
+        }
+    }
+
+    for (let it of insideTiles) {
+        let tile = tiles.find(t => t.x === it.x && t.y === it.y)
+
+        tile.inside = true;
+
+    }
+
+    //console.log('insideTiles for', room.name, JSON.stringify(insideTiles))
+
 }
 
 /**
@@ -755,10 +898,11 @@ function getPlannerCostMatrix(tiles, room) {
             }
         }
     }
-
-    for (let x = -1 + mineral.pos.x; x <= 1 + mineral.pos.x; x++) {
-        for (let y = -1 + mineral.pos.y; y <= 1 + mineral.pos.y; y++) {
-            costs.set(x, y, 10);
+    if (mineral) {
+        for (let x = -1 + mineral.pos.x; x <= 1 + mineral.pos.x; x++) {
+            for (let y = -1 + mineral.pos.y; y <= 1 + mineral.pos.y; y++) {
+                costs.set(x, y, 10);
+            }
         }
     }
 
@@ -788,7 +932,7 @@ function getStampStart(BUILDINGS, start, tiles, room, ignoreWalls = false) {
 
     while (queue.length > 0) {
         if (queue.length > 200) {
-            console.log(queue.length, '200')
+            // console.log(queue.length, '200')
             return undefined;
         }
 
@@ -807,36 +951,8 @@ function getStampStart(BUILDINGS, start, tiles, room, ignoreWalls = false) {
             continue;
         }
 
-        found = true;
+        let found = checkStampPositions(BUILDINGS, tiles, x, y)
 
-        for (let building of BUILDINGS) {
-
-            const lookX = x + building[0];
-            const lookY = y + building[1];
-
-            // Verify position is in bounds.
-            if (lookX < 3 || lookX > 47 || lookY < 3 || lookY > 47) {
-
-                found = false;
-                break;
-            }
-
-            const tile = tiles.find(t => t.x === lookX && t.y === lookY);
-
-            if (!tile) {
-
-                found = false;
-                break;
-            }
-            if (tile.structure === STRUCTURE_ROAD && building[2] === STRUCTURE_ROAD) {
-                continue;
-            };
-            if (tile.available === false) {
-
-                found = false;
-                break;
-            };
-        };
         if (found) {
 
             return new RoomPosition(x, y, room.name);
@@ -869,7 +985,39 @@ function getStampStart(BUILDINGS, start, tiles, room, ignoreWalls = false) {
     return undefined;
 };
 
+function checkStampPositions(BUILDINGS, tiles, x, y) {
+    found = true;
 
+    for (let building of BUILDINGS) {
+
+        const lookX = x + building[0];
+        const lookY = y + building[1];
+
+        // Verify position is in bounds.
+        if (lookX < 3 || lookX > 47 || lookY < 3 || lookY > 47) {
+
+            found = false;
+            break;
+        }
+
+        const tile = tiles.find(t => t.x === lookX && t.y === lookY);
+
+        if (!tile) {
+
+            found = false;
+            break;
+        }
+        if (tile.structure === STRUCTURE_ROAD && building[2] === STRUCTURE_ROAD) {
+            continue;
+        };
+        if (tile.available === false || tile.nearExit) {
+
+            found = false;
+            break;
+        };
+    };
+    return found;
+}
 /*
     **** OLD getStampStart() ****
 {
@@ -912,8 +1060,7 @@ return undefined;
 
 
 function visualizeStructures(plans, room) {
-
-    const reqDisplayLevel = 8//room.controller.level;
+    let reqDisplayLevel = 8
 
     if (plans === undefined) {
         return;
@@ -923,7 +1070,11 @@ function visualizeStructures(plans, room) {
         return;
     }
     for (let order of roomPlans) {
+        if (room.name === 'W7N3' && order.x === 35 && order.y === 14) {
+            //console.log(JSON.stringify(order))
 
+
+        }
 
 
         if (order.structure && !order.placed && order.level <= reqDisplayLevel) {//order.structure != STRUCTURE_RAMPART
@@ -1027,7 +1178,7 @@ let setStamp = {
      * @param {RoomPosition} hubCenter
      */
     controller: function (room, tiles, hubCenter) {
-        console.log('Entering setStamp.controller')
+        // console.log('Entering setStamp.controller')
 
         const BUILDINGS = [
             [-1, -1, 'BUFFER', 9],
@@ -1179,23 +1330,23 @@ let setStamp = {
             }
         }
 
-        console.log('Placing controller Ramparts')
+        // console.log('Placing controller Ramparts')
         const controller = room.controller
-        console.log(JSON.stringify(controller.pos))
+        // console.log(JSON.stringify(controller.pos))
         let terrain = room.getTerrain(room.name)
-        console.log(JSON.stringify(terrain))
+        //  console.log(JSON.stringify(terrain))
 
         for (let x = controller.pos.x - 1; x <= controller.pos.x + 1; x++) {
             let y = -1 + controller.pos.y
-            console.log(x, y, terrain.get(x, y))
+            // console.log(x, y, terrain.get(x, y))
 
             if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
-                console.log('placing rampart at', x, y)
+                //console.log('placing rampart at', x, y)
                 updateTile(x, y, STRUCTURE_RAMPART, tiles, false, 4)
             }
             y = 1 + controller.pos.y
             if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
-                console.log('placing rampart at', x, y)
+                //console.log('placing rampart at', x, y)
                 updateTile(x, y, STRUCTURE_RAMPART, tiles, false, 4)
             }
         }
@@ -1203,16 +1354,16 @@ let setStamp = {
         for (let y = controller.pos.y - 1; y <= controller.pos.y + 1; y++) {
             let x = -1 + controller.pos.x
 
-            console.log(x, y, terrain.get(x, y))
+            //console.log(x, y, terrain.get(x, y))
             if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
-                console.log('placing rampart at', x, y)
+                //console.log('placing rampart at', x, y)
 
                 updateTile(x, y, STRUCTURE_RAMPART, tiles, false, 4)
             }
             x = 1 + controller.pos.x
-            console.log(x, y, terrain.get(x, y))
+            //console.log(x, y, terrain.get(x, y))
             if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
-                console.log('placing rampart at', x, y)
+                //console.log('placing rampart at', x, y)
                 updateTile(x, y, STRUCTURE_RAMPART, tiles, false, 4)
             }
         }
@@ -1244,28 +1395,60 @@ let setStamp = {
         ];
         const RCL = [4, 5, 5, 6, 6];
 
+        let centerPositions = [];
         // Iterate through the rounds to set build level for each stamp.
         for (let i = 0; i < 5; i++) {
+            let center = undefined;
+            let found = false;
+            if (centerPositions.length) {
+                for (let cp of centerPositions) {
+                    if (found) {
+                        break;
+                    }
 
+                    // Check centers at range 2:
+                    let range2 = [
+                        [2, 2],
+                        [2, -2],
+                        [-2, 2],
+                        [-2, -2],
+                    ]
 
-            const center = getStampStart(BUILDINGS, start, tiles, room, true)
-            console.log('CENTER', center)
+                    for (let offset of range2) {
+                        let cX = cp.x + offset[0]
+                        let cY = cp.y + offset[1]
+                        found = checkStampPositions(BUILDINGS, tiles, cX, cY)
+
+                        if (found) {
+                            center = new RoomPosition(cX, cY, room.name)
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!found) {
+                center = getStampStart(BUILDINGS, start, tiles, room, true)
+            }
+
+            centerPositions.push(center)
+            //console.log('CENTER', center)
+
             let x = 0
             let y = 0
-            extensionBlocks = tiles.filter(t => t.center && t.structure === STRUCTURE_EXTENSION)
-            if (extensionBlocks.length) {
-                extensionBlocks.forEach(e => {
-                    x += e.x;
-                    y += e.y;
-                })
 
-                x = Math.round(x / (extensionBlocks.length))
-                y = Math.round(y / (extensionBlocks.length))
 
-                console.log('starting at', x, y)
-                start = new RoomPosition(x, y, room.name)
+            centerPositions.forEach(e => {
+                x += e.x;
+                y += e.y;
+            })
 
-            }
+            x = Math.round(x / (centerPositions.length))
+            y = Math.round(y / (centerPositions.length))
+
+            //console.log('starting at', x, y)
+            start = new RoomPosition(x, y, room.name)
+
+
 
             BUILDINGS.forEach(b => {
                 let isCenter = (b[0] == 0 && b[1] == 0)
@@ -1524,19 +1707,39 @@ function updatePlacedStatus(order, room) {
  * @param {number} level 
  */
 function updateTile(x, y, structure, tiles, center, level) {
+
+
+
     let tile = tiles.find(t => t.x === x && t.y === y);
+    if (x === 35 && y === 14) {
+        console.log('updating 35,14', structure, center, level)
+        console.log('Tile found', JSON.stringify(tile), !tile.available, structure === STRUCTURE_RAMPART, structure === STRUCTURE_ROAD)
+    }
 
     if (tile && tile.available === false && (structure === STRUCTURE_RAMPART || structure === STRUCTURE_ROAD)) {
 
-        let newTile = new Tile(x, y, tile.roomName, false);
-        newTile.structure = structure;
-        newTile.available = false;
-        newTile.center = false;
-        newTile.level = level;
-        tiles.push(newTile);
+        tileSameStructure = tiles.find(t => t.x === x && t.y === y && t.structure === structure)
 
-    } else if (tile) {
+        if (!tileSameStructure) {
 
+
+            if (x === 35 && y === 14) {
+                console.log('A','tileSameStructure found', JSON.stringify(tileSameStructure), !tileSameStructure.available, structure)
+            }
+            let newTile = new Tile(x, y, tile.roomName, false);
+            newTile.structure = structure;
+            newTile.available = false;
+            newTile.center = false;
+            newTile.level = level;
+            tiles.push(newTile);
+            return;
+        }
+
+    }
+    if (tile) {
+        if (x === 35 && y === 14) {
+            console.log('B')
+        }
         tile.structure = structure;
         tile.available = false;
         tile.center = center;

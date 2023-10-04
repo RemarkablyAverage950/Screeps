@@ -50,6 +50,8 @@ Version 0.1
 
         - Withdraw tasks now require there to be at least some of the resource in the withdraw target store.         
         - Adjusted some parameters on withdraw and pickup tasks.
+        - Seperated withdraw and pickup task finder by if or if not the task should fill the creeps inventory.
+
 
     EXPANSION MANAGER: 
 
