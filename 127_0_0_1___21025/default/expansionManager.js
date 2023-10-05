@@ -54,6 +54,20 @@ class ScanData {
         const hostileCreeps = room.find(FIND_HOSTILE_CREEPS);
         const hostileStructures = room.find(FIND_HOSTILE_STRUCTURES);
 
+        let invaderCore = false
+        let towers = false;
+        for (let s of hostileStructures) {
+            if (s.structureType === STRUCTURE_INVADER_CORE) {
+                invaderCore = true;
+            } else if (s.structureType === STRUCTURE_TOWER) {
+                towers = true;
+            }
+
+        }
+        this.towers = towers
+        this.invaderCore = invaderCore
+
+
         this.controller_id = controller ? controller.id : null;
 
         this.exitCount = Object.values(Game.map.describeExits(this.roomName)).length;
@@ -125,13 +139,8 @@ class ScanData {
 
         }
         let hostileTarget = false;
-        if (hostileStructures.length > 0) {
-            for (let s of hostileStructures) {
-                if (s.structureType === STRUCTURE_TOWER) {
-                    hostileTarget = true;
-                }
-            }
-
+        if (towers) {
+            hostileTarget = true;
         }
 
         if (!hostileTarget && hostileCreeps.length > 0) {
@@ -158,6 +167,20 @@ class ScanData {
         const controller = room.controller;
         const hostileCreeps = room.find(FIND_HOSTILE_CREEPS);
         const hostileStructures = room.find(FIND_HOSTILE_STRUCTURES);
+
+        let invaderCore = false
+        let towers = false;
+        for (let s of hostileStructures) {
+            if (s.structureType === STRUCTURE_INVADER_CORE) {
+                invaderCore = true;
+            } else if (s.structureType === STRUCTURE_TOWER) {
+                towers = true;
+            }
+
+        }
+        this.towers = towers
+        this.invaderCore = invaderCore
+
         const sources = room.find(FIND_SOURCES)
         const mineral = room.find(FIND_MINERALS)[0]
         let minDist = Infinity
@@ -178,13 +201,8 @@ class ScanData {
         this.reserved = (controller && controller.reservation) ? true : false;
         this.reservedBy = this.reserved ? controller.reservation.username : null;
         let hostileTarget = false;
-        if (hostileStructures.length > 0) {
-            for (let s of hostileStructures) {
-                if (s.structureType === STRUCTURE_TOWER) {
-                    hostileTarget = true;
-                }
-            }
-
+        if (towers) {
+            hostileTarget = true;
         }
 
         if (!hostileTarget && hostileCreeps.length > 0) {
@@ -268,6 +286,8 @@ function expansionManager(myRooms) {
         return;
     }
 
+    //delete Memory.rooms['W5N1'].outposts
+
     getMonitoredRooms(myRooms)
 
 
@@ -303,9 +323,13 @@ function expansionManager(myRooms) {
 
         // Expand outposts here
         const room = Game.rooms[roomName]
+        if (!room) {
+            return;
+        }
         let spawns = room.find(FIND_MY_SPAWNS)
         let maxRooms = 9;
         let maxRange = 2;
+
 
         if (spawns.length === 1) {
             maxRooms = 3;
@@ -339,7 +363,7 @@ function expansionManager(myRooms) {
 
                         room.memory.outposts.push(r.roomName)
                         console.log(r.roomName, 'is now an outpost for', roomName)
-
+                        return;
                     }
                 }
             }
@@ -350,7 +374,7 @@ function expansionManager(myRooms) {
 
     let mission = MEMORY.mission;
     if (Game.time % 100 === 0 && (!mission || mission.complete)) {
-
+        //console.log('Getting Mission')
         // Get a new mission (Mining outpost, claim new room, attack room)
         mission = getMission(myRooms)
 
@@ -358,6 +382,7 @@ function expansionManager(myRooms) {
     }
 
     if (mission) {
+        //console.log('tick, mission', Game.time, JSON.stringify(mission))
         let body = [];
         let data = MEMORY.monitoredRooms[mission.roomName]
         // Check status.
@@ -366,6 +391,7 @@ function expansionManager(myRooms) {
 
 
                 if (!mission.unitsReq) {
+                    //console.log('Getting units required')
                     let unitsReq = []
                     let targetRoom = Game.rooms[mission.roomName]
 
@@ -384,6 +410,7 @@ function expansionManager(myRooms) {
 
                             unitsReq.push(unit)
                         }
+
                     }
 
                     mission.unitsReq = unitsReq;
@@ -391,26 +418,36 @@ function expansionManager(myRooms) {
                 }
                 let soldierCount = 0;
                 for (let c of Object.values(Game.creeps)) {
-                    if (c.memory.role === 'soldier' && c.memory.assignedRoom === mission.roomName) {
-                        soldierCount++;
+                    if (c.memory.role === 'soldier' && data.homeRoom === c.memory.home) {
+                        if (c.memory.assignedRoom === mission.roomName) {
+                            soldierCount++;
+                        } else if (c.memory.assignedRoom === undefined) {
+                            console.log('reassigning', creep.name, 'to', 'mission.roomName')
+                            c.memory.assignedRoom = mission.roomName
+                            return;
+                        }
                     }
                 }
                 for (let so of MEMORY.rooms[data.homeRoom].spawnQueue) {
-                    if (so.role === 'soldier' && so.assignedRoom === mission.roomName) {
+                    if (so.role === 'soldier' && so.options.memory.assignedRoom === mission.roomName) {
                         soldierCount++
                     }
                 }
 
                 let targetSoldierCount = 0
+              
                 for (let role of mission.unitsReq) {
                     if (role === 'soldier') {
                         targetSoldierCount++;
                     }
                 }
+                //console.log('sc',soldierCount,'tsc',targetSoldierCount)
                 body = [];
                 while (soldierCount < targetSoldierCount) {
                     if (body.length === 0) {
+                        //console.log('Getting Body')
                         body = getBody.defender(Game.rooms[data.homeRoom].energyCapacityAvailable, undefined)
+                        //console.log('Got body', JSON.stringify(body))
                     }
                     options = {
                         memory: {

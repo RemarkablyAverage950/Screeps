@@ -77,7 +77,7 @@ function moveCreep(creep, destination, range, maxRooms) {
     if (path.length === 0) {
         MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
         MEMORY.rooms[creep.memory.home].creeps[creep.name].task = undefined;
-        console.log('Failed to generate path for', creep.name,JSON.stringify(creep.pos));
+        console.log('Failed to generate path for', creep.name, JSON.stringify(creep.pos));
         return;
     }
 
@@ -131,14 +131,20 @@ function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
                 let isMyRoom = Game.rooms[roomName] &&
                     Game.rooms[roomName].controller &&
                     Game.rooms[roomName].controller.my;
-                let isNotHostile = MEMORY.monitoredRooms[roomName] && !MEMORY.monitoredRooms[roomName].hostileTarget
-                if (isHighway || isMyRoom || isNotHostile || roomName === targetRoomName || roomName === creep.room.name) {
-                    return 1;
-                } else {
-                    return hostileRoomValue;
+                let scanData = MEMORY.monitoredRooms[roomName]
+                if (!scanData || scanData.hostileTarget === undefined || scanData.occupied) {
+                    return 3;
                 }
+                if (scanData.hostileTarget) {
+                    return hostileRoomValue
+                }
+
+                return 1;
             }
+
+
         })
+
 
         if (!route.length) {
             return;

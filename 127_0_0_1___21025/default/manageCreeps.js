@@ -1712,7 +1712,7 @@ const getRoleTasks = {
 
 
             if (targetRoom) {
-                console.log(creep.name, 'moving to', targetRoom)
+                //console.log(creep.name, 'moving to', targetRoom)
                 return new MoveToRoomTask(targetRoom)
             }
 

@@ -9,14 +9,18 @@ Room Planner:
         [x] Each source and mineral to hub
         [x] Leave labs to hub, let lab stamp handle it.
     
-    [] Try to snap extension blocks to existing extension blocks.
-    [] Keep structures a little further from exits. This can be done by declaring those tiles near exits unavailable initially.
+    [x] Try to snap extension blocks to existing extension blocks.
+    [x] Keep structures a little further from exits. This can be done by declaring those tiles near exits unavailable initially.
     [] Place towers at closest optimal positions (where filler cannot get range attacked.)
 
     [x] Fix bug where outpost road does not get placed at a boundry rampart.
 
-    [] Bug where 2 ramparts did not place on road leading away from center of rampart wall.
+    [x] Bug where 2 ramparts did not place on road leading away from center of rampart wall.
 
+    [] Only containers & links near an edge wall and outside base get a rampart
+
+    [] Save interior positions in memory for later pathfinding (when hostiles are present)
+ 
     Low Priority:
 
     [] Rampart roads should stay inside base area
@@ -84,6 +88,7 @@ Spawning:
 
     [x] Only need to spawn a remote maintainer if home room RCL >= 4.
     [] Spawn multiple scouts if scanned room count < 10.
+    [] Spawning too many soldiers to handle invader core missions.
 
 Outposts:
 
