@@ -17,6 +17,7 @@ Version 0.1
     - Counts towers as + 1000 work needed when generating builder bodies.
     - Fixed bug where multiple soldiers were spawning for assault missions.
 
+
     OUTPOSTS:
 
         - Fixed bug in finding distance to outpost sources.
@@ -62,6 +63,7 @@ Version 0.1
         - Now only declares new outposts for rooms that are not reserved by another player.  
         - Now correctly determines closest home room on construction and update. 
         - Fixed bug where duplicate monitored rooms were getting pushed into MEMORY.rooms[roomName].monitoredRooms.
+        - Now only placing outposts 2 rooms away if there is already an outpost in between
 
     ROOM PLANNER:
 
@@ -74,7 +76,8 @@ Version 0.1
         - Extensions look for spots to snap together in grids, or lock 1 up/down/left/right while still sharing some of a road.
         - Fixed bug where duplicate tiles were being created for road/rampart structures
         - Now only placing ramparts on outside containers and links.
-
+        - Fixed bug where roads were not being placed properly to rampart walls.
+        - Made free floating extension prefer snapping to extension blocks
 
     LINKS:
 

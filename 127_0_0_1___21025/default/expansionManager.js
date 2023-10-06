@@ -361,6 +361,14 @@ function expansionManager(myRooms) {
 
                     if (roomName === r.homeRoom && r.distance === i && r.controller_id && !r.occupied && !r.my && !room.memory.outposts.some(o => o === r.roomName)) {
 
+                        if (r.distance > 1) {
+                            let pathHome = Game.map.findRoute(roomName, r.homeRoom)
+                            if (!Game.rooms[r.homeRoom].memory.outposts.some(o => o === pathHome[1].room)) {
+                                continue;
+                            }
+                        }
+
+
                         room.memory.outposts.push(r.roomName)
                         console.log(r.roomName, 'is now an outpost for', roomName)
                         return;
@@ -435,7 +443,7 @@ function expansionManager(myRooms) {
                 }
 
                 let targetSoldierCount = 0
-              
+
                 for (let role of mission.unitsReq) {
                     if (role === 'soldier') {
                         targetSoldierCount++;

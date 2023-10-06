@@ -1,6 +1,7 @@
 let MEMORY = require('memory');
 
-const util_mincut = require('minCutRamparts')
+const util_mincut = require('minCutRamparts');
+
 
 const DEBUG = 0;
 
@@ -43,9 +44,10 @@ class Tile {
  */
 function roomPlanner(room) {
 
- 
+    //room.memory.plans = undefined;
+    if (room.name === 'W7N3') {
         //room.memory.plans = undefined;
-    
+    }
     let plans = room.memory.plans;
 
     //if (plans === undefined) {
@@ -459,34 +461,62 @@ function setIndividualStructures(tiles, room) {
             centers.push(tile);
         };
     };
+    let searched = [];
+    for (let center of centers) {
+        let centerPos = new RoomPosition(center.x, center.y, room.name)
 
-    const startX = centers.map(t => t.x).reduce((a, b) => a + b) / centers.length
-    const startY = centers.map(t => t.y).reduce((a, b) => a + b) / centers.length
-    const start = new RoomPosition(startX, startY, room.name)
-
-    let availablePos = tiles.filter(t => {
-        if (!t.available) {
-            return false;
-        };
-        let nearRoad = false
-        for (let x = -1; x <= 1; x++) {
-            if (nearRoad) break;
-            for (let y = -1; y <= 1; y++) {
-                if (nearRoad) break;
-                let tile = tiles.find(tile => tile.x === x + t.x && tile.y === y + t.y);
-                if (tile && tile.structure === STRUCTURE_ROAD) {
-                    nearRoad = true;
-                };
+        let availableTiles = tiles.filter(t => {
+            if (!t.available) {
+                return false;
             }
-        }
-        return nearRoad;
-    }).map(t => new RoomPosition(t.x, t.y, room.name));
+            let tPos = new RoomPosition(t.x, t.y, room.name)
+            if (tPos.getRangeTo(centerPos) === 2) {
+                return true;
+            }
+            return false;
+        })
 
-    for (let building of BUILDINGS) {
-        const pos = _.min(availablePos, p => p.getRangeTo(start));
-        availablePos.splice(availablePos.findIndex(p => p.x === pos.x && p.y === pos.y), 1);
-        updateTile(pos.x, pos.y, building[0], tiles, false, building[1], true);
-    };
+        while (BUILDINGS.length && availableTiles.length) {
+            let tile = availableTiles.pop()
+            let building = BUILDINGS.shift()
+
+
+            updateTile(tile.x, tile.y, building[0], tiles, false, building[1], true);
+
+        }
+
+    }
+
+    if (BUILDINGS.length) {
+
+        const startX = centers.map(t => t.x).reduce((a, b) => a + b) / centers.length
+        const startY = centers.map(t => t.y).reduce((a, b) => a + b) / centers.length
+        const start = new RoomPosition(startX, startY, room.name)
+
+        let availablePos = tiles.filter(t => {
+            if (!t.available) {
+                return false;
+            };
+            let nearRoad = false
+            for (let x = -1; x <= 1; x++) {
+                if (nearRoad) break;
+                for (let y = -1; y <= 1; y++) {
+                    if (nearRoad) break;
+                    let tile = tiles.find(tile => tile.x === x + t.x && tile.y === y + t.y);
+                    if (tile && tile.structure === STRUCTURE_ROAD) {
+                        nearRoad = true;
+                    };
+                }
+            }
+            return nearRoad;
+        }).map(t => new RoomPosition(t.x, t.y, room.name));
+
+        for (let building of BUILDINGS) {
+            const pos = _.min(availablePos, p => p.getRangeTo(start));
+            availablePos.splice(availablePos.findIndex(p => p.x === pos.x && p.y === pos.y), 1);
+            updateTile(pos.x, pos.y, building[0], tiles, false, building[1], true);
+        };
+    }
 };
 
 function setRamparts(room, tiles, storagePos) {
@@ -529,7 +559,7 @@ function setRamparts(room, tiles, storagePos) {
             }
 
             for (let pos of output) {
-                if (searched.some(s => s.x === pos.x && s.y === pos.y)) {
+                if (block.some(s => s.x === pos.x && s.y === pos.y)) {
                     continue;
                 }
 
@@ -546,7 +576,7 @@ function setRamparts(room, tiles, storagePos) {
         /*let o = output.pop();
         let oPos = new RoomPosition(o.x, o.y, room.name)
         let found = false;
-
+ 
         for (let i = 0; i < blocks.length; i++) {
             if (found) {
                 break;
@@ -557,15 +587,15 @@ function setRamparts(room, tiles, storagePos) {
                     found = true;
                     break;
                 }
-
+ 
             }
         }
-
+ 
         if (!found) {
             // Go through each block and roll through a 
-
-
-
+ 
+ 
+ 
             blocks.push([oPos])
         }
         */
@@ -666,10 +696,20 @@ function setRamparts(room, tiles, storagePos) {
         }
     }
 
-
     for (let center of centers) {
-        let centerDist = getPath(center, storagePos, 1, tiles, room).length;
+        const path = getPath(center, storagePos, 1, tiles, 1)
 
+        for (let i = 0; i < 2; i++) {
+            let pos = path[i]
+            updateTile(pos.x, pos.y, STRUCTURE_RAMPART, tiles, center, 4, false)
+        }
+
+    }
+
+
+    /*for (let center of centers) {
+        let centerDist = getPath(center, storagePos, 1, tiles, room).length;
+ 
         for (let tile of tiles) {
             if (tile.structure === STRUCTURE_ROAD) {
                 let pos = new RoomPosition(tile.x, tile.y, room.name);
@@ -681,7 +721,7 @@ function setRamparts(room, tiles, storagePos) {
                 }
             }
         }
-    }
+    }*/
 
     while (BUILDINGS.length > 0) {
 
@@ -931,7 +971,7 @@ function setRoads(room, tiles, storagePos, sources, mineral) {
  * @param {Tile[]} tiles
  * @returns {PathFinderPath}
  */
-function getPath(origin, destination, range, tiles, maxRooms = 0) {
+function getPath(origin, destination, range, tiles, maxRooms = 1) {
     let target = { pos: destination, range: range };
 
     let ret = PathFinder.search(
@@ -1648,7 +1688,7 @@ let setStamp = {
         const BUILDINGS = [
             [0, -2, STRUCTURE_LAB, 6],
             [1, -2, STRUCTURE_LAB, 6],
-            //[2, -2, STRUCTURE_ROAD, 6],
+            [2, -2, 'BUFFER', 9],
             [-1, -1, STRUCTURE_LAB, 6],
             [0, -1, STRUCTURE_LAB, 7],
             [1, -1, STRUCTURE_ROAD, 6],
@@ -1657,7 +1697,7 @@ let setStamp = {
             [0, 0, STRUCTURE_ROAD, 6],
             [1, 0, STRUCTURE_LAB, 8],
             [2, 0, STRUCTURE_LAB, 8],
-            //[-1, 1, STRUCTURE_ROAD, 6],
+            [-1, 1, 'BUFFER', 9],
             [0, 1, STRUCTURE_LAB, 8],
             [1, 1, STRUCTURE_LAB, 8],
         ];
@@ -1850,14 +1890,22 @@ function updateTile(x, y, structure, tiles, center, level, protect) {
 
 
 
-            let newTile = new Tile(x, y, tile.roomName, false);
+            let newTile = new Tile(x, y, tile.roomName, false, tile.nearExit);
             newTile.structure = structure;
             newTile.available = false;
             newTile.center = false;
             newTile.level = level;
             newTile.protect = protect
+
             tiles.push(newTile);
             return;
+        } else {
+
+            tile.structure = structure;
+            tile.available = false;
+            tile.center = center;
+            tile.level = Math.min(level, tile.level);
+            tile.protect = protect
         }
 
     }
@@ -1869,6 +1917,18 @@ function updateTile(x, y, structure, tiles, center, level, protect) {
         tile.level = Math.min(level, tile.level);
         tile.protect = protect
 
+    } else {
+
+
+        let newTile = new Tile(x, y, tiles[0].roomName, false, false);
+        newTile.structure = structure;
+        newTile.available = false;
+        newTile.center = false;
+        newTile.level = level;
+        newTile.protect = protect
+
+
+        tiles.push(newTile);
     };
 };
 

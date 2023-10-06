@@ -18,9 +18,15 @@ Room Planner:
     [x] Bug where 2 ramparts did not place on road leading away from center of rampart wall.
 
     [] Only containers & links near an edge wall and outside base get a rampart
+        [x] Outside
+        [] Edge wall
 
     [] Save interior positions in memory for later pathfinding (when hostiles are present)
- 
+    
+    [x] Have extension blocks imperfectly snap to eathother as well.
+
+    [] Broken road placement from some ramparts. Unable to place roads on ramparts leading away from wall centers.
+        [] Does not appear to be correctly creating a new tile, or is overwriting existing tile(more likely).
     Low Priority:
 
     [] Rampart roads should stay inside base area
@@ -94,7 +100,8 @@ Outposts:
 
     [x] Only declare new outpost if the room is not currently reserved by another player.
     [] If taking an outpost from an enemy is uneffective, cancel outpost and asses what is needed before targeting as an outpost again.
-    [] Send defender if an invader core pops up in outpost.
+    [x] Send defender if an invader core pops up in outpost.
+    [x] Still creating too many outposts for only having 1 spawn. This needs to be capped at 3.
 
 Expansion Manager:
     
@@ -136,3 +143,4 @@ Expansion Manager:
     Bugs:
 
         [] ScanRoom data being duplicated in monitoredRooms (MEMORY.rooms[room.name].monitoredRooms)
+            - Think this is fixed.
