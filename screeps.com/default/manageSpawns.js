@@ -578,8 +578,11 @@ const getBody = {
                     let totalTime = 0;
 
                     for (let site of sites) {
-
+                       
                         let workNeeded = site.progressTotal - site.progress;
+                        if(site.structureType === STRUCTURE_RAMPART){
+                            workNeeded += 1000
+                        }
                         let distance = 0;
                         if (room.controller) {
 

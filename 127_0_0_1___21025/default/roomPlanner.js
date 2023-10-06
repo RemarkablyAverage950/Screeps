@@ -1686,8 +1686,8 @@ let setStamp = {
     lab: function (room, tiles, storagePos) {
 
         const BUILDINGS = [
-            [0, -2, STRUCTURE_LAB, 6],
-            [1, -2, STRUCTURE_LAB, 6],
+            [0, -2, STRUCTURE_LAB, 8],
+            [1, -2, STRUCTURE_LAB, 8],
             [2, -2, 'BUFFER', 9],
             [-1, -1, STRUCTURE_LAB, 6],
             [0, -1, STRUCTURE_LAB, 7],
@@ -1695,10 +1695,10 @@ let setStamp = {
             [2, -1, STRUCTURE_LAB, 7],
             [-1, 0, STRUCTURE_LAB, 7],
             [0, 0, STRUCTURE_ROAD, 6],
-            [1, 0, STRUCTURE_LAB, 8],
+            [1, 0, STRUCTURE_LAB, 6],
             [2, 0, STRUCTURE_LAB, 8],
             [-1, 1, 'BUFFER', 9],
-            [0, 1, STRUCTURE_LAB, 8],
+            [0, 1, STRUCTURE_LAB, 6],
             [1, 1, STRUCTURE_LAB, 8],
         ];
 

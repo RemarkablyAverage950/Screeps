@@ -388,13 +388,7 @@ var util_mincut = {
     test: function (roomName, tiles) {
 
         let baseTiles = tiles.filter(s =>
-            s.structure !== undefined
-            && s.structure !== 'BUFFER'
-            && s.structure !== STRUCTURE_ROAD
-            && s.structure !== STRUCTURE_CONTAINER
-            && s.structure !== STRUCTURE_EXTRACTOR
-            && s.structure !== STRUCTURE_LINK
-            && s.structure !== STRUCTURE_RAMPART)
+            s.protect)
 
         /*let left = _.min(baseTiles, t => t.x).x - 1
         let right = _.max(baseTiles, t => t.x).x + 1
@@ -461,8 +455,8 @@ function genRectangles(baseTiles, roomName) {
         }*/
 
         // Ensure that the rectangle dimensions are valid
-        if(left > right){right = left}
-        if(top > bottom){bottom = top}
+        if (left > right) { right = left }
+        if (top > bottom) { bottom = top }
         if (left === right) right++;
         if (top === bottom) bottom++;
         rect_array.push({ x1: left, y1: top, x2: right, y2: bottom });

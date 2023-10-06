@@ -573,8 +573,10 @@ function getMonitoredRooms(myRooms) {
             while (queue.length > 0) {
 
                 let next = queue.pop();
-                const neighbors = Object.values(Game.map.describeExits(next))
-
+                let neighbors = [];
+                try {
+                    neighbors = Object.values(Game.map.describeExits(next))
+                } catch (e) { }
                 for (let neighbor of neighbors) {
                     if (monitoredRoomNames.includes(neighbor)) {
                         continue;

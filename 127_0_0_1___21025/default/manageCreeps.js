@@ -893,13 +893,13 @@ function executeTask(room, creep) {
             break;
 
         case 'WITHDRAW':
-            if (creep.withdraw(target, task.resourceType) !== 0) {
+            if (creep.withdraw(target, task.resourceType, task.qty) !== 0) {
                 if (creep.pos.getRangeTo(target) > 1) {
                     moveCreep(creep, target.pos, 1, 1);
                 }
 
             } else {
-
+                MEMORY.rooms[room.name].creeps[creep.name].task = undefined;
                 MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
 
             };
@@ -1332,7 +1332,7 @@ const getRoleTasks = {
                 } else if (creep.store[RESOURCE_ENERGY] > 0) {
                     return new TransferTask(storage.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY])
                 }
-            } else if (terminal.store[RESOURCE_ENERGY] < 100000 && storage.store[RESOURCE_ENERGY] > 120000) {
+            } else if ((terminal.store[RESOURCE_ENERGY] < 100000 && storage.store[RESOURCE_ENERGY] - 20000 > terminal.store[RESOURCE_ENERGY])) {
                 if (creep.store.getFreeCapacity() > 0) {
                     return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(creep.store.getFreeCapacity(), 100000 - terminal.store[RESOURCE_ENERGY]))
                 } else if (creep.store[RESOURCE_ENERGY] > 0) {
@@ -1340,7 +1340,50 @@ const getRoleTasks = {
                 }
             }
 
+            // Put energy in storage at this point.
+            if (creep.store[RESOURCE_ENERGY] > 0) {
+                return new TransferTask(storage.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY])
+            }
+
+            let terminalTarget = 2000
+            let storageTarget = 10000
+
+            // Dump creep capacity
+            if (creep.store.getUsedCapacity() > 0) {
+                for (let r of Object.keys(creep.store)) {
+
+                    let sa = storage.store[r];
+
+                    if (sa < storageTarget) {
+                        return new TransferTask(storage.id, r, creep.store[r])
+                    } else {
+                        return new TransferTask(terminal.id, r, creep.store[r])
+                    }
+
+                }
+            }
+
+            // Withdraw from storage or terminal
+            for (let r of RESOURCES_ALL) {
+                if (r === RESOURCE_ENERGY) {
+                    continue;
+                }
+                let ta = terminal.store[r];
+                let sa = storage.store[r];
+
+
+                if (sa < storageTarget && ta > 0) {
+                    return new WithdrawTask(terminal.id, r, Math.min(creep.store.getFreeCapacity(), storageTarget - sa, terminal.store[r]))
+                } else if (sa > storageTarget) {
+                    return new WithdrawTask(storage.id, r, Math.min(creep.store.getFreeCapacity(), sa - storageTarget))
+                }
+
+
+
+            }
+
         }
+
 
 
         // Done at this point, return all resources to storage

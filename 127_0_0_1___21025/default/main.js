@@ -6,6 +6,7 @@ const manageTowers = require('manageTowers');
 const manageLinks = require('manageLinks');
 const outpostManager = require('outpostManager');
 const manageRoomDefense = require('manageRoomDefense')
+const manageTerminals = require('manageTerminals')
 let MEMORY = require('memory');
 require('prototypes');
 require('RoomVisual');
@@ -31,7 +32,7 @@ module.exports.loop = function () {
 
     const myRooms = getMyRooms()
 
-
+    manageTerminals(myRooms);
     expansionManager(myRooms);
 
     for (const roomName of myRooms) {

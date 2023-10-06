@@ -469,7 +469,7 @@ function getRemoteSourceDistance(homeRoom, s) {
         },
     }).path;
 
-    console.log('Returning', path.length)
+    //console.log('Returning', path.length)
     return path.length;
 
 }

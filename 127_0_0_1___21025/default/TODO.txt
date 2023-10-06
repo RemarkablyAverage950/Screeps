@@ -25,8 +25,13 @@ Room Planner:
     
     [x] Have extension blocks imperfectly snap to eathother as well.
 
-    [] Broken road placement from some ramparts. Unable to place roads on ramparts leading away from wall centers.
-        [] Does not appear to be correctly creating a new tile, or is overwriting existing tile(more likely).
+    [x] Broken road placement from some ramparts. Unable to place roads on ramparts leading away from wall centers.
+        [x] Does not appear to be correctly creating a new tile, or is overwriting existing tile(more likely).
+
+    Extensions:
+        [] Start looking for open spot in direction of spawn at about range 2 from storage
+        [] When placing each block, find all possible snap positions for an existing block. If there are any, snap to the closest one to the storage. 
+
     Low Priority:
 
     [] Rampart roads should stay inside base area
@@ -48,9 +53,15 @@ Pathfinding:
         [] Scan for hostile creeps and re-gen if in range of 5
         [] Scan path for stationary creeps in next position (including fatigued), regen path if nescessary
 
+    [] Consider pushing creeps blocking a path out of the way.
+        [] Can modify park task and disallow the current position.
+
     
 
 Roles:
+
+    Builder:
+        [] Choose most built of a certain structure to build first.
 
     Defender:
         [] When there are no live parts of a type, disable that type of part.
@@ -60,8 +71,11 @@ Roles:
         [x] Spawn if container count > 2.
 
     Hub:
-        [] Only spawn this unit if there are 2 links, and one is the hub link.
-
+        [] Spawn this unit if there are 2 links, and one is the hub link OR if a storage and a terminal is present.
+        [x] Set up non-energy resource management.
+            [x] Load terminal
+            [x] Load storage
+        
     Maintainer:
         [x] Seems to only be generating a 1work/1carry/1move creep when no storage present. Some structures are too degraded.
 
@@ -74,7 +88,7 @@ Roles:
         [] Fix multiple scouts are targeting the same room due to lastScanTime.
             - Need to target room not assigned to a scout.
 
-    RoomWorker
+    RemoteWorker
         [] Continues spawning until room level 2
         [] Harvests
         [] Picks up dropped energy
