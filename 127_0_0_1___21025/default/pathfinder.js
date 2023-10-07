@@ -9,14 +9,15 @@ const MAX_PATH_LENGTH = 5;
  * @param {RoomPosition} destination Destination position.
  * @param {number} range The distance from destination the pathfinder will path to.
  * @param {number} maxRooms The maximum number of rooms the pathfinder will search.
- * @returns {RoomPosition[]} The path results from PathFinder.search
+ * @param {boolean} incomplete Return path incomplete of !incomplete.
+ * @returns {RoomPosition[] | Boolean} The path results from PathFinder.search
  */
-function getPath(origin, destination, range, maxRooms) {
+function getPath(origin, destination, range, maxRooms, incomplete = false) {
 
     let ret = PathFinder.search(
         origin, { pos: destination, range: range }, {
         plainCost: 2,
-        swampCost: 3,
+        swampCost: 10,
         maxRooms: maxRooms,
         ignoreCreeps: true,
         roomCallback: function (roomName) {
@@ -34,6 +35,7 @@ function getPath(origin, destination, range, maxRooms) {
                 getCostMatrix(room);
                 matrix = MEMORY.rooms[roomName].costMatrix
             };
+            
 
             if (matrix) {
                 return matrix[0];
@@ -44,7 +46,9 @@ function getPath(origin, destination, range, maxRooms) {
         },
     });
 
-
+    if(incomplete){
+        return ret.incomplete
+    }
 
     ret.path.length = Math.min(ret.path.length, MAX_PATH_LENGTH)
 
@@ -125,21 +129,27 @@ function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
 
         let route = Game.map.findRoute(from.roomName, to.roomName, {
             routeCallback(roomName) {
-                let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
-                let isHighway = (parsed[1] % 10 === 0) ||
-                    (parsed[2] % 10 === 0);
+
                 let isMyRoom = Game.rooms[roomName] &&
                     Game.rooms[roomName].controller &&
                     Game.rooms[roomName].controller.my;
                 let scanData = MEMORY.monitoredRooms[roomName]
+
+
                 if (!scanData || scanData.hostileTarget === undefined || scanData.occupied) {
                     return 3;
                 }
                 if (scanData.hostileTarget) {
                     return hostileRoomValue
                 }
+                let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+                let isHighway = (parsed[1] % 10 === 0) ||
+                    (parsed[2] % 10 === 0);
+                if (isHighway || isMyRoom) {
+                    return 1
+                }
 
-                return 1;
+                return 2;
             }
 
 
@@ -148,6 +158,10 @@ function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
 
         if (!route.length) {
             return;
+        }
+        if (creep.memory.role === 'scout') {
+            const p = route.map(r => r.room)
+            console.log('Scout path:', JSON.stringify(p))
         }
 
         nextRoom = route[0].room
@@ -255,9 +269,13 @@ function getCostMatrix(room) {
 
             for (let x = creep.pos.x - HOSTILE_BUFFER; x <= creep.pos.x + HOSTILE_BUFFER; x++) {
                 for (let y = creep.pos.y - HOSTILE_BUFFER; y <= creep.pos.y + HOSTILE_BUFFER; y++) {
+                    if (x > 49 || x < 0 || y > 49 || y < 0) {
+                        continue;
+                    }
 
-                    costMatrix.set(x, y, costMatrix.get(x, y) + 20);
-
+                    if (terrain.get(x, y) !== 1) {
+                        costMatrix.set(x, y, costMatrix.get(x, y) + 20);
+                    }
                 }
             }
         }

@@ -55,7 +55,7 @@ function roomPlanner(room) {
     if ((!plans || !plans[room.name]) && Game.cpu.bucket > 500) {
 
         plans = getRoomPlans(room);
-
+        validateStructures(room, plans)
     };
 
 
@@ -186,7 +186,7 @@ function getOutpostPlans(outpostRoom, homeRoom) {
     //console.log('plans', JSON.stringify(plans))
     for (let roomName of route) {
         if (!plans[roomName]) {
-
+            return;
         }
     }
 
@@ -251,9 +251,9 @@ function getOutpostPlans(outpostRoom, homeRoom) {
             let bo = plans[pos.roomName].find(b => b.x === pos.x && b.y === pos.y)
             if (bo) {
                 bo.level = Math.min(4, bo.level);
-                plans[pos.roomName].push(new BuildOrder(pos.x, pos.y, STRUCTURE_ROAD, 4))
+                plans[pos.roomName].push(new BuildOrder(pos.x, pos.y, STRUCTURE_ROAD, 3))
             } else {
-                plans[pos.roomName].push(new BuildOrder(pos.x, pos.y, STRUCTURE_ROAD, 4));
+                plans[pos.roomName].push(new BuildOrder(pos.x, pos.y, STRUCTURE_ROAD, 3));
             }
 
         }
@@ -946,7 +946,7 @@ function setRoads(room, tiles, storagePos, sources, mineral) {
         let startPos = new RoomPosition(spawnContainer.x, spawnContainer.y, room.name);
         for (let sc of sourceContainerTiles) {
             let destPos = new RoomPosition(sc.x, sc.y, room.name);
-            setRoad(room, tiles, startPos, destPos, 1, 1);
+            setRoad(room, tiles, startPos, destPos, 1, 2);
         }
         setRoad(room, tiles, startPos, storagePos, 1, 2);
     }
@@ -1189,7 +1189,7 @@ return undefined;
 
 
 function visualizeStructures(plans, room) {
-    let reqDisplayLevel = 8//room.controller.level
+    let reqDisplayLevel = room.controller.level
 
     if (plans === undefined) {
         return;

@@ -465,7 +465,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
                 home: room.name,
             },
         };
-        spawnQueue.push(new SpawnOrder('scout', 6, body, options));
+        spawnQueue.push(new SpawnOrder('scout', 4, body, options));
         scoutCount++;
     }
 
@@ -578,9 +578,9 @@ const getBody = {
                     let totalTime = 0;
 
                     for (let site of sites) {
-                       
+
                         let workNeeded = site.progressTotal - site.progress;
-                        if(site.structureType === STRUCTURE_RAMPART){
+                        if (site.structureType === STRUCTURE_RAMPART) {
                             workNeeded += 1000
                         }
                         let distance = 0;
@@ -1752,7 +1752,7 @@ const getTargetCount = {
     },
 
     remoteMaintainer: function (room, outpostRooms) {
-        if (room.controller.level < 4) {
+        if (room.controller.level < 3) {
             return 0;
         }
         let roomCount = outpostRooms.length;
@@ -1765,8 +1765,10 @@ const getTargetCount = {
 
     scout: function (room) {
 
-
-        return 1;
+        if (room.controller.level === 8) {
+            return 0;
+        }
+        return 2;
 
 
         //return 0;
@@ -1836,6 +1838,10 @@ const getTargetCount = {
     * @returns {number} 
     */
     worker: function (minerCount, fillerCount, room, storedEnergy) {
+
+        if (room.controller.level <= 2) {
+            return 4
+        }
 
         let count = 0;
 

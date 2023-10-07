@@ -35,6 +35,7 @@ class AssaultMission extends Mission {
 class ScanData {
     constructor(roomName, myRooms) {
         this.roomName = roomName
+        this.assignedScout = undefined;
 
         let minDist = Infinity
         for (let rName of myRooms) {
@@ -306,12 +307,12 @@ function expansionManager(myRooms) {
                     // We have a monitored room
                     if (!data.lastScan) {
                         data = new ScanData(r.name, myRooms)
-                        //console.log('DataCreated',JSON.stringify(data))
+                        console.log('DataCreated',JSON.stringify(data))
                         MEMORY.monitoredRooms[r.name] = data;
                     } else {
                         if (Game.time - data.lastScan > 100) {
                             data.update(myRooms)
-                            // console.log('DataUpdated',JSON.stringify(data))
+                            console.log('DataUpdated',JSON.stringify(data))
                         }
                     }
 
@@ -551,7 +552,7 @@ function expansionManager(myRooms) {
  * @param {Room} room 
  */
 function getMonitoredRooms(myRooms) {
-    const RANGE = 10;
+    const RANGE = 6;
 
     let monitoredRooms = MEMORY.monitoredRooms
     if (!monitoredRooms) {
@@ -578,7 +579,7 @@ function getMonitoredRooms(myRooms) {
                     neighbors = Object.values(Game.map.describeExits(next))
                 } catch (e) { }
                 for (let neighbor of neighbors) {
-                    if (monitoredRoomNames.includes(neighbor)) {
+                    if (monitoredRoomNames.includes(neighbor) || Game.map.getRoomStatus(neighbor).status === 'closed') {
                         continue;
                     }
                     if (Game.map.getRoomLinearDistance(roomName, neighbor) <= RANGE) {
@@ -739,9 +740,9 @@ function getMission(myRooms) {
         }
     }
 
-    //console.log('Potential Settlements:', JSON.stringify(potentialSettlements), potentialSettlements.length)
+    console.log('Potential Settlements:', JSON.stringify(potentialSettlements), potentialSettlements.length)
 
-    if (potentialSettlements.length >= 10) {
+    if (potentialSettlements.length >= 5) {
         let bestTarget = _.max(potentialSettlements, s => s.score)
         console.log('Generating ClaimMission for', bestTarget.roomName)
         return new ClaimMission(bestTarget.roomName)

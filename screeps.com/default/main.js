@@ -18,13 +18,15 @@ module.exports.loop = function () {
     delete Memory.rooms[rn].outposts
     delete Memory.rooms[rn].plans
     */
- 
+
     // Remove dead creeps from memory.
     for (let name in Memory.creeps) {
         if (!Game.creeps[name]) {
             const roomName = Memory.creeps[name].home
             delete Memory.creeps[name];
-            delete MEMORY.rooms[roomName].creeps[name]
+            if (MEMORY.rooms[roomName]) {
+                delete MEMORY.rooms[roomName].creeps[name]
+            }
             //console.log('Cleared memory for ' + name)
         }
     }
@@ -68,7 +70,7 @@ module.exports.loop = function () {
                                 assignedRoom: roomName,
                             },
                         };
-                        console.log('Ordering remote builder for',room.name,'from',closest)
+                        console.log('Ordering remote builder for', room.name, 'from', closest)
                         spawnQueue.push(new SpawnOrder('remoteBuilder', 4, body, options));
                         remoteBuilderCount++;
                     }

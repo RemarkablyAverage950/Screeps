@@ -65,7 +65,11 @@ Roles:
 
     Defender:
         [] When there are no live parts of a type, disable that type of part.
-        
+
+    Dismantler:
+        [] ScanData looks for rooms with structures, not mine, not my outpost, and then creates mission to send dismantler.
+        [] Dismantler takes down all structures 
+
     Hauler:
         [x] Can deposit into spawn containers (if no storage exists)
         [x] Spawn if container count > 2.
@@ -83,10 +87,13 @@ Roles:
         [x] Can deposit into spawn containers (if no storage exists)
         [] Fix: When assigned room is under attack, even if they are full they are not delivering to storage.
         [] Unit was ignoring one overflowing source container and trying to pick up crumbs from the closer one.
+        [] Should find closest creep or container when looking to deliver without a storage
 
     Scout:
         [] Fix multiple scouts are targeting the same room due to lastScanTime.
             - Need to target room not assigned to a scout.
+        [] Should use Game.map.findRoute().length instead of r.distance for calculating distance to homeroom.
+
 
     RemoteWorker
         [] Continues spawning until room level 2
@@ -113,6 +120,7 @@ Spawning:
 Outposts:
 
     [x] Only declare new outpost if the room is not currently reserved by another player.
+    [] Do not declare an outpost if room has structures, send dismantler instead.
     [] If taking an outpost from an enemy is uneffective, cancel outpost and asses what is needed before targeting as an outpost again.
     [x] Send defender if an invader core pops up in outpost.
     [x] Still creating too many outposts for only having 1 spawn. This needs to be capped at 3.

@@ -32,6 +32,10 @@ Version 0.1
             - Spawns units if more than 2 containers.
             - Units now only withdraw energy from source containers and deliver to spawn containers if there is no storage.
 
+        Hub: 
+
+            - Unit now loads and unloads all resources to and from terminal.
+
         Remote builder:
 
             - Units no longer clear assigned room when finished building. 
@@ -55,7 +59,7 @@ Version 0.1
         - Withdraw tasks now require there to be at least some of the resource in the withdraw target store.         
         - Adjusted some parameters on withdraw and pickup tasks.
         - Seperated withdraw and pickup task finder by if or if not the task should fill the creeps inventory.
-
+        - Made imporvements on haulers and remote haulers by allowing them to refill parked builders, upgraders, and fillers
 
     EXPANSION MANAGER: 
 
@@ -64,6 +68,8 @@ Version 0.1
         - Now correctly determines closest home room on construction and update. 
         - Fixed bug where duplicate monitored rooms were getting pushed into MEMORY.rooms[roomName].monitoredRooms.
         - Now only placing outposts 2 rooms away if there is already an outpost in between
+        - Lowered search radius to 6
+        - Lowered requirements for setting a ClaimMission. 
 
     ROOM PLANNER:
 
@@ -78,7 +84,12 @@ Version 0.1
         - Now only placing ramparts on outside containers and links.
         - Fixed bug where roads were not being placed properly to rampart walls.
         - Made free floating extension prefer snapping to extension blocks
+        - Roads to and in outposts now place at RCL 3. 
 
     LINKS:
 
         - Improved detection of spawn link.
+
+    TERMINALS:
+
+        - Added terminal trading between my rooms.

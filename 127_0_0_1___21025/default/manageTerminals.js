@@ -66,11 +66,7 @@ function manageTerminals(myRooms) {
                     continue;
                 }
                 let resourceStock = terminal.store[r] + storage.store[r];
-                if(r === RESOURCE_OXYGEN){
-
-                    console.log('Oxygen in terminal',terminal.store[r])
-
-                }
+              
                 if (resourceStock < TARGET_RESOURCE_AMOUNT) {
                     requests.push(new ResourceRequest(terminal.id, r, TARGET_RESOURCE_AMOUNT - resourceStock));
                 } else if (resourceStock > TARGET_RESOURCE_AMOUNT) {
@@ -84,16 +80,16 @@ function manageTerminals(myRooms) {
     // Largest to smallest
     surplus.sort((a, b) => b.qty - a.qty);
     requests.sort((a, b) => b.qty - a.qty);
-    console.log('A', surplus.length, requests.length)
+
     for (let s of surplus) {
         for (let r of requests) {
             if (r.resourceType === s.resourceType) {
 
                 const sendTerminal = Game.getObjectById(s.id);
                 const recTerminal = Game.getObjectById(r.id);
-                console.log('attempting: ' + r.qty + ' ' + r.resourceType + ' from ' + sendTerminal.pos.roomName + ' to ' + recTerminal.pos.roomName)
+               
                 let ret = sendTerminal.send(r.resourceType, Math.min(s.qty, r.qty), recTerminal.pos.roomName, 'Sending ' + r.qty + ' ' + r.resourceType + ' from ' + sendTerminal.pos.roomName + ' to ' + recTerminal.pos.roomName);
-                console.log('ret:', ret)
+   
                 surplus = surplus.filter(_s => s.id !== _s.id && _s.id !== r.id);
                 requests = requests.filter(_s => s.id !== _s.id && _s.id !== r.id);
             }
