@@ -1,7 +1,7 @@
 let MEMORY = require('memory');
 const { moveCreep, moveCreepToRoom, getPath } = require('pathfinder');
 const getAssignedCreeps = require('prototypes');
-
+const helper = require('lib.helper');
 require('prototypes');
 
 class Task {
@@ -212,17 +212,21 @@ function manageCreeps(room, creeps) {
 
     for (const creep of creeps) {
         /*if (creep.memory.role === 'remoteHauler' && creep.room.name === creep.memory.home) {
-            console.log(creep.name, 'Task:', JSON.stringify(MEMORY.rooms[room.name].creeps[creep.name].task))
+            console.log(creep.name, 'Task:', JSON.stringify(MEMORY.rooms[room.name].creeps[creep.name].tasks[0]))
             //console.log('Path:',MEMORY.rooms[room.name].creeps[creep.name].path)
         }*/
 
         if (creep.spawning) continue;
+        let taskValid = false;
 
-        const taskValid = validateTask(room, creep);
+        while (!taskValid && MEMORY.rooms[room.name].creeps[creep.name].tasks.length) {
+            taskValid = validateTask(room, creep);
+            if (!taskValid) {
+                MEMORY.rooms[room.name].creeps[creep.name].tasks.shift();
+            }
+        }
 
         if (!taskValid) {
-
-            MEMORY.rooms[room.name].creeps[creep.name].task = undefined;
             MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
             assignTask(room, creep, creeps)
 
@@ -253,12 +257,12 @@ function assignTask(room, creep, creeps) {
         if (assignedRoom && MEMORY.rooms[room.name].outposts[assignedRoom] && MEMORY.rooms[room.name].outposts[assignedRoom].occupied) {
 
             if (creep.room.name != creep.memory.home) {
-                MEMORY.rooms[room.name].creeps[creep.name].task = new MoveToRoomTask(room.name)
+                MEMORY.rooms[room.name].creeps[creep.name].tasks.push(new MoveToRoomTask(room.name))
                 creep.say('ESCAPE')
                 return;
             } else {
 
-                MEMORY.rooms[room.name].creeps[creep.name].task = parkTask(room, creep)
+                MEMORY.rooms[room.name].creeps[creep.name].tasks.push(helper.parkTask(room, creep))
                 return;
 
             }
@@ -313,7 +317,7 @@ function assignTask(room, creep, creeps) {
         };
 
         if (task === undefined) {
-            task = parkTask(room, creep);
+            task = helper.parkTask(room, creep);
         }
     } else if (role === 'upgrader') {
 
@@ -356,7 +360,7 @@ function assignTask(room, creep, creeps) {
 
         };
         if (task === undefined) {
-            task = parkTask(room, creep);
+            task = helper.parkTask(room, creep);
         }
     } else if (role === 'maintainer') {
 
@@ -379,7 +383,7 @@ function assignTask(room, creep, creeps) {
         };
 
         if (task === undefined) {
-            task = parkTask(room, creep);
+            task = helper.parkTask(room, creep);
         }
     } else if (role === 'wallBuilder') {
         availableTasks = getRoleTasks.wallBuilder(room, creep);
@@ -401,7 +405,7 @@ function assignTask(room, creep, creeps) {
         };
 
         if (task === undefined) {
-            task = parkTask(room, creep);
+            task = helper.parkTask(room, creep);
         };
     } else if (role === 'hauler') {
 
@@ -422,7 +426,7 @@ function assignTask(room, creep, creeps) {
         };
 
         if (task === undefined) {
-            task = parkTask(room, creep);
+            task = helper.parkTask(room, creep);
         };
     } else if (role === 'scout') {
 
@@ -438,7 +442,7 @@ function assignTask(room, creep, creeps) {
         let outpostNames = room.memory.outposts;
 
         if (!outpostNames) {
-            task = parkTask(creep.room, creep);
+            task = helper.parkTask(creep.room, creep);
         } else {
 
             let assignedRoom = creep.memory.assignedRoom
@@ -452,7 +456,7 @@ function assignTask(room, creep, creeps) {
                 }
             }
             if (!assignedRoom) {
-                task = parkTask(creep.room, creep);
+                task = helper.parkTask(creep.room, creep);
             } else {
                 task = getRoleTasks.remoteBuilder(creep.room, creep)
 
@@ -492,7 +496,7 @@ function assignTask(room, creep, creeps) {
         }
         */
         if (!task) {
-            task = parkTask(creep.room, creep)
+            task = helper.parkTask(creep.room, creep)
         }
 
     } else if (role === 'remoteMaintainer') {
@@ -544,7 +548,7 @@ function assignTask(room, creep, creeps) {
             };
 
             if (task === undefined) {
-                task = parkTask(creep.room, creep);
+                task = helper.parkTask(creep.room, creep);
 
             }
         }
@@ -572,7 +576,7 @@ function assignTask(room, creep, creeps) {
         return;
     }
 
-    MEMORY.rooms[room.name].creeps[creep.name].task = task;
+    MEMORY.rooms[room.name].creeps[creep.name].tasks.push(task);
     creep.say(task.type)
 
 }
@@ -583,7 +587,7 @@ function assignTask(room, creep, creeps) {
  * @param {Creep} creep 
  */
 function executeTask(room, creep) {
-    const task = MEMORY.rooms[room.name].creeps[creep.name].task
+    const task = MEMORY.rooms[room.name].creeps[creep.name].tasks[0]
     if (!task) {
         MEMORY.rooms[room.name].creeps[creep.name].moving = false;
         return false
@@ -705,7 +709,7 @@ function executeTask(room, creep) {
 
             } else {
 
-                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
+
                 MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
 
             };
@@ -789,7 +793,7 @@ function executeTask(room, creep) {
             } else {
 
                 MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
-                MEMORY.rooms[creep.memory.home].creeps[creep.name].task = undefined;
+                MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks.shift();
 
             };
 
@@ -895,7 +899,7 @@ function executeTask(room, creep) {
             break;
 
         case 'WITHDRAW':
-            let wRet = creep.withdraw(target, task.resourceType, Math.min(creep.store.getFreeCapacity(), task.qty))
+            let wRet = creep.withdraw(target, task.resourceType, Math.min(creep.store.getFreeCapacity(), target.store[task.resourceType], task.qty))
 
             if (wRet !== 0) {
                 if (creep.pos.getRangeTo(target) > 1) {
@@ -903,7 +907,7 @@ function executeTask(room, creep) {
                 }
 
             } else {
-                MEMORY.rooms[room.name].creeps[creep.name].task = undefined;
+                MEMORY.rooms[room.name].creeps[creep.name].tasks.shift();
                 MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
 
             };
@@ -913,88 +917,8 @@ function executeTask(room, creep) {
     };
 };
 
-/**
- * 
- * @param {Room} room 
- * @param {Creep} creep 
- * @returns {MoveTask}
- */
-function parkTask(room, creep) {
-
-    let range = 0;
-    let xStart = creep.pos.x;
-    let yStart = creep.pos.y;
-
-    let avoidPos = [];
-    if (creep.memory.home === room.name && MEMORY.rooms[room.name].links) {
-        let spawnLink = Game.getObjectById(MEMORY.rooms[room.name].links.spawn)
-        if (spawnLink) {
-            let pos = spawnLink.pos
-            avoidPos.push([pos.x + 1, pos.y + 1])
-            avoidPos.push([pos.x + 1, pos.y - 1])
-            avoidPos.push([pos.x - 1, pos.y + 1])
-            avoidPos.push([pos.x - 1, pos.y - 1])
-
-        }
-    }
-
-    while (range < 40) {
-        for (let x = xStart - range; x <= xStart + range; x++) {
-            for (let y = yStart - range; y <= yStart + range; y++) {
-
-                if (x < 1 || x > 48 || y < 1 || y > 48) {
-                    continue;
-                }
-                let valid = true;
-                if (avoidPos.length) {
-                    for (let p of avoidPos) {
-                        if (p.x === x && p.y === y) {
-                            valid = false;
-                            break;
-                        }
-                    }
-                }
-                if (!valid) {
-                    continue;
-                }
-
-                const pos = new RoomPosition(x, y, room.name);
-
-                const look = pos.look(pos);
-
-                for (let l of look) {
-
-                    if (l.type === LOOK_STRUCTURES || l.type === LOOK_CONSTRUCTION_SITES) {
-                        valid = false;
-                        break;
-                    } else if (l.type === LOOK_TERRAIN && l.terrain === 'wall') {
-                        valid = false;
-                        break;
-                    } else if (l.type === LOOK_CREEPS && l.creep.name != creep.name) {
-                        valid = false;
-                    }
-
-                }
 
 
-
-                if (valid) {
-
-                    if (range === 0) {
-                        MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
-                        return undefined;
-                    }
-
-                    return new MoveTask(pos);
-
-                }
-
-            }
-        }
-        range++;
-    }
-
-}
 
 const getRoleTasks = {
 
@@ -1137,7 +1061,7 @@ const getRoleTasks = {
                     }
 
 
-                    return parkTask(creep.room, creep)
+                    return helper.parkTask(creep.room, creep)
                 }
 
             }
@@ -1609,9 +1533,9 @@ const getRoleTasks = {
             if (creep.store[RESOURCE_ENERGY] > 0) {
 
                 tasks.push(...getTasks.deliver(creep.room, creep, creeps))
-                
+
                 if (tasks.length === 0) {
-                    return parkTask(room, creep)
+                    return helper.parkTask(room, creep)
                 }
             } else {
                 return new MoveToRoomTask(creep.memory.assignedRoom)
@@ -1629,7 +1553,7 @@ const getRoleTasks = {
                 }
 
                 if (tasks.length === 0) {
-                    return parkTask(room, creep)
+                    return helper.parkTask(room, creep)
                 }
 
             } else {
@@ -1789,7 +1713,7 @@ const getRoleTasks = {
 
                     if (MEMORY.rooms[c.memory.home] && MEMORY.rooms[c.memory.home].creeps[c.name]) {
 
-                        let task = MEMORY.rooms[c.memory.home].creeps[c.name].task
+                        let task = MEMORY.rooms[c.memory.home].creeps[c.name].tasks[0]
 
 
                         if (task && task.type === 'MOVE_TO_ROOM') {
@@ -1907,7 +1831,7 @@ const getRoleTasks = {
         }
 
 
-        return parkTask(creep.room, creep)
+        return helper.parkTask(creep.room, creep)
 
 
 
@@ -2032,22 +1956,26 @@ const getTasks = {
             }
         }
 
-        for (let type of BUILD_PRIORITY) {
-            if (tasks.length > 0) {
-                let bestTask = _.max(tasks, t => Game.getObjectById(t.id).progress)
 
-                return [bestTask];
+        let targets = [];
+        for (let type of BUILD_PRIORITY) {
+            if (targets.length > 0) {
+                let maxProgress = _.max(targets, t => t.progress).progress
+                for (let t of targets) {
+                    if (t.progress === maxProgress) {
+                        tasks.push(new BuildTask(t.id))
+                    }
+                }
+
+                return tasks;
             }
             for (let site of sites) {
                 if (site.structureType === type) {
-                    tasks.push(new BuildTask(site.id))
+                    targets.push(site)
                 }
             }
         };
-
-
-        return tasks;
-
+        return tasks
     },
 
     /**
@@ -2513,7 +2441,7 @@ const getTasks = {
  * @returns {boolean}
  */
 function validateTask(room, creep) {
-    const task = MEMORY.rooms[room.name].creeps[creep.name].task
+    const task = MEMORY.rooms[room.name].creeps[creep.name].tasks[0]
 
     if (!task || task === undefined) {
 
@@ -2527,7 +2455,7 @@ function validateTask(room, creep) {
         if (assignedRoom && MEMORY.rooms[room.name].outposts[assignedRoom] && MEMORY.rooms[room.name].outposts[assignedRoom].occupied) {
 
             if (creep.room.name !== creep.memory.home && (task.type !== 'MOVE_TO_ROOM' && task.roomName !== creep.memory.home)) {
-                MEMORY.rooms[room.name].creeps[creep.name].task = new MoveToRoomTask(creep.memory.home)
+                MEMORY.rooms[room.name].creeps[creep.name].tasks = [new MoveToRoomTask(creep.memory.home)]
 
                 return true;
             }
@@ -2634,7 +2562,7 @@ function validateTask(room, creep) {
 
             break;
         case 'MOVE_TO_ROOM':
-            if (!MEMORY.rooms[creep.memory.home].creeps[creep.name].task.roomName) { return false; }
+            if (!MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0].roomName) { return false; }
 
             if (MEMORY.rooms[creep.memory.home].creeps[creep.name].nextroom === creep.room.name
                 && creep.pos.x != 0
@@ -2731,4 +2659,5 @@ function validateTask(room, creep) {
 module.exports = {
     manageCreeps,
     Task,
+
 };

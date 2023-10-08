@@ -1619,7 +1619,7 @@ const getTargetCount = {
     fastFiller: function (room) {
 
 
-        if (room.controller.level > 3) {
+        if (room.controller.level > 2) {
             return 4;
         }
         return 0;

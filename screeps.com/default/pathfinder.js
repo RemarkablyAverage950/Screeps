@@ -1,4 +1,8 @@
-let MEMORY = require('memory')
+let MEMORY = require('memory');
+const helper = require('lib.helper');
+
+
+
 
 const HOSTILE_BUFFER = 4;
 const MAX_PATH_LENGTH = 5;
@@ -118,7 +122,7 @@ function moveCreep(creep, destination, range, maxRooms) {
         path = getPath(creep.pos, destination, range, maxRooms);
         if (!path) {
             MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
-            MEMORY.rooms[creep.memory.home].creeps[creep.name].task = undefined;
+            MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks = [];
             //console.log('Failed to generate path for', creep.name, JSON.stringify(creep.pos), 'to', JSON.stringify(destination));
             return;
         }
@@ -139,14 +143,19 @@ function moveCreep(creep, destination, range, maxRooms) {
         const lookCreep = lookCreeps[0]
 
         if (lookCreep.my && MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] && !MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
+
+            let moving = helper.pushCreep(lookCreep);
+
             // Get a new path if there is.
-            path = getPath(creep.pos, destination, range, maxRooms);
+            if (!moving) {
+                path = getPath(creep.pos, destination, range, maxRooms);
+            }
 
         }
     }
-    if (!path ||path.length === 0) {
+    if (!path || path.length === 0) {
         MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
-        MEMORY.rooms[creep.memory.home].creeps[creep.name].task = undefined;
+        MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks = [];
         //console.log('Failed to generate path for', creep.name, JSON.stringify(creep.pos), 'to', JSON.stringify(destination));
         return;
     }
@@ -154,8 +163,8 @@ function moveCreep(creep, destination, range, maxRooms) {
     const next = creep.pos.getDirectionTo(path[0]);
 
     const ret = creep.move(next)
-    if(ret !== 0){
-        MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
+    if (ret !== 0) {
+        //MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
     }
     MEMORY.rooms[creep.memory.home].creeps[creep.name].path = path;
 
@@ -219,6 +228,9 @@ function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
     moveCreep(creep, destination, 23, 16)
 
 }
+
+
+
 
 /**
  * Generates a standard CostMatrix for a room.
@@ -296,7 +308,10 @@ function getCostMatrix(room) {
             const moving = MEMORY.rooms[creep.memory.home].creeps[creep.name].moving;
 
             if (moving === false) {
-                costMatrix.set(creep.pos.x, creep.pos.y, 0xff);
+                let role = creep.memory.role
+                if (role === 'miner' || role === 'remoteMiner' || role === 'fastFiller') {
+                    costMatrix.set(creep.pos.x, creep.pos.y, 0xff);
+                }
             }
         }
     }

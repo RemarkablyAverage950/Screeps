@@ -5,7 +5,7 @@ let MEMORY = require('memory');
  * @returns {boolean} 
  */
 Source.prototype.available = function () {
-    if(!MEMORY.rooms[this.room.name] || !MEMORY.rooms[this.room.name].sources) return false;
+    if (!MEMORY.rooms[this.room.name] || !MEMORY.rooms[this.room.name].sources) return false;
     const maxCreeps = MEMORY.rooms[this.room.name].sources[this.id].maxCreeps
     const assigned = getAssignedCreeps(this.id)
 
@@ -27,10 +27,10 @@ Source.prototype.getContainer = function () {
     } else if (containers.length == 2) {
         // find the container that only can access this source.
         const otherSource = this.room.find(FIND_SOURCES).filter(s => s.id != this.id)[0]
-        if(!otherSource){
+        if (!otherSource) {
             return containers[0]
         }
-        
+
         for (let container of containers) {
             if (otherSource.pos.isNearTo(container)) {
                 continue
@@ -77,7 +77,7 @@ Creep.prototype.forecast = function (resourceType) {
     let forecast = this.store[resourceType]
 
     for (let creep of assigned) {
-        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].task;
+        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0];
         const type = task.type;
         if (task.resourceType != resourceType) {
             continue;
@@ -107,7 +107,7 @@ Resource.prototype.forecast = function () {
 
     for (let creep of assigned) {
 
-        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].task;
+        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0];
 
         forecast -= task.qty;
 
@@ -133,7 +133,7 @@ Ruin.prototype.forecast = function (resourceType) {
     let forecast = this.store[resourceType]
 
     for (let creep of assigned) {
-        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].task;
+        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0];
         const type = task.type;
         if (task.resourceType != resourceType) {
             continue;
@@ -168,7 +168,7 @@ Structure.prototype.forecast = function (resourceType) {
 
     for (let creep of assigned) {
 
-        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].task;
+        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0];
         const type = task.type;
         if (task.resourceType != resourceType) {
             continue;
@@ -202,7 +202,7 @@ Tombstone.prototype.forecast = function (resourceType) {
     let forecast = this.store[resourceType]
 
     for (let creep of assigned) {
-        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].task;
+        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0];
         const type = task.type;
         if (task.resourceType != resourceType) {
             continue;
@@ -233,7 +233,7 @@ function getAssignedCreeps(target_id) {
         if (!MEMORY.rooms || !MEMORY.rooms[creep.memory.home] || !MEMORY.rooms[creep.memory.home].creeps[creep.name]) {
             continue;
         }
-        let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].task;
+        let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0];
 
         if (task && task.id && task.id === target_id) {
             assigned.push(creep);

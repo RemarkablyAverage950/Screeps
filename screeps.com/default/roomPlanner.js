@@ -76,7 +76,7 @@ function roomPlanner(room) {
 
 
 
-    if (plans && Game.time % 100 === 0 && Game.cpu.bucket > 20) {
+    if (plans && Game.time % 200 === 0 && Game.cpu.bucket > 20) {
 
         placeSites(room, plans);
     };
@@ -1077,7 +1077,9 @@ function getStampStart(BUILDINGS, start, tiles, room, ignoreWalls = false) {
 
         const x = center.x;
         const y = center.y;
-
+        if (ignoreWalls && room.getTerrain().get(x, y) !== TERRAIN_MASK_WALL) {
+            ignoreWalls = false;
+        }
 
 
 
@@ -1200,7 +1202,7 @@ return undefined;
 
 
 function visualizeStructures(plans, room) {
-    let reqDisplayLevel = room.controller.level
+    let reqDisplayLevel = 8//room.controller.level
 
     if (plans === undefined) {
         return;
@@ -1826,7 +1828,11 @@ function placeSites(homeRoom, plans) {
     let rooms = [homeRoom.name, ...homeRoom.memory.outposts]
 
     //console.log('Placing construction sites for',homeRoom.name)
+    let roomPlaced = false;
     for (let roomName of rooms) {
+        if (roomPlaced) {
+            return;
+        }
         let room = Game.rooms[roomName]
         if (!room) {
             continue;
@@ -1842,6 +1848,7 @@ function placeSites(homeRoom, plans) {
 
             if (order.level <= RCL && !order.placed) {
                 let ret = room.createConstructionSite(order.x, order.y, order.structure)
+                roomPlaced = true;
                 if (ret === -8) {
                     return;
                 }

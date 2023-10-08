@@ -42,41 +42,39 @@ module.exports.loop = function () {
         const room = Game.rooms[roomName];
         const creeps = Object.values(Game.creeps).filter(c => c.memory.home === roomName);
 
-        if (creeps.length === 0) {
-            let spawns = room.find(FIND_MY_SPAWNS)
-            if (spawns.length === 0) {
-                let cs = room.find(FIND_MY_CONSTRUCTION_SITES)
-                if (cs.length > 0) {
-                    let closest = _.min(myRooms.filter(r => r != roomName), r => Game.map.findRoute(roomName, r).length)
+        if (room.controller.level < 3) {
 
-                    let targetRemoteBuilderCount = 6;
+            let closest = _.min(myRooms.filter(r => r != roomName), r => Game.map.findRoute(roomName, r).length)
+            if (closest) {
+                let targetRemoteBuilderCount = 6;
 
-                    let remoteBuilderCount = Object.values(Game.creeps).filter(c => c.memory.home === closest && c.memory.role === 'remoteBuilder')
-                    let spawnQueue = MEMORY.rooms[closest].spawnQueue
-                    for (let so of spawnQueue) {
-                        if (so.role === 'remoteBuilder') {
-                            remoteBuilderCount++;
-                        }
-                    }
-
-                    body = [];
-                    while (remoteBuilderCount < targetRemoteBuilderCount) {
-                        body = getBody.remoteBuilder(Game.rooms[closest].energyCapacityAvailable, Game.rooms[closest], 0)
-
-                        options = {
-                            memory: {
-                                role: 'remoteBuilder',
-                                home: roomName,
-                                assignedRoom: roomName,
-                            },
-                        };
-                        console.log('Ordering remote builder for', room.name, 'from', closest)
-                        spawnQueue.push(new SpawnOrder('remoteBuilder', 4, body, options));
+                let remoteBuilderCount = Object.values(Game.creeps).filter(c => c.memory.home === closest && c.memory.role === 'remoteBuilder')
+                let spawnQueue = MEMORY.rooms[closest].spawnQueue
+                for (let so of spawnQueue) {
+                    if (so.role === 'remoteBuilder') {
                         remoteBuilderCount++;
                     }
                 }
+
+                body = [];
+                while (remoteBuilderCount < targetRemoteBuilderCount) {
+                    body = getBody.remoteBuilder(Game.rooms[closest].energyCapacityAvailable, Game.rooms[closest], 0)
+
+                    options = {
+                        memory: {
+                            role: 'remoteBuilder',
+                            home: closest,
+                            assignedRoom: roomName,
+                        },
+                    };
+                    console.log('Ordering remote builder for', room.name, 'from', closest)
+                    spawnQueue.push(new SpawnOrder('remoteBuilder', 4, body, options));
+                    remoteBuilderCount++;
+                }
             }
+
         }
+
 
 
         manageMemory(room, creeps);
@@ -154,7 +152,7 @@ function initializeCreepMemory(creep) {
 
     MEMORY.rooms[creep.memory.home].creeps[creep.name] = {
         moving: true,
-        task: undefined,
+        tasks: [],
         path: undefined,
     }
 };
