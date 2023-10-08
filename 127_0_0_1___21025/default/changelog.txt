@@ -70,6 +70,14 @@ Version 0.1
         - Seperated withdraw and pickup task finder by if or if not the task should fill the creeps inventory.
         - Made imporvements on haulers and remote haulers by allowing them to refill parked builders, upgraders, and fillers
         - Fixed some bugs. Set up dedicated dismantler
+        - Fixed deliver tasks bug causing creeps to get stuck.
+
+    PATHFINDING:
+
+        - If path is not generated at 2000 ops, searches for path at 4000 ops.
+        - If no path is found, task and path are both canceled.
+        - No longer detecting hostile construction sites that units can walk over.
+        - Fixed multiple bugs
 
     EXPANSION MANAGER: 
 
@@ -99,6 +107,7 @@ Version 0.1
         - When validating structure, it now attempts to remove hostile structures and remove hostile construction sites.
         - Immediately validates and places sites when setting up room plans.
         - Spaced out interval for validation and site placement
+        - Moved RCL 2 road placements to RCL 3.
 
     LINKS:
 

@@ -49,7 +49,7 @@ module.exports.loop = function () {
                 if (cs.length > 0) {
                     let closest = _.min(myRooms.filter(r => r != roomName), r => Game.map.findRoute(roomName, r).length)
 
-                    let targetRemoteBuilderCount = 4;
+                    let targetRemoteBuilderCount = 6;
 
                     let remoteBuilderCount = Object.values(Game.creeps).filter(c => c.memory.home === closest && c.memory.role === 'remoteBuilder')
                     let spawnQueue = MEMORY.rooms[closest].spawnQueue

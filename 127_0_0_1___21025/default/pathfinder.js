@@ -154,7 +154,9 @@ function moveCreep(creep, destination, range, maxRooms) {
     const next = creep.pos.getDirectionTo(path[0]);
 
     const ret = creep.move(next)
-
+    if(ret !== 0){
+        MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
+    }
     MEMORY.rooms[creep.memory.home].creeps[creep.name].path = path;
 
 }

@@ -55,8 +55,10 @@ function roomPlanner(room) {
     if ((!plans || !plans[room.name]) && Game.cpu.bucket > 500) {
 
         plans = getRoomPlans(room);
-        validateStructures(room, plans)
-        placeSites(room, plans);
+        try {
+            validateStructures(room, plans)
+            placeSites(room, plans);
+        } catch (e) { }
     };
     //placeSites(room, plans);
 
@@ -94,10 +96,10 @@ function validateStructures(room, plans) {
     const enemyStructures = room.find(FIND_HOSTILE_STRUCTURES)
     const enemySites = room.find(FIND_HOSTILE_CONSTRUCTION_SITES)
     let spawnCount = room.find(FIND_MY_SPAWNS).length;
-    for(let s of enemySites){
+    for (let s of enemySites) {
         s.remove()
     }
-    for(let s of enemyStructures){
+    for (let s of enemyStructures) {
         s.destroy()
     }
 
@@ -955,9 +957,9 @@ function setRoads(room, tiles, storagePos, sources, mineral) {
         let startPos = new RoomPosition(spawnContainer.x, spawnContainer.y, room.name);
         for (let sc of sourceContainerTiles) {
             let destPos = new RoomPosition(sc.x, sc.y, room.name);
-            setRoad(room, tiles, startPos, destPos, 1, 2);
+            setRoad(room, tiles, startPos, destPos, 1, 3);
         }
-        setRoad(room, tiles, startPos, storagePos, 1, 2);
+        setRoad(room, tiles, startPos, storagePos, 1, 3);
     }
 
     // Extensions to storage
@@ -968,7 +970,7 @@ function setRoads(room, tiles, storagePos, sources, mineral) {
 
     // Controller to storage
     let clPos = new RoomPosition(controllerLinkTile.x, controllerLinkTile.y, room.name)
-    setRoad(room, tiles, clPos, storagePos, 1, 2)
+    setRoad(room, tiles, clPos, storagePos, 1, 3)
 
 }
 
@@ -1647,14 +1649,14 @@ let setStamp = {
         const BUILDINGS = [
             [-1, -2, STRUCTURE_ROAD, 4],
             [0, -2, STRUCTURE_ROAD, 4],
-            [1, -2, STRUCTURE_ROAD, 2],
+            [1, -2, STRUCTURE_ROAD, 3],
             [-2, -1, STRUCTURE_ROAD, 4],
             [-1, -1, STRUCTURE_TERMINAL, 6],
             [-1, -1, STRUCTURE_RAMPART, 6],
             [0, -1, STRUCTURE_LINK, 5],
             [1, -1, STRUCTURE_STORAGE, 4],
             [1, -1, STRUCTURE_RAMPART, 4],
-            [2, -1, STRUCTURE_ROAD, 2],
+            [2, -1, STRUCTURE_ROAD, 3],
             [-2, 0, STRUCTURE_ROAD, 4],
             [-1, 0, STRUCTURE_NUKER, 8],
             [0, 0, undefined, 9],
@@ -1717,8 +1719,8 @@ let setStamp = {
         }
 
         let center = getStampStart(BUILDINGS, startPos, tiles, room)
-        if(!center){
-            center = getStampStart(BUILDINGS, startPos, tiles, room,true)
+        if (!center) {
+            center = getStampStart(BUILDINGS, startPos, tiles, room, true)
         }
         BUILDINGS.forEach(b => {
             let isCenter = (b[0] == 0 && b[1] == 0)
@@ -1739,38 +1741,38 @@ let setStamp = {
      */
     spawn: function (room, tiles, spawnCenter, storagePos) {
         const BUILDINGS = [
-            [-2, -3, STRUCTURE_ROAD, 2],
-            [-1, -3, STRUCTURE_ROAD, 2],
-            [0, -3, STRUCTURE_ROAD, 2],
-            [1, -3, STRUCTURE_ROAD, 2],
-            [2, -3, STRUCTURE_ROAD, 2],
+            [-2, -3, STRUCTURE_ROAD, 3],
+            [-1, -3, STRUCTURE_ROAD, 3],
+            [0, -3, STRUCTURE_ROAD, 3],
+            [1, -3, STRUCTURE_ROAD, 3],
+            [2, -3, STRUCTURE_ROAD, 3],
 
-            [-3, -2, STRUCTURE_ROAD, 2],
+            [-3, -2, STRUCTURE_ROAD, 3],
             [-2, -2, STRUCTURE_EXTENSION, 2],
             [-1, -2, STRUCTURE_EXTENSION, 2],
             [0, -2, STRUCTURE_SPAWN, 1],
             [0, -2, STRUCTURE_RAMPART, 3],
             [1, -2, STRUCTURE_EXTENSION, 2],
             [2, -2, STRUCTURE_EXTENSION, 2],
-            [3, -2, STRUCTURE_ROAD, 2],
+            [3, -2, STRUCTURE_ROAD, 3],
 
-            [-3, -1, STRUCTURE_ROAD, 2],
+            [-3, -1, STRUCTURE_ROAD, 3],
             [-2, -1, STRUCTURE_EXTENSION, 2],
             [-1, -1, undefined, 9],
             [0, -1, STRUCTURE_EXTENSION, 3],
             [1, -1, undefined, 9],
             [2, -1, STRUCTURE_EXTENSION, 3],
-            [3, -1, STRUCTURE_ROAD, 2],
+            [3, -1, STRUCTURE_ROAD, 3],
 
-            [-3, 0, STRUCTURE_ROAD, 2],
+            [-3, 0, STRUCTURE_ROAD, 3],
             [-2, 0, STRUCTURE_CONTAINER, 2],
             [-1, 0, STRUCTURE_EXTENSION, 3],
             [0, 0, STRUCTURE_LINK, 5],
             [1, 0, STRUCTURE_EXTENSION, 3],
             [2, 0, STRUCTURE_CONTAINER, 2],
-            [3, 0, STRUCTURE_ROAD, 2],
+            [3, 0, STRUCTURE_ROAD, 3],
 
-            [-3, 1, STRUCTURE_ROAD, 2],
+            [-3, 1, STRUCTURE_ROAD, 3],
             [-2, 1, STRUCTURE_SPAWN, 7],
             [-2, 1, STRUCTURE_RAMPART, 7],
             [-1, 1, undefined, 9],
@@ -1778,21 +1780,21 @@ let setStamp = {
             [1, 1, undefined, 9],
             [2, 1, STRUCTURE_SPAWN, 8],
             [2, 1, STRUCTURE_RAMPART, 8],
-            [3, 1, STRUCTURE_ROAD, 2],
+            [3, 1, STRUCTURE_ROAD, 3],
 
-            [-3, 2, STRUCTURE_ROAD, 2],
+            [-3, 2, STRUCTURE_ROAD, 3],
             [-2, 2, STRUCTURE_EXTENSION, 4],
             [-1, 2, STRUCTURE_EXTENSION, 4],
             [0, 2, STRUCTURE_EXTENSION, 4],
             [1, 2, STRUCTURE_EXTENSION, 4],
             [2, 2, STRUCTURE_EXTENSION, 4],
-            [3, 2, STRUCTURE_ROAD, 2],
+            [3, 2, STRUCTURE_ROAD, 3],
 
-            [-2, 3, STRUCTURE_ROAD, 2],
-            [-1, 3, STRUCTURE_ROAD, 2],
-            [0, 3, STRUCTURE_ROAD, 2],
-            [1, 3, STRUCTURE_ROAD, 2],
-            [2, 3, STRUCTURE_ROAD, 2],
+            [-2, 3, STRUCTURE_ROAD, 3],
+            [-1, 3, STRUCTURE_ROAD, 3],
+            [0, 3, STRUCTURE_ROAD, 3],
+            [1, 3, STRUCTURE_ROAD, 3],
+            [2, 3, STRUCTURE_ROAD, 3],
         ]
 
         const center = getStampStart(BUILDINGS, spawnCenter, tiles, room, true)

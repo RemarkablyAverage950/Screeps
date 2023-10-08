@@ -33,7 +33,9 @@ function manageSpawns(room, creeps) {
     if (availableSpawns.length === 0) return;
 
     let spawnQueue = MEMORY.rooms[room.name].spawnQueue;
-
+    if(!spawnQueue){
+        return;
+    }
     if (Game.time % 10 === 0) {
 
         spawnQueue.push(...getSpawnQueue(room, creeps, false, spawnQueue));

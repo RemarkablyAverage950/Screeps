@@ -135,6 +135,11 @@ Outposts:
     [] Calculate remote haulers required as a whole across all outposts
 
 Expansion Manager:
+
+    [] Stick with one mission per room. Currently Trying to claim 1 room, build another, and dismantle a 3rd, all from one homeRoom
+        [] Assign a mission to a room. This should be hardcoded somewhere so we don't lose the data on a re-initialize.
+        [] Stick with the mission until it is complete.
+
     
     Implement Mission types:
 

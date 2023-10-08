@@ -904,7 +904,7 @@ function getMission(myRooms) {
         }
 
         //  {"name":"W4N1","controller_id":"79ad0773ec3f021","sources":["b8e80773ec3d49f"],"mineralType":"K","hostileCreeps":0,"reserved":false,"hostileTarget":false,"occupied":false,"lastScan":382826,"owned":false,"my":false,"distance":3,"distanceRating":64}
-        if (r.distance > 3 && r.controller_id && !r.reserved && !r.ownedBy && !r.hostileTarget) {
+        if (r.distance > 3 && r.controller_id && !r.reserved && !r.ownedBy && !r.hostileTarget && Game.rooms[r.homeRoom].controller.level > 2) {
 
 
             let score = r.rating;
