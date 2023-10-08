@@ -22,7 +22,9 @@ function outpostManager(homeRoom, creeps) {
     }
     let outposts = homeRoom.memory.outposts;
 
-
+    if(!outposts){
+        return;
+    }
     for (let outpostName of outposts) {
 
         let heap = MEMORY.rooms[homeRoom.name].outposts[outpostName];

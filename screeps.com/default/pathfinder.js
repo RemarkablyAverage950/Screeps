@@ -20,6 +20,7 @@ function getPath(origin, destination, range, maxRooms, incomplete = false) {
         swampCost: 10,
         maxRooms: maxRooms,
         ignoreCreeps: true,
+        maxOps: 2000,
         roomCallback: function (roomName) {
 
             let room = Game.rooms[roomName];
@@ -35,7 +36,7 @@ function getPath(origin, destination, range, maxRooms, incomplete = false) {
                 getCostMatrix(room);
                 matrix = MEMORY.rooms[roomName].costMatrix
             };
-            
+
 
             if (matrix) {
                 return matrix[0];
@@ -46,8 +47,47 @@ function getPath(origin, destination, range, maxRooms, incomplete = false) {
         },
     });
 
-    if(incomplete){
+
+
+    if (incomplete) {
         return ret.incomplete
+    }
+    if (ret.incomplete) {
+        ret = PathFinder.search(
+            origin, { pos: destination, range: range }, {
+            plainCost: 2,
+            swampCost: 10,
+            maxRooms: maxRooms,
+            ignoreCreeps: true,
+            maxOps: 4000,
+            roomCallback: function (roomName) {
+
+                let room = Game.rooms[roomName];
+                if (!room) return undefined;
+
+                if (!MEMORY.rooms[roomName]) {
+                    MEMORY.rooms[roomName] = {}
+                }
+
+                let matrix = MEMORY.rooms[roomName].costMatrix;
+
+                if (!matrix || Game.time !== matrix[1]) {
+                    getCostMatrix(room);
+                    matrix = MEMORY.rooms[roomName].costMatrix
+                };
+
+
+                if (matrix) {
+                    return matrix[0];
+                } else {
+                    return undefined;
+                }
+
+            },
+        });
+        if (ret.incomplete) {
+            return undefined;
+        }
     }
 
     ret.path.length = Math.min(ret.path.length, MAX_PATH_LENGTH)
@@ -76,14 +116,14 @@ function moveCreep(creep, destination, range, maxRooms) {
     // Generate a path if needed.
     if (!path || path.length === 0) {
         path = getPath(creep.pos, destination, range, maxRooms);
-    };
+        if (!path) {
+            MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
+            MEMORY.rooms[creep.memory.home].creeps[creep.name].task = undefined;
+            //console.log('Failed to generate path for', creep.name, JSON.stringify(creep.pos), 'to', JSON.stringify(destination));
+            return;
+        }
 
-    if (path.length === 0) {
-        MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
-        MEMORY.rooms[creep.memory.home].creeps[creep.name].task = undefined;
-        console.log('Failed to generate path for', creep.name, JSON.stringify(creep.pos));
-        return;
-    }
+    };
 
     let lookCreeps = []
 
@@ -104,7 +144,12 @@ function moveCreep(creep, destination, range, maxRooms) {
 
         }
     }
-
+    if (!path ||path.length === 0) {
+        MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
+        MEMORY.rooms[creep.memory.home].creeps[creep.name].task = undefined;
+        //console.log('Failed to generate path for', creep.name, JSON.stringify(creep.pos), 'to', JSON.stringify(destination));
+        return;
+    }
 
     const next = creep.pos.getDirectionTo(path[0]);
 
@@ -159,10 +204,7 @@ function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
         if (!route.length) {
             return;
         }
-        if (creep.memory.role === 'scout') {
-            const p = route.map(r => r.room)
-            console.log('Scout path:', JSON.stringify(p))
-        }
+
 
         nextRoom = route[0].room
 
@@ -172,7 +214,7 @@ function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
 
     // Invoke PathFinder, allowing access only to rooms from `findRoute`
     let destination = new RoomPosition(25, 25, nextRoom)
-    moveCreep(creep, destination, 20, 16)
+    moveCreep(creep, destination, 23, 16)
 
 }
 
@@ -185,7 +227,7 @@ function getCostMatrix(room) {
 
     let costMatrix = new PathFinder.CostMatrix();
     let structures = room.find(FIND_STRUCTURES);
-    let sites = room.find(FIND_CONSTRUCTION_SITES);
+    let sites = room.find(FIND_MY_CONSTRUCTION_SITES);
     const terrain = new Room.Terrain(room.name);
 
     // Set edges to 10 to avoid bouncing in and out of rooms.

@@ -720,8 +720,18 @@ const getBody = {
 
     },
 
-    dismantler: function (roomName) {
-        let energyAvailable = Game.rooms[roomName].energyCapacityAvailable;
+    /**
+     * 
+     * @param {number} energyAvailable 
+     * @param {number} structureHits 
+     * @returns 
+     */
+    dismantler: function (energyAvailable, structureHits) {
+       
+
+        let workNeeded = structureHits / 50
+
+
 
         let moveParts = 2;
         let workParts = 2;
@@ -739,7 +749,10 @@ const getBody = {
             body.push(MOVE)
         }
 
-        return body;
+        let workPerCreep = workParts * 50 * 1300 // Assume 1300 ticks of work
+        let creepsNeeded = Math.floor(workNeeded / workPerCreep)
+        
+        return [body, Math.max(1, creepsNeeded)];
     },
 
     fastFiller: function (room) {
@@ -1602,7 +1615,9 @@ const getTargetCount = {
     },
 
     fastFiller: function (room) {
-        if (MEMORY.rooms[room.name].links && MEMORY.rooms[room.name].links.spawn) {
+
+
+        if (room.controller.level > 3) {
             return 4;
         }
         return 0;

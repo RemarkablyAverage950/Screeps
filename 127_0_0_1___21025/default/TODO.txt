@@ -29,8 +29,10 @@ Room Planner:
         [x] Does not appear to be correctly creating a new tile, or is overwriting existing tile(more likely).
 
     Extensions:
-        [] Start looking for open spot in direction of spawn at about range 2 from storage
-        [] When placing each block, find all possible snap positions for an existing block. If there are any, snap to the closest one to the storage. 
+        [x] Start looking for open spot in direction of spawn at about range 2 from storage
+        [x] When placing each block, find all possible snap positions for an existing block. If there are any, snap to the closest one to the storage. 
+        [] Place freeform extensions on top, left, right, and bottom of an extension block
+            -[0,3],[3,0] etc.
 
     Low Priority:
 
@@ -67,12 +69,16 @@ Roles:
         [] When there are no live parts of a type, disable that type of part.
 
     Dismantler:
-        [] ScanData looks for rooms with structures, not mine, not my outpost, and then creates mission to send dismantler.
-        [] Dismantler takes down all structures 
+        [x] ScanData looks for rooms with structures, not mine, not my outpost, and then creates mission to send dismantler.
+        [x] Dismantler takes down all structures 
+
+    fastFillers:
+        [x] Spawn at level 4:
 
     Hauler:
         [x] Can deposit into spawn containers (if no storage exists)
         [x] Spawn if container count > 2.
+        [x] Deposits into spawn containers first, but only if the container can take 50 % of creep load.
 
     Hub:
         [] Spawn this unit if there are 2 links, and one is the hub link OR if a storage and a terminal is present.
@@ -88,11 +94,13 @@ Roles:
         [] Fix: When assigned room is under attack, even if they are full they are not delivering to storage.
         [] Unit was ignoring one overflowing source container and trying to pick up crumbs from the closer one.
         [] Should find closest creep or container when looking to deliver without a storage
+        [x] Deposits into spawn containers first, but only if the container can take 50% of creep load
+        [] Units find fullest container by forecast to pickup from. (only visible outposts)
 
     Scout:
         [] Fix multiple scouts are targeting the same room due to lastScanTime.
             - Need to target room not assigned to a scout.
-        [] Should use Game.map.findRoute().length instead of r.distance for calculating distance to homeroom.
+        [x] Should use Game.map.findRoute().length instead of r.distance for calculating distance to homeroom.
 
 
     RemoteWorker
@@ -114,8 +122,8 @@ Room Defense:
 Spawning:
 
     [x] Only need to spawn a remote maintainer if home room RCL >= 4.
-    [] Spawn multiple scouts if scanned room count < 10.
-    [] Spawning too many soldiers to handle invader core missions.
+    [x] Spawn multiple scouts if RCL < 8
+    [x] Spawning too many soldiers to handle invader core missions.
 
 Outposts:
 
@@ -124,6 +132,7 @@ Outposts:
     [] If taking an outpost from an enemy is uneffective, cancel outpost and asses what is needed before targeting as an outpost again.
     [x] Send defender if an invader core pops up in outpost.
     [x] Still creating too many outposts for only having 1 spawn. This needs to be capped at 3.
+    [] Calculate remote haulers required as a whole across all outposts
 
 Expansion Manager:
     

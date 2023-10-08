@@ -56,13 +56,14 @@ function roomPlanner(room) {
 
         plans = getRoomPlans(room);
         validateStructures(room, plans)
+        placeSites(room, plans);
     };
+    //placeSites(room, plans);
 
 
 
 
-
-    if (Game.time % 20 === 0 && room.memory.outposts.length > 0 && Game.cpu.bucket > 100 && plans) {
+    if (Game.time % 500 === 0 && room.memory.outposts.length > 0 && Game.cpu.bucket > 100 && plans) {
         outpostPlanner(room, plans)
     }
 
@@ -72,7 +73,8 @@ function roomPlanner(room) {
     }
 
 
-    if (plans && Game.time % 20 === 0 && Game.cpu.bucket > 20) {
+
+    if (plans && Game.time % 100 === 0 && Game.cpu.bucket > 20) {
 
         placeSites(room, plans);
     };
@@ -89,8 +91,15 @@ function roomPlanner(room) {
 function validateStructures(room, plans) {
     const structures = room.find(FIND_STRUCTURES);
     const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
+    const enemyStructures = room.find(FIND_HOSTILE_STRUCTURES)
+    const enemySites = room.find(FIND_HOSTILE_CONSTRUCTION_SITES)
     let spawnCount = room.find(FIND_MY_SPAWNS).length;
-
+    for(let s of enemySites){
+        s.remove()
+    }
+    for(let s of enemyStructures){
+        s.destroy()
+    }
 
     for (let s of structures) {
         if (s.structureType === STRUCTURE_CONTROLLER) {
@@ -1707,8 +1716,10 @@ let setStamp = {
             startPos = storagePos
         }
 
-        const center = getStampStart(BUILDINGS, startPos, tiles, room)
-
+        let center = getStampStart(BUILDINGS, startPos, tiles, room)
+        if(!center){
+            center = getStampStart(BUILDINGS, startPos, tiles, room,true)
+        }
         BUILDINGS.forEach(b => {
             let isCenter = (b[0] == 0 && b[1] == 0)
             updateTile(center.x + b[0], center.y + b[1], b[2], tiles, isCenter, b[3], true)

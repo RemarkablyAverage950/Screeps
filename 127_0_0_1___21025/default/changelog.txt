@@ -16,7 +16,7 @@ Version 0.1
     - Will not spawn a mineral miner if conserving energy. Resulting from this, hauler is also normal size.
     - Counts towers as + 1000 work needed when generating builder bodies.
     - Fixed bug where multiple soldiers were spawning for assault missions.
-
+    - Fixed bug where multiple claimers were spawning for claim missions.
 
     OUTPOSTS:
 
@@ -24,13 +24,21 @@ Version 0.1
         - Calls defender if hostile structure (Invader Core) spawns in room.
         - Now only finding new outposts in rooms that are not occupied (hostiles/reserved/owned)
         - Fixed bug where on memory reset more than max outposts could potentially be added.
+        - Will not outpost in rooms that have structures. Instead a dismantle mission will be generated first.
 
     ROLES:
+
+        Dismantler:
+
+            - Handles dismantle missions.
+            - Targets a path to controller first.
 
         Hauler:
 
             - Spawns units if more than 2 containers.
-            - Units now only withdraw energy from source containers and deliver to spawn containers if there is no storage.
+            - Units now only withdraw energy from source containers.
+            - Units now deliver to spawn containers.
+            - Units will try and deliver to stationary builders/upgraders/workers until a storage is present.
 
         Hub: 
 
@@ -43,7 +51,8 @@ Version 0.1
 
         Remote hauler:
 
-            - Units now deliver to spawn containers if there is no storage present.
+            - Units now deliver to spawn containers.
+            - Units will try and deliver to stationary builders/upgraders/workers until a storage is present.
 
         Scout:
 
@@ -60,6 +69,7 @@ Version 0.1
         - Adjusted some parameters on withdraw and pickup tasks.
         - Seperated withdraw and pickup task finder by if or if not the task should fill the creeps inventory.
         - Made imporvements on haulers and remote haulers by allowing them to refill parked builders, upgraders, and fillers
+        - Fixed some bugs. Set up dedicated dismantler
 
     EXPANSION MANAGER: 
 
@@ -69,7 +79,8 @@ Version 0.1
         - Fixed bug where duplicate monitored rooms were getting pushed into MEMORY.rooms[roomName].monitoredRooms.
         - Now only placing outposts 2 rooms away if there is already an outpost in between
         - Lowered search radius to 6
-        - Lowered requirements for setting a ClaimMission. 
+        - Lowered requirements for setting a ClaimMission.
+        - Added dismantle mission for rooms at distance <=  2.
 
     ROOM PLANNER:
 
@@ -85,6 +96,9 @@ Version 0.1
         - Fixed bug where roads were not being placed properly to rampart walls.
         - Made free floating extension prefer snapping to extension blocks
         - Roads to and in outposts now place at RCL 3. 
+        - When validating structure, it now attempts to remove hostile structures and remove hostile construction sites.
+        - Immediately validates and places sites when setting up room plans.
+        - Spaced out interval for validation and site placement
 
     LINKS:
 
@@ -92,4 +106,4 @@ Version 0.1
 
     TERMINALS:
 
-        - Added terminal trading between my rooms.
+        - Added basic terminal trading between my rooms.
