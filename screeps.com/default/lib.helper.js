@@ -24,11 +24,12 @@ let helper = {
     /**
      * 
      * @param {Creep} creep 
+     * @param {Creep} pushingCreep
      * @returns {boolean}
      */
-    pushCreep: function (creep) {
+    pushCreep: function (creep, pushingCreep) {
         let role = creep.memory.role
-        if (role === 'miner' || role === 'remoteMiner') {
+        if (role === 'miner' || role === 'remoteMiner') { // role === 'fastFiller
             return false
         }
 
@@ -72,18 +73,33 @@ let helper = {
                         let next = queue.shift();
                         if (next === avoid) { valid = false; }
                         const pos = new RoomPosition(next[0], next[1], target.room.name);
-                        const look = pos.look(pos);
 
+                        const look = pos.look(pos);
                         for (let l of look) {
 
-                            if (l.type === LOOK_STRUCTURES || l.type === LOOK_CONSTRUCTION_SITES) {
-                                valid = false;
+                            if (l.type === LOOK_STRUCTURES) {
+                                if (l.structure.structureType !== STRUCTURE_CONTAINER && l.structure.structureType !== STRUCTURE_ROAD)
+                                    valid = false;
                                 break;
+                            } else if (l.type === LOOK_CONSTRUCTION_SITES) {
+                                if (l.constructionSite.structureType !== STRUCTURE_ROAD && l.constructionSite.structureType !== STRUCTURE_CONTAINER) {
+                                    valid = false;
+                                    break;
+                                }
                             } else if (l.type === LOOK_TERRAIN && l.terrain === 'wall') {
                                 valid = false;
                                 break;
                             } else if (l.type === LOOK_CREEPS) {
-                                valid = false;
+                                
+                                let lookCreep = l.creep
+                                if (lookCreep.name === creep.name || lookCreep.name === pushingCreep.name) {
+                                    valid = false;
+                                    break;
+                                } else if (!MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
+                                    valid = false;
+                                    break;
+                                }
+
                             }
 
                         }
@@ -91,7 +107,7 @@ let helper = {
                         if (valid) {
                             taskCreated = true;
                             MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks.unshift(new MoveTask(pos))
-                            console.log('Pushing', creep.name, JSON.stringify(creep.pos), 'to', JSON.stringify(pos))
+                            //console.log('Pushing', creep.name, JSON.stringify(creep.pos), 'to', JSON.stringify(pos))
                             return true;
                         }
 
@@ -99,6 +115,7 @@ let helper = {
                         for (let n of bfArea) {
                             let nx = next[0] + n[0];
                             let ny = next[1] + n[1];
+
                             if (nx === 0 || nx === 49 || ny === 0 || ny === 49) {
                                 continue
                             }
@@ -110,6 +127,8 @@ let helper = {
                             if (searched.includes(n)) {
                                 continue;
                             }
+
+
                             searched.push([nx, ny])
                             queue.push([nx, ny])
 
@@ -120,9 +139,9 @@ let helper = {
                 }
             }
         }
-        console.log('Attempting parkTask on', creep.name)
+        //console.log('Attempting parkTask on', creep.name)
         MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks.unshift(helper.parkTask(creep.room, creep, true))
-        
+
         taskCreated = true;
         return taskCreated
 
@@ -192,7 +211,10 @@ let helper = {
                             valid = false;
                             break;
                         } else if (l.type === LOOK_CREEPS && l.creep.name != creep.name) {
-                            valid = false;
+                            let lookCreep = l.creep
+                            if (!MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
+                                valid = false;
+                            }
                         }
 
                     }

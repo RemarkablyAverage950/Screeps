@@ -634,6 +634,17 @@ function expansionManager(myRooms) {
                 let targetRoom = mission.roomName;
                 let homeRoom = data.homeRoom;
 
+
+                for(let roomName of myRooms){
+                    if(Game.map.getRoomLinearDistance(roomName,homeRoom) < 6){
+
+                        if(Game.rooms[roomName].controller.level < 3){
+                            return;
+                        }
+                    }
+
+                }
+
                 if (data.hostileCreeps > 0) {
                     // Send hostile creeps
                 }
@@ -959,6 +970,7 @@ function getMission(myRooms) {
     }
 
     if (dismantleTargets.length > 0) {
+        
         let bestTarget = _.min(dismantleTargets, r => r.distance)
 
 

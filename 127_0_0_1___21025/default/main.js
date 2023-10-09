@@ -42,16 +42,16 @@ module.exports.loop = function () {
         const room = Game.rooms[roomName];
         const creeps = Object.values(Game.creeps).filter(c => c.memory.home === roomName);
 
-        if (room.controller.level < 3) {
+        if (room.controller.level < 2 || room.find(FIND_MY_SPAWNS).length === 0) {
 
             let closest = _.min(myRooms.filter(r => r != roomName), r => Game.map.findRoute(roomName, r).length)
             if (closest) {
-                let targetRemoteBuilderCount = 6;
+                let targetRemoteBuilderCount = 5;
 
-                let remoteBuilderCount = Object.values(Game.creeps).filter(c => c.memory.home === closest && c.memory.role === 'remoteBuilder')
+                let remoteBuilderCount = Object.values(Game.creeps).filter(c => c.memory.home === closest && c.memory.role === 'remoteBuilder' && c.memory.assignedRoom === roomName)
                 let spawnQueue = MEMORY.rooms[closest].spawnQueue
                 for (let so of spawnQueue) {
-                    if (so.role === 'remoteBuilder') {
+                    if (so.role === 'remoteBuilder' && so.options.memory.assignedRoom === roomName) {
                         remoteBuilderCount++;
                     }
                 }
@@ -68,7 +68,7 @@ module.exports.loop = function () {
                         },
                     };
                     console.log('Ordering remote builder for', room.name, 'from', closest)
-                    spawnQueue.push(new SpawnOrder('remoteBuilder', 4, body, options));
+                    spawnQueue.push(new SpawnOrder('remoteBuilder', 5, body, options));
                     remoteBuilderCount++;
                 }
             }

@@ -31,12 +31,12 @@ Room Planner:
     Extensions:
         [x] Start looking for open spot in direction of spawn at about range 2 from storage
         [x] When placing each block, find all possible snap positions for an existing block. If there are any, snap to the closest one to the storage. 
-        [] Place freeform extensions on top, left, right, and bottom of an extension block
+        [x] Place freeform extensions on top, left, right, and bottom of an extension block
             -[0,3],[3,0] etc.
 
     Low Priority:
 
-    [] Rampart roads should stay inside base area
+    [x] Rampart roads should stay inside base area
         - May be able to use minimum cut to generate a costMatrix for area outside of ramparts. 
 
 Pathfinding:
@@ -55,15 +55,15 @@ Pathfinding:
         [] Scan for hostile creeps and re-gen if in range of 5
         [] Scan path for stationary creeps in next position (including fatigued), regen path if nescessary
 
-    [] Consider pushing creeps blocking a path out of the way.
-        [] Can modify park task and disallow the current position.
+    [x] Consider pushing creeps blocking a path out of the way.
+        [x] Can modify park task and disallow the current position.
 
     
 
 Roles:
 
     Builder:
-        [] Choose most built of a certain structure to build first.
+        [x] Choose most built of a certain structure to build first.
 
     Defender:
         [] When there are no live parts of a type, disable that type of part.
@@ -93,7 +93,7 @@ Roles:
         [x] Can deposit into spawn containers (if no storage exists)
         [] Fix: When assigned room is under attack, even if they are full they are not delivering to storage.
         [] Unit was ignoring one overflowing source container and trying to pick up crumbs from the closer one.
-        [] Should find closest creep or container when looking to deliver without a storage
+        [x] Should find closest creep or container when looking to deliver without a storage
         [x] Deposits into spawn containers first, but only if the container can take 50% of creep load
         [] Units find fullest container by forecast to pickup from. (only visible outposts)
 
@@ -104,11 +104,11 @@ Roles:
 
 
     RemoteWorker
-        [] Continues spawning until room level 2
-        [] Harvests
-        [] Picks up dropped energy
-        [] Withdraws energy
-        [] Builds spawn
+        [x] Continues spawning until room level 2
+        [x] Harvests
+        [x] Picks up dropped energy
+        [x] Withdraws energy
+        [x] Builds spawn
         [] Upgrades controller if downgrade in < 10k ticks
         When spawn built:
             [] 1. Fills spawn
@@ -128,7 +128,7 @@ Spawning:
 Outposts:
 
     [x] Only declare new outpost if the room is not currently reserved by another player.
-    [] Do not declare an outpost if room has structures, send dismantler instead.
+    [x] Do not declare an outpost if room has structures, send dismantler instead.
     [] If taking an outpost from an enemy is uneffective, cancel outpost and asses what is needed before targeting as an outpost again.
     [x] Send defender if an invader core pops up in outpost.
     [x] Still creating too many outposts for only having 1 spawn. This needs to be capped at 3.

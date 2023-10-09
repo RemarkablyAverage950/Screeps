@@ -108,6 +108,9 @@ function getPath(origin, destination, range, maxRooms, incomplete = false) {
  */
 function moveCreep(creep, destination, range, maxRooms) {
 
+    if(creep.fatigue > 0){
+        return;
+    }
     MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = true;
     // Pull the path from memory.
 
@@ -144,11 +147,13 @@ function moveCreep(creep, destination, range, maxRooms) {
 
         if (lookCreep.my && MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] && !MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
 
-            let moving = helper.pushCreep(lookCreep);
+            let moving = helper.pushCreep(lookCreep,creep);
 
             // Get a new path if there is.
             if (!moving) {
                 path = getPath(creep.pos, destination, range, maxRooms);
+            }else{
+                MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving = true;
             }
 
         }
@@ -161,7 +166,18 @@ function moveCreep(creep, destination, range, maxRooms) {
     }
 
     const next = creep.pos.getDirectionTo(path[0]);
+    const directions = {
+        1: '↑',
+        2: '↗',
+        3: '→',
+        4: '↘',
+        5: '↓',
+        6: '↙',
+        7: '←',
+        8: '↖',
+    }
 
+    creep.say(directions[next])
     const ret = creep.move(next)
     if (ret !== 0) {
         //MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
@@ -308,10 +324,14 @@ function getCostMatrix(room) {
             const moving = MEMORY.rooms[creep.memory.home].creeps[creep.name].moving;
 
             if (moving === false) {
-                let role = creep.memory.role
-                if (role === 'miner' || role === 'remoteMiner' || role === 'fastFiller') {
+                let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0]
+                if (task && task.type === 'HARVEST') {
                     costMatrix.set(creep.pos.x, creep.pos.y, 0xff);
+                } else {
+                    costMatrix.set(creep.pos.x, creep.pos.y, costMatrix.get(creep.pos.x, creep.pos.y) + 5)
                 }
+            } else {
+                costMatrix.set(creep.pos.x, creep.pos.y, costMatrix.get(creep.pos.x, creep.pos.y) + 2)
             }
         }
     }

@@ -1243,7 +1243,11 @@ const getRoleTasks = {
      */
     filler: function (room, creep) {
         let tasks = [];
+        if (creep.store[RESOURCE_ENERGY] > 0) {
 
+            tasks.push(...getTasks.fill(room, creep));
+
+        };
         if (creep.store.getFreeCapacity() > 0) {
 
             tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, false));
@@ -1262,11 +1266,7 @@ const getRoleTasks = {
             }
         };
 
-        if (creep.store[RESOURCE_ENERGY] > 0) {
 
-            tasks.push(...getTasks.fill(room, creep));
-
-        };
 
         return tasks;
     },
@@ -1901,11 +1901,19 @@ const getRoleTasks = {
 
     },
 
+    /**
+     * 
+     * @param {Room} room 
+     * @param {Creep} creep 
+     * @returns 
+     */
     worker: function (room, creep) {
 
         let tasks = [];
 
         if (creep.store.getFreeCapacity() > 0) {
+
+
 
             tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, true));
             tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, true));
@@ -1922,7 +1930,10 @@ const getRoleTasks = {
         };
 
         if (creep.store[RESOURCE_ENERGY] > 0) {
-
+            if (room.controller.ticksToDowngrade < 10000) {
+                tasks.push(...getTasks.upgrade(room, creep))
+                return tasks;
+            }
             tasks.push(...getTasks.fill(room, creep));
             if (tasks.length === 0) {
                 tasks.push(...getTasks.build(room, creep));
@@ -1960,6 +1971,14 @@ const getTasks = {
         let targets = [];
         for (let type of BUILD_PRIORITY) {
             if (targets.length > 0) {
+                /*if (targets[0].structureType === STRUCTURE_ROAD) {
+                    for (let t of targets) {
+                        tasks.push(new BuildTask(t.id))
+                    }
+
+                    return tasks;
+                }*/
+
                 let maxProgress = _.max(targets, t => t.progress).progress
                 for (let t of targets) {
                     if (t.progress === maxProgress) {
@@ -2348,16 +2367,16 @@ const getTasks = {
 
                     if (forecast >= capacity && s.store[resourceType] > 0) {
 
-                        tasks.push(new WithdrawTask(s.id, resourceType, Math.min(forecast, capacity)));
+                        tasks.push(new WithdrawTask(s.id, resourceType, capacity));
 
                     };
                 } else if (s.structureType === STRUCTURE_LINK && (creep.memory.role === 'upgrader' && s.id === MEMORY.rooms[room.name].links.controller) || (creep.memory.role === 'fastFiller' && s.id === MEMORY.rooms[room.name].links.spawn)) {
 
                     const forecast = s.forecast(resourceType);
 
-                    if (forecast >= capacity) {
+                    if (forecast >= capacity && s.store[resourceType] > 0) {
 
-                        tasks.push(new WithdrawTask(s.id, resourceType, Math.min(forecast, capacity)));
+                        tasks.push(new WithdrawTask(s.id, resourceType, capacity));
 
                     };
                 }
@@ -2367,15 +2386,15 @@ const getTasks = {
             for (let t of tombstones) {
 
                 const forecast = t.forecast(resourceType);
-                if (forecast >= capacity) {
-                    tasks.push(new WithdrawTask(t.id, resourceType, Math.min(forecast, capacity)));
+                if (forecast >= capacity && t.store[resourceType] > 0) {
+                    tasks.push(new WithdrawTask(t.id, resourceType, capacity));
                 }
             }
 
             for (let r of ruins) {
                 const forecast = r.forecast(resourceType);
-                if (forecast >= capacity) {
-                    tasks.push(new WithdrawTask(r.id, resourceType, Math.min(forecast, capacity)));
+                if (forecast >= capacity && r.store[resourceType] > 0) {
+                    tasks.push(new WithdrawTask(r.id, resourceType, capacity));
                 }
             }
         } else {
@@ -2387,20 +2406,17 @@ const getTasks = {
 
                     const forecast = s.forecast(resourceType);
 
-                    if (s.store[resourceType] > 0) {
+                    if (s.store[resourceType] > 0 && forecast > 0) {
 
                         tasks.push(new WithdrawTask(s.id, resourceType, forecast));
 
                     };
                 } else if (s.structureType === STRUCTURE_LINK && (creep.memory.role === 'upgrader' && s.id === MEMORY.rooms[room.name].links.controller) || (creep.memory.role === 'fastFiller' && s.id === MEMORY.rooms[room.name].links.spawn)) {
 
-                    const forecast = s.forecast(resourceType);
 
-                    if (forecast >= 0) {
+                    tasks.push(new WithdrawTask(s.id, resourceType, capacity));
 
-                        tasks.push(new WithdrawTask(s.id, resourceType, Math.min(forecast, capacity)));
 
-                    };
                 }
 
             };
@@ -2410,14 +2426,14 @@ const getTasks = {
             for (let t of tombstones) {
 
                 const forecast = t.forecast(resourceType);
-                if (forecast > 0) {
+                if (forecast > 0 && t.store[resourceType] > 0) {
                     tasks.push(new WithdrawTask(t.id, resourceType, forecast));
                 };
             };
 
             for (let r of ruins) {
                 const forecast = r.forecast(resourceType);
-                if (forecast > 0) {
+                if (forecast > 0 && r.store[resourceType] > 0) {
                     tasks.push(new WithdrawTask(r.id, resourceType, Math.min(forecast, capacity)));
                 }
             }
@@ -2556,7 +2572,7 @@ function validateTask(room, creep) {
             let look = pos.lookFor(LOOK_CREEPS)
 
             if (look.length > 0) {
-                return false
+                //return false
             }
 
 
