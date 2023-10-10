@@ -33,7 +33,7 @@ function manageSpawns(room, creeps) {
     if (availableSpawns.length === 0) return;
 
     let spawnQueue = MEMORY.rooms[room.name].spawnQueue;
-    if(!spawnQueue){
+    if (!spawnQueue) {
         return;
     }
     if (Game.time % 10 === 0) {
@@ -80,9 +80,11 @@ function manageSpawns(room, creeps) {
                         MEMORY.rooms[room.name].spawnQueue = spawnQueue;
                         break;
 
-                    } else if (ret == -6) {
+                    } else if (ret == -6 || creeps.length === 0) {
 
+                        MEMORY.rooms[room.name].spawnQueue = [];
                         return;
+
                     } else {
                         console.log('ret', ret, name, JSON.stringify(spawnQueue[i]))
                         continue;
@@ -729,7 +731,7 @@ const getBody = {
      * @returns 
      */
     dismantler: function (energyAvailable, structureHits) {
-       
+
 
         let workNeeded = structureHits / 50
 
@@ -753,7 +755,7 @@ const getBody = {
 
         let workPerCreep = workParts * 50 * 1300 // Assume 1300 ticks of work
         let creepsNeeded = Math.floor(workNeeded / workPerCreep)
-        
+
         return [body, Math.max(1, creepsNeeded)];
     },
 
@@ -928,6 +930,7 @@ const getBody = {
 
     },
 
+
     hub: function (energyBudget, room) {
 
         let carryParts = 5;
@@ -971,6 +974,37 @@ const getBody = {
         };
 
         body.push(MOVE);
+
+        return body;
+
+    },
+
+    /**
+     * 
+     * @param {Room} homeRoom 
+     */
+    longHauler: function (homeRoom){
+        
+        const budget = homeRoom.energyCapacity;
+        
+        let carryParts = 1;
+        let moveParts = 1;
+        let cost = 100;
+
+        while(cost+100 <= budget){
+            carryParts++;
+            moveParts++;
+            cost += 100;
+        }
+
+        let body = [];
+
+        for(let i = 0; i < carryParts; i++){
+            body.push(CARRY);
+        }
+        for(let i = 0; i < moveParts; i++){
+            body.push(MOVE);
+        }
 
         return body;
 

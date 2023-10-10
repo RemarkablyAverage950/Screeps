@@ -180,3 +180,50 @@ Expansion Manager:
 
         [] ScanRoom data being duplicated in monitoredRooms (MEMORY.rooms[room.name].monitoredRooms)
             - Think this is fixed.
+
+10/9/23
+
+    [] Re-work mission system.
+        [] Assign missions to individual rooms.
+        [] Assign multiple missions at once (one of each type)
+        [] Ability to assign multiple rooms to missions
+        [] Works off an objective system.
+
+    [] Mission types:
+        [] Claim
+            [] Single room assigned
+            [] Objectives:
+                [] Clear path to controller
+                [] Clear path to storage.
+                [] Empty enemy structures with stores
+                [] Only delete structures that have an empty store
+            
+
+        [] Invader Core
+            [] One room needs to be assigned.
+            [] Store core position and calculate perfect body to destroy core
+            [] Objectives
+                [] Destroy Invader core.
+                [] Find more invader cores to destroy.
+
+        [] Dismantle
+            [] Multiple rooms can be assigned.
+
+            [] Objectives:
+                [] Clear path to controller.
+                [] Clear path to storage.
+                [] Empty enemy structures with stores.
+                [] Dismantle all structures.
+
+        [] Supply
+            [] Multiple rooms can supply at once.
+            [] Objectives
+                [] Send long haulers to room with demand.
+                [] Repeat path until mission complete.
+            [] Long haulers become regular haulers if objective complete.
+
+    [] Fix scout pathfinding
+        [] May require re-work of multi-room pathfinding
+        [] Cancel searching for rooms that cannot be accessed.
+
+    [] Haulers/fillers can deliver to stationary builders and upgraders.

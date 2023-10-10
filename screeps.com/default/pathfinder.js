@@ -24,7 +24,7 @@ function getPath(origin, destination, range, maxRooms, incomplete = false) {
         swampCost: 10,
         maxRooms: maxRooms,
         ignoreCreeps: true,
-        maxOps: 2000,
+        maxOps: 10000,
         roomCallback: function (roomName) {
 
             let room = Game.rooms[roomName];
@@ -56,43 +56,11 @@ function getPath(origin, destination, range, maxRooms, incomplete = false) {
     if (incomplete) {
         return ret.incomplete
     }
+
     if (ret.incomplete) {
-        ret = PathFinder.search(
-            origin, { pos: destination, range: range }, {
-            plainCost: 2,
-            swampCost: 10,
-            maxRooms: maxRooms,
-            ignoreCreeps: true,
-            maxOps: 4000,
-            roomCallback: function (roomName) {
-
-                let room = Game.rooms[roomName];
-                if (!room) return undefined;
-
-                if (!MEMORY.rooms[roomName]) {
-                    MEMORY.rooms[roomName] = {}
-                }
-
-                let matrix = MEMORY.rooms[roomName].costMatrix;
-
-                if (!matrix || Game.time !== matrix[1]) {
-                    getCostMatrix(room);
-                    matrix = MEMORY.rooms[roomName].costMatrix
-                };
-
-
-                if (matrix) {
-                    return matrix[0];
-                } else {
-                    return undefined;
-                }
-
-            },
-        });
-        if (ret.incomplete) {
-            return undefined;
-        }
+        return undefined;
     }
+
 
     ret.path.length = Math.min(ret.path.length, MAX_PATH_LENGTH)
 
@@ -108,7 +76,7 @@ function getPath(origin, destination, range, maxRooms, incomplete = false) {
  */
 function moveCreep(creep, destination, range, maxRooms) {
 
-    if(creep.fatigue > 0){
+    if (creep.fatigue > 0) {
         return;
     }
     MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = true;
@@ -147,12 +115,12 @@ function moveCreep(creep, destination, range, maxRooms) {
 
         if (lookCreep.my && MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] && !MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
 
-            let moving = helper.pushCreep(lookCreep,creep);
+            let moving = helper.pushCreep(lookCreep, creep);
 
             // Get a new path if there is.
             if (!moving) {
                 path = getPath(creep.pos, destination, range, maxRooms);
-            }else{
+            } else {
                 MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving = true;
             }
 
@@ -177,7 +145,7 @@ function moveCreep(creep, destination, range, maxRooms) {
         8: '↖',
     }
 
-    creep.say(directions[next])
+    //creep.say(directions[next])
     const ret = creep.move(next)
     if (ret !== 0) {
         //MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
@@ -186,6 +154,14 @@ function moveCreep(creep, destination, range, maxRooms) {
 
 }
 
+/**
+ * 
+ * @param {Creep} creep 
+ * @param {String} targetRoomName 
+ * @param {number} hostileRoomValue 
+ * @param {boolean} returnRoute 
+ * @returns 
+ */
 function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
 
 
@@ -207,13 +183,17 @@ function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
                     Game.rooms[roomName].controller.my;
                 let scanData = MEMORY.monitoredRooms[roomName]
 
+                if (scanData && scanData.hostileTarget) {
+                    if (scanData.towers) {
+                        return 0xff;
+                    }
+                    return hostileRoomValue
+                }
 
                 if (!scanData || scanData.hostileTarget === undefined || scanData.occupied) {
                     return 3;
                 }
-                if (scanData.hostileTarget) {
-                    return hostileRoomValue
-                }
+
                 let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
                 let isHighway = (parsed[1] % 10 === 0) ||
                     (parsed[2] % 10 === 0);

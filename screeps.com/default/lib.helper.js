@@ -62,7 +62,7 @@ let helper = {
 
                 if (target) {
                     let avoid = [creep.pos.x, creep.pos.y]
-                    let rangeToTarget = creep.pos.getRangeTo(target);
+                    let rangeToTarget = 3//creep.pos.getRangeTo(target);
                     let searched = [[creep.pos.x, creep.pos.y]];
                     let queue = [[creep.pos.x, creep.pos.y]];
 
@@ -89,10 +89,10 @@ let helper = {
                             } else if (l.type === LOOK_TERRAIN && l.terrain === 'wall') {
                                 valid = false;
                                 break;
-                            } else if (l.type === LOOK_CREEPS) {
-                                
+                            } else if (l.type === LOOK_CREEPS && l.creep.my) {
+
                                 let lookCreep = l.creep
-                                if (lookCreep.name === creep.name || lookCreep.name === pushingCreep.name) {
+                                if (lookCreep.name === creep.name) { // || lookCreep.name === pushingCreep.name
                                     valid = false;
                                     break;
                                 } else if (!MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
@@ -124,7 +124,7 @@ let helper = {
                             if (nPos.getRangeTo(target) > rangeToTarget) {
                                 continue;
                             }
-                            if (searched.includes(n)) {
+                            if (searched.some(p => p[0] === nx && p[1] === ny)) {
                                 continue;
                             }
 

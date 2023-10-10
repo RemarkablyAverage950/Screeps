@@ -975,9 +975,11 @@ const getRoleTasks = {
         if (!controller) {
             return undefined;
         }
-        if (MEMORY.mission && MEMORY.mission.roomName === creep.room.name && getPath(creep.pos, controller.pos, 1, 1, true)) {
 
-            MEMORY.mission.pathToController = false;
+        let mission = MEMORY.rooms[creep.memory.home].missions.find(m => m.type === 'CLAIM')
+        if (mission && getPath(creep.pos, creep.room.controller.pos, 1, 1, true)) {
+
+            MEMORY.rooms[creep.memory.home].missions.find(m => m.type === 'CLAIM').pathToController = false;
         }
 
         if (!controller.my) {
@@ -1120,15 +1122,17 @@ const getRoleTasks = {
 
                     if (!getPath(creep.pos, path[i], 1, 1, true)) {
                         let targetPos = path[i - 1];
-                        let target = creep.room.lookForAt(LOOK_STRUCTURES, targetPos)[0].id
+                        let target = creep.room.lookForAt(LOOK_STRUCTURES, targetPos)[0]
+                        if (target)
 
-                        return new DismantleTask(target)
+                            return new DismantleTask(target.id)
                     }
                 }
 
-            } else if (MEMORY.mission && MEMORY.mission.roomName === creep.room.name) {
-                MEMORY.mission.pathToController = true;
             }
+
+            MEMORY.rooms[creep.memory.home].missions.find(m => m.roomName === creep.room.name).pathToController = true
+
 
             let targets = creep.room.find(FIND_STRUCTURES).filter(s => s.structureType !== STRUCTURE_CONTROLLER)
             let target = _.min(targets, t => t.pos.getRangeTo(creep))
@@ -1734,41 +1738,82 @@ const getRoleTasks = {
             let minDistance = Infinity;
             let targetRoom = undefined;
             let minHomeDistance = Infinity;
+            let targetFound = false;
 
+            while (!targetFound) {
+                for (let r of targetScanRooms) {
+                    const lastScan = MEMORY.monitoredRooms[r].lastScan
+                    const pos = new RoomPosition(25, 25, r)
+                    if (lastScan < minScanTime) { // && !getPath(creep.pos, pos, 23, 16, true)
+                        targetRoom = r;
+                        minScanTime = lastScan
+                        minDistance = Game.map.findRoute(r, creep.room.name).length
+                        minHomeDistance = Game.map.findRoute(r, creep.memory.home).length
+                        continue;
+                    }
+                    const distance = Game.map.findRoute(r, creep.room.name).length
+                    if (lastScan === minScanTime && distance < minDistance) {
+                        targetRoom = r;
+                        minDistance = distance;
+                        minHomeDistance = Game.map.findRoute(r, creep.memory.home).length
+                    }
 
-            for (let r of targetScanRooms) {
-                const lastScan = MEMORY.monitoredRooms[r].lastScan
+                    const homeDistance = Game.map.findRoute(creep.memory.home, r).length
 
-                if (lastScan < minScanTime) {
-                    targetRoom = r;
-                    minScanTime = lastScan
-                    minDistance = Game.map.findRoute(r, creep.room.name).length
-                    minHomeDistance = Game.map.findRoute(r, creep.memory.home).length
-                    continue;
+                    if (lastScan === minScanTime && distance === minDistance && homeDistance < minHomeDistance) {
+                        targetRoom = r
+                        minHomeDistance = homeDistance
+                        continue;
+                    }
                 }
-                const distance = Game.map.findRoute(r, creep.room.name).length
-                if (lastScan === minScanTime && distance < minDistance) {
-                    targetRoom = r;
-                    minDistance = distance;
-                    minHomeDistance = Game.map.findRoute(r, creep.memory.home).length
+
+             
+                let route = Game.map.findRoute(creep.room.name, targetRoom, {
+                    routeCallback(roomName) {
+
+                        let isMyRoom = Game.rooms[roomName] &&
+                            Game.rooms[roomName].controller &&
+                            Game.rooms[roomName].controller.my;
+                        let scanData = MEMORY.monitoredRooms[roomName]
+
+                        if (scanData.hostileTarget) {
+                            if (scanData.towers) {
+                                return 0xff;
+                            }
+                            return 10
+                        }
+
+                        if (!scanData || scanData.hostileTarget === undefined || scanData.occupied) {
+                            return 3;
+                        }
+
+                        let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+                        let isHighway = (parsed[1] % 10 === 0) ||
+                            (parsed[2] % 10 === 0);
+                        if (isHighway || isMyRoom) {
+                            return 1
+                        }
+
+                        return 2;
+                    }
+
+
+                })
+                console.log('A',JSON.stringify(route))
+                if (route.length) {
+                    targetFound = true;
+
+                } else {
+                    let idx = targetScanRooms.findIndex(r => r === targetRoom)
+                    targetScanRooms.splice(idx, 1)
+                    console.log('No safe route found for',creep.room.name,'to',targetRoom)
                 }
-
-                const homeDistance = Game.map.findRoute(creep.memory.home, r).length
-
-                if (lastScan === minScanTime && distance === minDistance && homeDistance < minHomeDistance) {
-                    targetRoom = r
-                    minHomeDistance = homeDistance
-                    continue;
-                }
-
-
-
 
             }
 
 
             if (targetRoom) {
-
+                console.log(creep.name,'moving from',creep.room.name,'to',targetRoom)
                 return new MoveToRoomTask(targetRoom)
             }
 
@@ -1816,19 +1861,40 @@ const getRoleTasks = {
             }
         }
         if (creep.room.name !== assignedRoom) {
+
+
             return new MoveToRoomTask(assignedRoom)
         }
 
         MEMORY.monitoredRooms[creep.room.name].occupied = false;
-        // console.log(JSON.stringify(MEMORY.rooms[creep.memory.home]))
-        if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].monitoredRooms) {
-            for (let rName of MEMORY.rooms[creep.memory.home].monitoredRooms) {
-                if (MEMORY.monitoredRooms[rName].occupied) {
-                    creep.memory.assignedRoom = rName;
-                    return new MoveToRoomTask(rName)
+        let mission = MEMORY.mission
+        if (mission && MEMORY.mission.roomName === creep.room.name) {
+            const type = mission.type
+            MEMORY.mission.complete = true;
+
+            if (type === 'INVADER_CORE') {
+                if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].monitoredRooms) {
+                    for (let rName of MEMORY.rooms[creep.memory.home].monitoredRooms) {
+                        if (MEMORY.monitoredRooms[rName].invaderCore) {
+                            creep.memory.assignedRoom = rName;
+                            return new MoveToRoomTask(rName)
+                        }
+                    }
                 }
             }
+
+            // console.log(JSON.stringify(MEMORY.rooms[creep.memory.home]))
+            if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].monitoredRooms) {
+                for (let rName of MEMORY.rooms[creep.memory.home].monitoredRooms) {
+                    if (MEMORY.monitoredRooms[rName].occupied) {
+                        creep.memory.assignedRoom = rName;
+                        return new MoveToRoomTask(rName)
+                    }
+                }
+            }
+
         }
+
 
 
         return helper.parkTask(creep.room, creep)
@@ -1930,7 +1996,7 @@ const getRoleTasks = {
         };
 
         if (creep.store[RESOURCE_ENERGY] > 0) {
-            if (room.controller.ticksToDowngrade < 10000) {
+            if (room.controller.ticksToDowngrade < 2000) {
                 tasks.push(...getTasks.upgrade(room, creep))
                 return tasks;
             }

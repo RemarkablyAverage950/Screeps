@@ -21,16 +21,24 @@ class DismantleMission extends Mission {
 }
 
 class ClaimMission extends Mission {
-    constructor(roomName) {
+    constructor(roomName, pathToController = false) {
         super('CLAIM');
         this.roomName = roomName;
-        this.pathToController = true;
+        this.pathToController = pathToController;
     }
 }
 
-class AssaultMission extends Mission {
+class FetchMission extends Mission {
+    constructor(roomName, pathToStorage) {
+        super('FETCH');
+        this.roomName = roomName
+        this.pathToStorage = pathToStorage;
+    }
+}
+
+class InvaderCoreMission extends Mission {
     constructor(roomName) {
-        super('ASSAULT');
+        super('INVADER_CORE');
         this.roomName = roomName
         this.unitsReq = undefined;
     }
@@ -40,6 +48,7 @@ class ScanData {
     constructor(roomName, myRooms) {
         this.roomName = roomName
         this.assignedScout = undefined;
+
 
         let minDist = Infinity
         for (let rName of myRooms) {
@@ -63,7 +72,19 @@ class ScanData {
         let powerBank = false;
         let portal = false;
         let strucHits = 0
+        this.resources = {}
         for (let s of structures) {
+            if (s.store) {
+                for (let r of Object.keys(s.store)) {
+                    if (!this.resources[r]) {
+                        this.resources[r] = s.store[r]
+                    } else {
+                        this.resources[r] += s.store[r]
+                    }
+                }
+            }
+
+
             if (s.structureType === STRUCTURE_CONTROLLER) {
 
             } else if (s.structureType === STRUCTURE_POWER_BANK) {
@@ -199,6 +220,17 @@ class ScanData {
         let portal = false;
         let strucHits = 0
         for (let s of structures) {
+
+            if (s.store) {
+                for (let r of Object.keys(s.store)) {
+                    if (!this.resources[r]) {
+                        this.resources[r] = s.store[r]
+                    } else {
+                        this.resources[r] += s.store[r]
+                    }
+                }
+            }
+
             if (s.structureType === STRUCTURE_CONTROLLER) {
 
             } else if (s.structureType === STRUCTURE_POWER_BANK) {
@@ -322,7 +354,11 @@ class ScanData {
 
 }
 
-
+/**
+ * 
+ * @param {String[]} myRooms 
+ * @returns 
+ */
 function expansionManager(myRooms) {
 
     if (!MEMORY.rooms) {
@@ -421,319 +457,342 @@ function expansionManager(myRooms) {
         }
     }
 
-    // Claim/Assault mission here
+    if (Game.time % 100 === 0) {
+        getMission(myRooms)
 
-    let mission = MEMORY.mission;
-    if (Game.time % 100 === 0 && (!mission || mission.complete)) {
-        //console.log('Getting Mission')
-        // Get a new mission (Mining outpost, claim new room, attack room)
-        mission = getMission(myRooms)
-        if (mission) {
-            console.log('Generated new mission', JSON.stringify(mission))
-        }
-        MEMORY.mission = mission;
+
+        executeMissions(myRooms)
     }
+}
 
-    if (mission && !mission.complete) {
-        //console.log('tick, mission', Game.time, JSON.stringify(mission))
-        let body = [];
-        let data = MEMORY.monitoredRooms[mission.roomName]
-        let room = Game.rooms[mission.roomName]
-        // Check status.
-        switch (mission.type) {
-            case 'ASSAULT':
+/**
+ * 
+ * @param {string[]} myRooms 
+ */
+function executeMissions(myRooms) {
 
 
-                if (!mission.unitsReq) {
-                    //console.log('Getting units required')
-                    let unitsReq = []
-                    let targetRoom = Game.rooms[mission.roomName]
+    for (let homeRoomName of myRooms) {
 
-                    if (!targetRoom) {
-                        //mission.unitsReq = [];
-                    } else {
+        let homeRoom = Game.rooms[homeRoomName]
+        let missions = MEMORY.rooms[homeRoomName].missions
 
-                        let hostiles = targetRoom.find(FIND_HOSTILE_CREEPS)
-                        let hostileStructures = targetRoom.find(FIND_HOSTILE_STRUCTURES)
+        for (let mission of missions) {
+
+            if (!mission.complete) {
+                //console.log('tick, mission', Game.time, JSON.stringify(mission))
+                let body = [];
+                let data = MEMORY.monitoredRooms[mission.roomName]
+                let room = Game.rooms[mission.roomName]
+
+                // Check status.
+                switch (mission.type) {
+
+                    case 'CLAIM':
+                        if (room && (room.controller.owner || room.controller.reservedBy)) {
+                            mission.complete = true;
+                            continue;
+                        }
+                        if (!mission.pathToController) {
+                            let targetDismantlerCount = 1;
+
+                            let spawnQueue = MEMORY.rooms[homeRoomName].spawnQueue
+
+                            let dismantlerCount = 0;
+
+                            for (let creep of Object.values(Game.creeps)) {
+                                if (creep.memory.role === 'dismantler' && creep.memory.assignedRoom === mission.roomName) {
+                                    dismantlerCount++;
+                                }
+                            }
+                            for (let so of MEMORY.rooms[homeRoomName].spawnQueue) {
+                                if (so.role === 'dismantler' && so.options.memory.assignedRoom === mission.roomName) {
+                                    dismantlerCount++
+                                }
+                            }
 
 
-                        if (data.reserved && data.reservedBy === 'Invader' && hostiles.length === 0 && hostileStructures.length > 0) {
 
-                            let unit = 'soldier';
+                            body = [];
+                            while (dismantlerCount < targetDismantlerCount) {
+
+                                if (body.length === 0) {
+
+                                    body = getBody.dismantler(Game.rooms[homeRoomName].energyCapacityAvailable, data.structureHits)[0]
 
 
-                            unitsReq.push(unit)
+                                }
+
+                                options = {
+                                    memory: {
+                                        role: 'dismantler',
+                                        home: homeRoomName,
+                                        assignedRoom: mission.roomName,
+                                    },
+                                };
+                                console.log('Adding dismantler to spawnQueue for', homeRoomName)
+                                MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('dismantler', 6, body, options));
+                                dismantlerCount++;
+                            }
+
+                        } else {
+
+                            let targetClaimerCount = 0;
+                            let claimerCount = 0;
+                            if (!room || !room.controller.my) {
+                                targetClaimerCount++;
+
+                                for (let creep of Object.values(Game.creeps)) {
+                                    if (creep.memory.role === 'claimer' && creep.memory.assignedRoom === mission.roomName) {
+                                        claimerCount++;
+                                    }
+                                }
+                                for (let so of MEMORY.rooms[homeRoomName].spawnQueue) {
+                                    if (so.role === 'claimer' && so.options.memory.assignedRoom === mission.roomName) {
+                                        claimerCount++
+                                    }
+                                }
+
+
+
+                                body = [];
+                                while (claimerCount < targetClaimerCount) {
+                                    if (body.length === 0) {
+                                        body = getBody.reserver(Game.rooms[homeRoomName].energyCapacityAvailable)
+                                    }
+                                    options = {
+                                        memory: {
+                                            role: 'claimer',
+                                            home: homeRoomName,
+                                            assignedRoom: mission.roomName,
+                                        },
+                                    };
+                                    MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('claimer', 6, body, options));
+                                    claimerCount++;
+                                }
+                            }
+                        }
+                        if (room && room.find(FIND_HOSTILE_CREEPS).length > 0) {
+                            let soldierCount = 0;
+                            for (let c of Object.values(Game.creeps)) {
+                                if (c.memory.role === 'soldier' && c.memory.assignedRoom === mission.roomName) {
+                                    soldierCount++;
+                                }
+                            }
+                            for (let so of MEMORY.rooms[homeRoomName].spawnQueue) {
+                                if (so.role === 'soldier' && so.assignedRoom === mission.roomName) {
+                                    soldierCount++
+                                }
+                            }
+
+                            let targetSoldierCount = 1
+
+                            body = [];
+                            while (soldierCount < targetSoldierCount) {
+                                if (body.length === 0) {
+                                    body = getBody.defender(Game.rooms[homeRoomName].energyCapacityAvailable, undefined)
+                                }
+                                options = {
+                                    memory: {
+                                        role: 'soldier',
+                                        home: homeRoomName,
+                                        assignedRoom: mission.roomName,
+                                    },
+                                };
+                                MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('soldier', 6, body, options));
+                                soldierCount++;
+                            }
                         }
 
-                    }
+                        break;
 
-                    mission.unitsReq = unitsReq;
+                    case 'DISMANTLE':
 
-                }
-                let soldierCount = 0;
-                for (let c of Object.values(Game.creeps)) {
-                    if (c.memory.role === 'soldier' && data.homeRoom === c.memory.home) {
-                        if (c.memory.assignedRoom === mission.roomName) {
-                            soldierCount++;
-                        } else if (c.memory.assignedRoom === undefined) {
-                            console.log('reassigning', creep.name, 'to', 'mission.roomName')
-                            c.memory.assignedRoom = mission.roomName
-                            return;
-                        }
-                    }
-                }
-                for (let so of MEMORY.rooms[data.homeRoom].spawnQueue) {
-                    if (so.role === 'soldier' && so.options.memory.assignedRoom === mission.roomName) {
-                        soldierCount++
-                    }
-                }
-
-                let targetSoldierCount = 0
-
-                for (let role of mission.unitsReq) {
-                    if (role === 'soldier') {
-                        targetSoldierCount++;
-                    }
-                }
-                //console.log('sc',soldierCount,'tsc',targetSoldierCount)
-                body = [];
-                while (soldierCount < targetSoldierCount) {
-                    if (body.length === 0) {
-                        //console.log('Getting Body')
-                        body = getBody.defender(Game.rooms[data.homeRoom].energyCapacityAvailable, undefined)
-                        //console.log('Got body', JSON.stringify(body))
-                    }
-                    options = {
-                        memory: {
-                            role: 'soldier',
-                            home: data.homeRoom,
-                            assignedRoom: mission.roomName,
-                        },
-                    };
-                    MEMORY.rooms[data.homeRoom].spawnQueue.push(new SpawnOrder('soldier', 6, body, options));
-                    soldierCount++;
-                }
-
-                break;
-            case 'CLAIM':
-
-                if (!mission.pathToController) {
-                    let targetDismantlerCount = 1;
-
-                    let spawnQueue = MEMORY.rooms[data.homeRoom].spawnQueue
-
-                    let dismantlerCount = 0;
-
-                    for (let creep of Object.values(Game.creeps)) {
-                        if (creep.memory.role === 'dismantler' && creep.memory.assignedRoom === mission.roomName) {
-                            dismantlerCount++;
-                        }
-                    }
-                    for (let so of MEMORY.rooms[data.homeRoom].spawnQueue) {
-                        if (so.role === 'dismantler' && so.options.memory.assignedRoom === mission.roomName) {
-                            dismantlerCount++
-                        }
-                    }
+                        let targetRoom = mission.roomName;
+                        let homeRoom = data.homeRoom;
 
 
+                        for (let roomName of myRooms) {
+                            if (Game.map.getRoomLinearDistance(roomName, homeRoom) < 6) {
 
-                    body = [];
-                    while (dismantlerCount < targetDismantlerCount) {
-
-                        if (body.length === 0) {
-
-                            body = getBody.dismantler(Game.rooms[data.homeRoom].energyCapacityAvailable, data.structureHits)[0]
-
+                                if (Game.rooms[roomName].controller.level < 3) {
+                                    return;
+                                }
+                            }
 
                         }
 
-                        options = {
-                            memory: {
-                                role: 'dismantler',
-                                home: data.homeRoom,
-                                assignedRoom: mission.roomName,
-                            },
-                        };
-                        MEMORY.rooms[data.homeRoom].spawnQueue.push(new SpawnOrder('dismantler', 6, body, options));
-                        dismantlerCount++;
-                    }
+                        if (data.hostileCreeps > 0) {
+                            // Send hostile creeps
+                        }
 
-                } else {
+                        let targetDismantlerCount = 1;
+                        if (Game.time % 100 === 0) {
+                            targetDismantlerCount = 4;
+                        }
 
-                    let targetClaimerCount = 0;
-                    let claimerCount = 0;
-                    if (!room || !room.controller.my) {
-                        targetClaimerCount++;
+                        let spawnQueue = MEMORY.rooms[data.homeRoom].spawnQueue
+
+                        let dismantlerCount = 0;
 
                         for (let creep of Object.values(Game.creeps)) {
-                            if (creep.memory.role === 'claimer' && creep.memory.assignedRoom === mission.roomName) {
-                                claimerCount++;
+                            if (creep.memory.role === 'dismantler' && creep.memory.assignedRoom === mission.roomName) {
+                                dismantlerCount++;
                             }
                         }
                         for (let so of MEMORY.rooms[data.homeRoom].spawnQueue) {
-                            if (so.role === 'claimer' && so.options.memory.assignedRoom === mission.roomName) {
-                                claimerCount++
+                            if (so.role === 'dismantler' && so.options.memory.assignedRoom === mission.roomName) {
+                                dismantlerCount++
                             }
                         }
 
 
 
                         body = [];
-                        while (claimerCount < targetClaimerCount) {
+                        while (dismantlerCount < targetDismantlerCount) {
+
                             if (body.length === 0) {
-                                body = getBody.reserver(Game.rooms[data.homeRoom].energyCapacityAvailable)
+                                let ret = getBody.dismantler(Game.rooms[data.homeRoom].energyCapacityAvailable, data.structureHits)
+                                body = ret[0]
+                                targetDismantlerCount = Math.min(4, ret[1])
+
                             }
+
                             options = {
                                 memory: {
-                                    role: 'claimer',
+                                    role: 'dismantler',
                                     home: data.homeRoom,
                                     assignedRoom: mission.roomName,
                                 },
                             };
-                            MEMORY.rooms[data.homeRoom].spawnQueue.push(new SpawnOrder('claimer', 6, body, options));
-                            claimerCount++;
+                            MEMORY.rooms[data.homeRoom].spawnQueue.push(new SpawnOrder('dismantler', 6, body, options));
+                            dismantlerCount++;
                         }
-                    }
-                }
-                if (room && room.find(FIND_HOSTILE_CREEPS).length > 0) {
-                    let soldierCount = 0;
-                    for (let c of Object.values(Game.creeps)) {
-                        if (c.memory.role === 'soldier' && c.memory.assignedRoom === mission.roomName) {
+
+                        if (room && room.find(FIND_HOSTILE_CREEPS).length > 0) {
+                            let soldierCount = 0;
+                            for (let c of Object.values(Game.creeps)) {
+                                if (c.memory.role === 'soldier' && c.memory.assignedRoom === mission.roomName) {
+                                    soldierCount++;
+                                }
+                            }
+                            for (let so of MEMORY.rooms[data.homeRoom].spawnQueue) {
+                                if (so.role === 'soldier' && so.options.memory.assignedRoom === mission.roomName) {
+                                    soldierCount++
+                                }
+                            }
+
+                            let targetSoldierCount = 1
+
+                            body = [];
+                            while (soldierCount < targetSoldierCount) {
+                                if (body.length === 0) {
+                                    body = getBody.defender(Game.rooms[data.homeRoom].energyCapacityAvailable, undefined)
+                                }
+                                options = {
+                                    memory: {
+                                        role: 'soldier',
+                                        home: data.homeRoom,
+                                        assignedRoom: mission.roomName,
+                                    },
+                                };
+                                MEMORY.rooms[data.homeRoom].spawnQueue.push(new SpawnOrder('soldier', 6, body, options));
+                                soldierCount++;
+                            }
+                        }
+
+                        mission.complete = true;
+
+                        break;
+                    case 'INVADER_CORE':
+
+
+                        if (!mission.unitsReq) {
+                            //console.log('Getting units required')
+                            let unitsReq = []
+                            let targetRoom = Game.rooms[mission.roomName]
+
+                            if (!targetRoom) {
+                                //mission.unitsReq = [];
+                            } else {
+
+                                let hostiles = targetRoom.find(FIND_HOSTILE_CREEPS)
+                                let hostileStructures = targetRoom.find(FIND_HOSTILE_STRUCTURES)
+
+
+                                if (data.reserved && data.reservedBy === 'Invader' && hostiles.length === 0 && hostileStructures.length > 0) {
+
+                                    let unit = 'soldier';
+
+
+                                    unitsReq.push(unit)
+                                }
+
+                            }
+
+                            mission.unitsReq = unitsReq;
+
+                        }
+                        let soldierCount = 0;
+                        for (let c of Object.values(Game.creeps)) {
+                            if (c.memory.role === 'soldier' && data.homeRoom === c.memory.home) {
+                                if (c.memory.assignedRoom === mission.roomName) {
+                                    soldierCount++;
+                                } else if (c.memory.assignedRoom === undefined) {
+                                    console.log('reassigning', creep.name, 'to', 'mission.roomName')
+                                    c.memory.assignedRoom = mission.roomName
+                                    return;
+                                }
+                            }
+                        }
+                        for (let so of MEMORY.rooms[data.homeRoom].spawnQueue) {
+                            if (so.role === 'soldier' && so.options.memory.assignedRoom === mission.roomName) {
+                                soldierCount++
+                            }
+                        }
+
+                        let targetSoldierCount = 0
+
+                        for (let role of mission.unitsReq) {
+                            if (role === 'soldier') {
+                                targetSoldierCount++;
+                            }
+                        }
+                        //console.log('sc',soldierCount,'tsc',targetSoldierCount)
+                        body = [];
+                        while (soldierCount < targetSoldierCount) {
+                            if (body.length === 0) {
+                                //console.log('Getting Body')
+                                body = getBody.defender(Game.rooms[data.homeRoom].energyCapacityAvailable, undefined)
+                                //console.log('Got body', JSON.stringify(body))
+                            }
+                            options = {
+                                memory: {
+                                    role: 'soldier',
+                                    home: data.homeRoom,
+                                    assignedRoom: mission.roomName,
+                                },
+                            };
+                            MEMORY.rooms[data.homeRoom].spawnQueue.push(new SpawnOrder('soldier', 6, body, options));
                             soldierCount++;
                         }
-                    }
-                    for (let so of MEMORY.rooms[data.homeRoom].spawnQueue) {
-                        if (so.role === 'soldier' && so.assignedRoom === mission.roomName) {
-                            soldierCount++
-                        }
-                    }
 
-                    let targetSoldierCount = 1
-
-                    body = [];
-                    while (soldierCount < targetSoldierCount) {
-                        if (body.length === 0) {
-                            body = getBody.defender(Game.rooms[data.homeRoom].energyCapacityAvailable, undefined)
-                        }
-                        options = {
-                            memory: {
-                                role: 'soldier',
-                                home: data.homeRoom,
-                                assignedRoom: mission.roomName,
-                            },
-                        };
-                        MEMORY.rooms[data.homeRoom].spawnQueue.push(new SpawnOrder('soldier', 6, body, options));
-                        soldierCount++;
-                    }
-                }
-
-                break;
-
-            case 'DISMANTLE':
-
-                let targetRoom = mission.roomName;
-                let homeRoom = data.homeRoom;
-
-
-                for(let roomName of myRooms){
-                    if(Game.map.getRoomLinearDistance(roomName,homeRoom) < 6){
-
-                        if(Game.rooms[roomName].controller.level < 3){
-                            return;
-                        }
-                    }
-
-                }
-
-                if (data.hostileCreeps > 0) {
-                    // Send hostile creeps
-                }
-
-                let targetDismantlerCount = 1;
-                if (Game.time % 100 === 0) {
-                    targetDismantlerCount = 4;
-                }
-
-                let spawnQueue = MEMORY.rooms[data.homeRoom].spawnQueue
-
-                let dismantlerCount = 0;
-
-                for (let creep of Object.values(Game.creeps)) {
-                    if (creep.memory.role === 'dismantler' && creep.memory.assignedRoom === mission.roomName) {
-                        dismantlerCount++;
-                    }
-                }
-                for (let so of MEMORY.rooms[data.homeRoom].spawnQueue) {
-                    if (so.role === 'dismantler' && so.options.memory.assignedRoom === mission.roomName) {
-                        dismantlerCount++
-                    }
+                        break;
                 }
 
 
+            }
 
-                body = [];
-                while (dismantlerCount < targetDismantlerCount) {
-
-                    if (body.length === 0) {
-                        let ret = getBody.dismantler(Game.rooms[data.homeRoom].energyCapacityAvailable, data.structureHits)
-                        body = ret[0]
-                        targetDismantlerCount = Math.min(4, ret[1])
-
-                    }
-
-                    options = {
-                        memory: {
-                            role: 'dismantler',
-                            home: data.homeRoom,
-                            assignedRoom: mission.roomName,
-                        },
-                    };
-                    MEMORY.rooms[data.homeRoom].spawnQueue.push(new SpawnOrder('dismantler', 6, body, options));
-                    dismantlerCount++;
-                }
-
-                if (room && room.find(FIND_HOSTILE_CREEPS).length > 0) {
-                    let soldierCount = 0;
-                    for (let c of Object.values(Game.creeps)) {
-                        if (c.memory.role === 'soldier' && c.memory.assignedRoom === mission.roomName) {
-                            soldierCount++;
-                        }
-                    }
-                    for (let so of MEMORY.rooms[data.homeRoom].spawnQueue) {
-                        if (so.role === 'soldier' && so.assignedRoom === mission.roomName) {
-                            soldierCount++
-                        }
-                    }
-
-                    let targetSoldierCount = 1
-
-                    body = [];
-                    while (soldierCount < targetSoldierCount) {
-                        if (body.length === 0) {
-                            body = getBody.defender(Game.rooms[data.homeRoom].energyCapacityAvailable, undefined)
-                        }
-                        options = {
-                            memory: {
-                                role: 'soldier',
-                                home: data.homeRoom,
-                                assignedRoom: mission.roomName,
-                            },
-                        };
-                        MEMORY.rooms[data.homeRoom].spawnQueue.push(new SpawnOrder('soldier', 6, body, options));
-                        soldierCount++;
-                    }
-                }
-
-                mission.complete = true;
-
-                break;
         }
 
+        for (let i = missions.length - 1; i >= 0; i--) {
+            if (MEMORY.rooms[homeRoomName].missions[i].complete) {
+                MEMORY.rooms[homeRoomName].missions.splice(i, 1)
+            }
+        }
 
     }
-
 }
-
 
 /**
  * Finds all rooms with linear distance of 10 from starting room and stores them in memory.
@@ -822,51 +881,8 @@ function getMonitoredRooms(myRooms) {
  */
 function getMission(myRooms) {
 
-    let monitoredRooms = MEMORY.monitoredRooms
-
-
-    for (let data of Object.values(monitoredRooms)) {
-        if (data.lastScan === 0) {
-            continue;
-        }
-
-        for (let i = 1; i < 11; i++) {
-
-            if (data.distance === i && data.occupied && !data.hostileTarget && data.reservedBy === 'Invader') {
-
-                if (Game.rooms[data.homeRoom].controller.level < 5) {
-                    continue;
-                }
-                console.log('Generating assault mission for', data.roomName)
-                return new AssaultMission(data.roomName)
-            }
-        }
-
-    }
-
-    //console.log('Entering getMission')
-
-
-    // Find settlement target
-
-    /*
-        Go through all rooms and put rooms in array.
- 
-        If we have at least 10 to pick from give each room a score.
-        start with 0, and give
-        
-            2 sources +50
-            3 exits +50
-            distanceRating + distanceRating ( larger is better )
-            Resource we dont currently have
-            distance from hostile room at least 2
- 
-    */
-
-    if (myRooms.length === Game.gcl.level) {
-        return;
-    }
-    let potentialSettlements = [];
+    let monitoredRooms = MEMORY.monitoredRooms;
+    let preferredMinerals = [];
     let ownedMinerals = [
         { constant: RESOURCE_HYDROGEN, count: 0 },
         { constant: RESOURCE_OXYGEN, count: 0 },
@@ -875,114 +891,232 @@ function getMission(myRooms) {
         { constant: RESOURCE_ZYNTHIUM, count: 0 },
         { constant: RESOURCE_UTRIUM, count: 0 },
         { constant: RESOURCE_CATALYST, count: 0 },
-    ]
+    ];
+
+    // Claim Mission Count
+    let claimMissionCount = 0;
+    for (let homeRoomName of myRooms) {
 
 
-    for (let myRoom of myRooms) {
-        let mineral = Game.rooms[myRoom].find(FIND_MINERALS)[0]
-        ownedMinerals.find(m => m.constant === mineral.mineralType).count++
-    }
-
-    let min = Infinity
-    for (let m of ownedMinerals) {
-        if (m.count < min) {
-            min = m.count
-        }
-    }
-    let preferredMinerals = [];
-    for (let m of ownedMinerals) {
-        if (m.count === min) {
-            preferredMinerals.push(m.constant)
+        if (MEMORY.rooms[homeRoomName] && MEMORY.rooms[homeRoomName].missions && MEMORY.rooms[homeRoomName].missions.some(m => m.type === 'CLAIM')) {
+            claimMissionCount++
         }
     }
 
-
-
-    for (let r of Object.values(monitoredRooms)) {
-        if (r.lastScan === 0) {
-            continue;
-        }
-        let next = false;
-
-        for (let myRoom of myRooms) {
-            if (Game.rooms[myRoom].memory.outposts && Game.rooms[myRoom].memory.outposts.some(o => o === r.roomName)) {
-                next = true;
-                break;
-            }
-        }
-        if (next) {
-            continue;
-        }
-
-        //  {"name":"W4N1","controller_id":"79ad0773ec3f021","sources":["b8e80773ec3d49f"],"mineralType":"K","hostileCreeps":0,"reserved":false,"hostileTarget":false,"occupied":false,"lastScan":382826,"owned":false,"my":false,"distance":3,"distanceRating":64}
-        if (r.distance > 3 && r.controller_id && !r.reserved && !r.ownedBy && !r.hostileTarget && Game.rooms[r.homeRoom].controller.level > 2) {
-
-
-            let score = r.rating;
-
-            if (!preferredMinerals.includes(r.mineralType)) {
-                score -= 250;
-            } else {
-                score += 250;
+    if (myRooms.length + claimMissionCount < Game.gcl.level) {
+        // We can generate a claim mission.
+        for (let homeRoomName of myRooms) {
+            if (!MEMORY.rooms[homeRoomName]) {
+                continue;
             }
 
-            potentialSettlements.push({
-                roomName: r.roomName,
-                score: score,
-            })
-        }
-    }
+            let missions = MEMORY.rooms[homeRoomName].missions
+            if (!missions.some(m => m.type === 'CLAIM')) {
+                // This homeRoom can generate a claim mission.
 
-    console.log('Potential Settlements:', JSON.stringify(potentialSettlements), potentialSettlements.length)
+                let potentialSettlements = [];
 
-    if (potentialSettlements.length >= 5) {
-        let bestTarget = _.max(potentialSettlements, s => s.score)
-        console.log('Generating ClaimMission for', bestTarget.roomName)
-        return new ClaimMission(bestTarget.roomName)
-    } else if (potentialSettlements.length > 0 && potentialSettlements.some(s => s.score >= 1000)) {
-        let bestTarget = _.max(potentialSettlements, s => s.score)
-        return new ClaimMission(bestTarget.roomName)
-    }
+                // Fill preferred minerals if empty array.
+                if (preferredMinerals.length === 0) {
+
+                    for (let myRoom of myRooms) {
+                        let mineral = Game.rooms[myRoom].find(FIND_MINERALS)[0];
+                        ownedMinerals.find(m => m.constant === mineral.mineralType).count++;
+                    }
+
+                    let min = Infinity;
+                    for (let m of ownedMinerals) {
+                        if (m.count < min) {
+                            min = m.count;
+                        }
+                    }
+
+                    for (let m of ownedMinerals) {
+                        if (m.count === min) {
+                            preferredMinerals.push(m.constant);
+                        }
+                    }
+
+                }
+
+                // Look through monitored rooms and generate list of targets
+                for (let roomName of MEMORY.rooms[homeRoomName].monitoredRooms) {
+                    let r = MEMORY.monitoredRooms[roomName]
+
+                    if (r.lastScan === 0) {
+                        continue;
+                    }
 
 
-    // Find dismantle missions
-    let dismantleTargets = []
-    for (let data of Object.values(monitoredRooms)) {
-        if (data.lastScan === 0) {
-            continue;
-        }
-        let next = false;
-        for (let myRoom of myRooms) {
-            if (myRooms.includes(data.roomName) || (Game.rooms[myRoom].memory.outposts && Game.rooms[myRoom].memory.outposts.some(o => o === data.roomName))) {
-                next = true;
-                break;
+
+                    // Skip this target room if it is an outpost for one of my rooms
+                    let next = false;
+
+                    for (let myRoom of myRooms) {
+                        if (Game.rooms[myRoom].memory.outposts && Game.rooms[myRoom].memory.outposts.some(o => o === r.roomName) || MEMORY.rooms[myRoom].missions.some(m => m.type === 'CLAIM' && m.roomName === r.roomName)) {
+                            next = true;
+                            break;
+                        }
+                    }
+                    if (next) {
+                        continue;
+                    }
+
+                    // See if room meets criteria for being a new room
+                    if (r.distance > 3 && r.controller_id && !r.reserved && !r.ownedBy && !r.hostileTarget) {
+
+
+                        let score = r.rating;
+
+                        if (!preferredMinerals.includes(r.mineralType)) {
+                            score -= 250;
+                        } else {
+                            score += 250;
+                        }
+
+                        potentialSettlements.push({
+                            roomName: r.roomName,
+                            score: score,
+                        })
+                    }
+
+
+
+                }
+
+                // Generate a claim mission if criteria met
+
+                console.log('Potential Settlements for', homeRoomName + ':', JSON.stringify(potentialSettlements), potentialSettlements.length)
+                let potentialSettlementCount = 0
+                for (let s of potentialSettlements) {
+
+                    if (s.score >= 1000) {
+                        potentialSettlementCount++;
+                    }
+                }
+
+                if (potentialSettlementCount > 0) {
+
+                    let bestTarget = _.max(potentialSettlements, s => s.score)
+                    console.log('Generating ClaimMission for', bestTarget.roomName)
+                    let pathToController = false;
+                    if (!MEMORY.monitoredRooms[bestTarget.roomName].strucHits) {
+                        pathToController = true;
+                    }
+                    let mission = new ClaimMission(bestTarget.roomName, pathToController)
+                    MEMORY.rooms[homeRoomName].missions.push(mission)
+
+
+                }
+
+
+
             }
         }
-        if (next) {
-            continue;
-        }
-        try {
-            if (data.structureHits && !data.invaderCore && !data.ownedBy && !data.reservedBy && data.distance <= 2) {
-                dismantleTargets.push(data)
-            }
-        } catch (e) { console.log('Errored out finding structures for', data.roomName) }
-
     }
-
-    if (dismantleTargets.length > 0) {
-        
-        let bestTarget = _.min(dismantleTargets, r => r.distance)
-
-
-        return new DismantleMission(bestTarget.roomName)
-
-    }
-
-
-    return undefined;
 }
 
+// Check for Invader Core missions
 
+// Check for Dismantle Missions
+
+// Check for Fetch Missions
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+ 
+for (let data of Object.values(monitoredRooms)) {
+    if (data.lastScan === 0) {
+        continue;
+    }
+ 
+    for (let i = 1; i < 11; i++) {
+ 
+        if (data.distance === i && !data.hostileTarget && data.invaderCore) {
+ 
+            if (Game.rooms[data.homeRoom].controller.level < 5) {
+                continue;
+            }
+            console.log('Generating Invader Core mission for', data.roomName)
+            return new InvaderCoreMission(data.roomName)
+        }
+    }
+ 
+}
+ 
+//console.log('Entering getMission')
+ 
+ 
+// Find settlement target
+ 
+/*
+    Go through all rooms and put rooms in array.
+ 
+    If we have at least 10 to pick from give each room a score.
+    start with 0, and give
+    
+        2 sources +50
+        3 exits +50
+        distanceRating + distanceRating ( larger is better )
+        Resource we dont currently have
+        distance from hostile room at least 2
+ 
+*/
+
+/*
+ 
+ 
+// Find dismantle missions
+let dismantleTargets = []
+for (let data of Object.values(monitoredRooms)) {
+    if (data.lastScan === 0) {
+        continue;
+    }
+    let next = false;
+    for (let myRoom of myRooms) {
+        if (myRooms.includes(data.roomName) || (Game.rooms[myRoom].memory.outposts && Game.rooms[myRoom].memory.outposts.some(o => o === data.roomName))) {
+            next = true;
+            break;
+        }
+    }
+    if (next) {
+        continue;
+    }
+    try {
+        if (data.structureHits && !data.invaderCore && !data.ownedBy && !data.reservedBy && data.distance <= 2) {
+            dismantleTargets.push(data)
+        }
+    } catch (e) { console.log('Errored out finding structures for', data.roomName) }
+ 
+}
+ 
+if (dismantleTargets.length > 0) {
+ 
+    let bestTarget = _.min(dismantleTargets, r => r.distance)
+ 
+ 
+    return new DismantleMission(bestTarget.roomName)
+ 
+}
+ 
+ 
+return undefined;
+}
+ 
+*/
 
 module.exports = {
     expansionManager,

@@ -100,6 +100,9 @@ function validateStructures(room, plans) {
         s.remove()
     }
     for (let s of enemyStructures) {
+        if(s.structureType === STRUCTURE_STORAGE && room.controller.level <4){
+            continue;
+        }
         s.destroy()
     }
 
@@ -747,11 +750,11 @@ function setRamparts(room, tiles, storagePos) {
                     let pos = path[i]
                     updateTile(pos.x, pos.y, STRUCTURE_ROAD, tiles, center, 4, false, true)
                     updateTile(pos.x, pos.y, STRUCTURE_RAMPART, tiles, center, 4, false, true)
-                    
+
                 }
                 console.log('Setting road to', JSON.stringify(destination))
                 setRoad(room, tiles, storagePos, destination, 0, 4, true)
-                
+
             }
             updateTile(r.x, r.y, STRUCTURE_RAMPART, tiles, center, 4, false, true);
 
@@ -1913,8 +1916,9 @@ function placeSites(homeRoom, plans) {
 
             if (order.level <= RCL && !order.placed) {
                 let ret = room.createConstructionSite(order.x, order.y, order.structure)
-                roomPlaced = true;
-                if (ret === -8) {
+                if (ret === 0) {
+                    roomPlaced = true;
+                } else if (ret === -8) {
                     return;
                 }
 

@@ -45,7 +45,8 @@ module.exports.loop = function () {
         if (room.controller.level < 2 || room.find(FIND_MY_SPAWNS).length === 0) {
 
             let closest = _.min(myRooms.filter(r => r != roomName), r => Game.map.findRoute(roomName, r).length)
-            if (closest) {
+           
+            if (closest !== Infinity) {
                 let targetRemoteBuilderCount = 5;
 
                 let remoteBuilderCount = Object.values(Game.creeps).filter(c => c.memory.home === closest && c.memory.role === 'remoteBuilder' && c.memory.assignedRoom === roomName)
@@ -186,6 +187,7 @@ function InitializeRoom(room) {
         tasks: {},
         sources: sourceObjects,
         outposts: {},
+        missions: [],
     }
 }
 
