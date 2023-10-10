@@ -81,7 +81,7 @@ function roomPlanner(room) {
         placeSites(room, plans);
     };
 
-    if (plans) visualizeStructures(plans, room, room.controller.level);
+    if (plans) visualizeStructures(plans, room, 8);
 
 };
 

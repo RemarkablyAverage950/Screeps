@@ -373,6 +373,11 @@ function expansionManager(myRooms) {
     let monitoredRooms = MEMORY.monitoredRooms
 
     let visibleRooms = Object.values(Game.rooms)
+    for (let r of visibleRooms) {
+        if (!MEMORY.monitoredRooms[r]) {
+            MEMORY.monitoredRooms[r] = new ScanData(r.name, myRooms)
+        }
+    }
     for (let roomName of myRooms) {
         if (!MEMORY.rooms[roomName] || !MEMORY.rooms[roomName].monitoredRooms) {
             continue;

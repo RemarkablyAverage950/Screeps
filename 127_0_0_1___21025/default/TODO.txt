@@ -191,13 +191,13 @@ Expansion Manager:
 
     [] Mission types:
         [] Claim
-            [] Single room assigned
+            [x] Single room assigned
             [] Objectives:
-                [] Clear path to controller
+                [x] Clear path to controller
                 [] Clear path to storage.
                 [] Empty enemy structures with stores
                 [] Only delete structures that have an empty store
-            
+                [x] Claim room
 
         [] Invader Core
             [] One room needs to be assigned.
@@ -224,6 +224,8 @@ Expansion Manager:
 
     [] Fix scout pathfinding
         [] May require re-work of multi-room pathfinding
-        [] Cancel searching for rooms that cannot be accessed.
+        [x] Cancel searching for rooms that cannot be accessed.
 
     [] Haulers/fillers can deliver to stationary builders and upgraders.
+
+

@@ -183,7 +183,7 @@ function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
                     Game.rooms[roomName].controller.my;
                 let scanData = MEMORY.monitoredRooms[roomName]
 
-                if (scanData.hostileTarget) {
+                if (scanData && scanData.hostileTarget) {
                     if (scanData.towers) {
                         return 0xff;
                     }
