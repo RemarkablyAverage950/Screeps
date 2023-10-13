@@ -18,7 +18,7 @@ module.exports.loop = function () {
     delete Memory.rooms[rn].outposts
     delete Memory.rooms[rn].plans
     */
-
+    //Memory.rooms['W58S32'].outposts.push('W58S31');
     // Remove dead creeps from memory.
     for (let name in Memory.creeps) {
         if (!Game.creeps[name]) {

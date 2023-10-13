@@ -430,7 +430,9 @@ function outpostManager(homeRoom, creeps) {
  * @returns {Number}
  */
 function getRemoteSourceDistance(homeRoom, s) {
-
+    if(!s || !s.pos){
+        return;
+    }
     //console.log('Getting distance for source', JSON.stringify(s.pos))
     if (!homeRoom) {
         return;

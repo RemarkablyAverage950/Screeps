@@ -16,7 +16,7 @@ const MAX_PATH_LENGTH = 5;
  * @param {boolean} incomplete Return path incomplete of !incomplete.
  * @returns {RoomPosition[] | Boolean} The path results from PathFinder.search
  */
-function getPath(origin, destination, range, maxRooms, incomplete = false) {
+function getPath(origin, destination, range, maxRooms, incomplete = false, avoidCreeps = false) {
 
     let ret = PathFinder.search(
         origin, { pos: destination, range: range }, {
@@ -37,7 +37,7 @@ function getPath(origin, destination, range, maxRooms, incomplete = false) {
             let matrix = MEMORY.rooms[roomName].costMatrix;
 
             if (!matrix || Game.time !== matrix[1]) {
-                getCostMatrix(room);
+                getCostMatrix(room, avoidCreeps);
                 matrix = MEMORY.rooms[roomName].costMatrix
             };
 
@@ -112,19 +112,27 @@ function moveCreep(creep, destination, range, maxRooms) {
     if (lookCreeps.length > 0) {
 
         const lookCreep = lookCreeps[0]
+        try {
+            if (lookCreep.my && MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] && !MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
 
-        if (lookCreep.my && MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] && !MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
+                let moving = helper.pushCreep(lookCreep, creep);
 
-            let moving = helper.pushCreep(lookCreep, creep);
+                // Get a new path if there is.
+                if (!moving) {
 
-            // Get a new path if there is.
-            if (!moving) {
-                path = getPath(creep.pos, destination, range, maxRooms);
-            } else {
-                MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving = true;
+
+                    path = getPath(creep.pos, destination, range, maxRooms, false, true);
+                    if (!path || path.length === 0) {
+                        MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
+                        MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks = [];
+                        return;
+                    }
+                } else {
+                    MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving = true;
+                }
+
             }
-
-        }
+        } catch (e) { }
     }
     if (!path || path.length === 0) {
         MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
@@ -232,7 +240,7 @@ function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
  * Generates a standard CostMatrix for a room.
  * @param {Room} room 
  */
-function getCostMatrix(room) {
+function getCostMatrix(room, avoidCreeps) {
 
 
     let costMatrix = new PathFinder.CostMatrix();
@@ -299,21 +307,27 @@ function getCostMatrix(room) {
     // Set parked or undetermined creeps to impassable
     let myCreeps = room.find(FIND_MY_CREEPS)
     for (let creep of myCreeps) {
-
-        if (MEMORY.rooms[creep.memory.home].creeps[creep.name]) {
-            const moving = MEMORY.rooms[creep.memory.home].creeps[creep.name].moving;
-
-            if (moving === false) {
-                let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0]
-                if (task && task.type === 'HARVEST') {
-                    costMatrix.set(creep.pos.x, creep.pos.y, 0xff);
-                } else {
-                    costMatrix.set(creep.pos.x, creep.pos.y, costMatrix.get(creep.pos.x, creep.pos.y) + 5)
-                }
-            } else {
-                costMatrix.set(creep.pos.x, creep.pos.y, costMatrix.get(creep.pos.x, creep.pos.y) + 2)
-            }
+        if (avoidCreeps) {
+            costMatrix.set(creep.pos.x, creep.pos.y, 0xff)
+            continue;
         }
+
+        try {
+            if (MEMORY.rooms[creep.memory.home].creeps[creep.name]) {
+                const moving = MEMORY.rooms[creep.memory.home].creeps[creep.name].moving;
+
+                if (moving === false) {
+                    let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0]
+                    if (task && task.type === 'HARVEST') {
+                        costMatrix.set(creep.pos.x, creep.pos.y, 0xff);
+                    } else {
+                        costMatrix.set(creep.pos.x, creep.pos.y, costMatrix.get(creep.pos.x, creep.pos.y) + 5)
+                    }
+                } else {
+                    costMatrix.set(creep.pos.x, creep.pos.y, costMatrix.get(creep.pos.x, creep.pos.y) + 2)
+                }
+            }
+        } catch { }
     }
 
 

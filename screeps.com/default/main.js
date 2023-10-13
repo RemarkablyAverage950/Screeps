@@ -38,18 +38,20 @@ module.exports.loop = function () {
     expansionManager(myRooms);
 
     for (const roomName of myRooms) {
-
+        if (Game.cpu.bucket < 20) {
+            continue;
+        }
         const room = Game.rooms[roomName];
         const creeps = Object.values(Game.creeps).filter(c => c.memory.home === roomName);
 
         if (room.controller.level < 2 || room.find(FIND_MY_SPAWNS).length === 0) {
 
-            let closest = _.min(myRooms.filter(r => r != roomName), r => Game.map.findRoute(roomName, r).length)
-           
+            let closest = _.min(myRooms.filter(r => r != roomName && Game.rooms[r].controller.level > 3), r => Game.map.findRoute(roomName, r).length)
+
             if (closest !== Infinity) {
                 let targetRemoteBuilderCount = 5;
 
-                let remoteBuilderCount = Object.values(Game.creeps).filter(c => c.memory.home === closest && c.memory.role === 'remoteBuilder' && c.memory.assignedRoom === roomName)
+                let remoteBuilderCount = Object.values(Game.creeps).filter(c => c.memory.home === closest && c.memory.role === 'remoteBuilder' && c.memory.assignedRoom === roomName).length
                 let spawnQueue = MEMORY.rooms[closest].spawnQueue
                 for (let so of spawnQueue) {
                     if (so.role === 'remoteBuilder' && so.options.memory.assignedRoom === roomName) {
@@ -76,6 +78,32 @@ module.exports.loop = function () {
 
         }
 
+        let structures = room.find(FIND_STRUCTURES)
+        let energy = 0;
+        let dropped = room.find(FIND_DROPPED_RESOURCES)
+        for (let s of structures) {
+            if (s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_STORAGE) {
+                energy += s.store[RESOURCE_ENERGY]
+                if (energy > 5000) {
+                    break;
+                }
+            }
+        }
+        if (energy < 5000) {
+            for (let d of dropped) {
+                if (d.resourceType === RESOURCE_ENERGY) {
+                    energy += d.amount
+                }
+            }
+        }
+
+        if (energy < 5000) {
+            // Request energy be brought over.
+            MEMORY.rooms[roomName].needEnergy = true;
+        } else {
+            MEMORY.rooms[roomName].needEnergy = false;
+        }
+
 
 
         manageMemory(room, creeps);
@@ -89,7 +117,7 @@ module.exports.loop = function () {
 
     }
 
-    if(Game.cpu.bucket >= 10000){
+    if (Game.cpu.bucket >= 10000) {
         Game.cpu.generatePixel();
     }
 }

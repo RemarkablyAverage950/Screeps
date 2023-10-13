@@ -92,7 +92,7 @@ let helper = {
                             } else if (l.type === LOOK_CREEPS && l.creep.my) {
 
                                 let lookCreep = l.creep
-                                if (lookCreep.name === creep.name) { // || lookCreep.name === pushingCreep.name
+                                if (lookCreep.name === creep.name || lookCreep.name === pushingCreep.name) { // 
                                     valid = false;
                                     break;
                                 } else if (!MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
@@ -212,7 +212,7 @@ let helper = {
                             break;
                         } else if (l.type === LOOK_CREEPS && l.creep.name != creep.name) {
                             let lookCreep = l.creep
-                            if (!MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
+                            if (!MEMORY.rooms[lookCreep.memory.home] ||!MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] || !MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
                                 valid = false;
                             }
                         }

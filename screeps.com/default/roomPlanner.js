@@ -100,9 +100,14 @@ function validateStructures(room, plans) {
         s.remove()
     }
     for (let s of enemyStructures) {
-        if(s.structureType === STRUCTURE_STORAGE && room.controller.level <4){
+        if (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_NUKER) {
+            console.log('removing structure', s.structureType, JSON.stringify(s.pos))
+            s.destroy()
+        }
+        if (s.store && (s.store.getUsedCapacity(RESOURCE_ENERGY) > 0 || s.store.getUsedCapacity() > 0)) {
             continue;
         }
+        console.log('removing structure', s.structureType, JSON.stringify(s.pos))
         s.destroy()
     }
 

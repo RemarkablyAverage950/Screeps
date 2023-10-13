@@ -228,4 +228,4 @@ Expansion Manager:
 
     [] Haulers/fillers can deliver to stationary builders and upgraders.
 
-
+    [] Send miners to help set up new rooms if no spawn.
