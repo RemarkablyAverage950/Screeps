@@ -255,7 +255,7 @@ function assignTask(room, creep, creeps) {
 
     if ((role === 'remoteHauler' || role === 'remoteMiner' || role === 'reserver' || role === 'remoteMaintainer' || role === 'remoteBuilder' || role === 'longHauler')) {
         let assignedRoom = creep.memory.assignedRoom;
-        if (assignedRoom && MEMORY.rooms[room.name].outposts[assignedRoom] && MEMORY.rooms[room.name].outposts[assignedRoom].occupied) {
+        if (assignedRoom && MEMORY.rooms[room.name].outposts[assignedRoom] && MEMORY.rooms[room.name].outposts[assignedRoom].hostileOccupied) {
 
             if (creep.room.name != creep.memory.home) {
                 MEMORY.rooms[room.name].creeps[creep.name].tasks.push(new MoveToRoomTask(room.name))
@@ -983,7 +983,7 @@ const getRoleTasks = {
             return undefined;
         }
 
-        if(!controller.my && controller.reservation && controller.reservation.username !== MEMORY.username){
+        if (!controller.my && controller.reservation && controller.reservation.username !== MEMORY.username) {
             return new AttackControllerTask(controller.id)
         }
 
@@ -1092,13 +1092,15 @@ const getRoleTasks = {
             if (creep.room.controller && creep.room.controller.my) {
                 creep.suicide()
             }
-            let walls = creep.room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART)
+            let structures = creep.room.find(FIND_STRUCTURES)
+
+
             let ret;
             let path;
             let controller = creep.room.controller
             if (controller && getPath(creep.pos, controller.pos, 1, 1, true)) {
-                 ret = PathFinder.search(
-                    controller.pos, creep.pos,
+                ret = PathFinder.search(
+                    controller.pos, { pos: creep.pos, range: 1 },
                     {
                         // We need to set the defaults costs higher so that we
                         // can set the road cost lower in `roomCallback`
@@ -1117,13 +1119,17 @@ const getRoleTasks = {
                             room.find(FIND_CREEPS).forEach(c => costs.set(c.pos.x, c.pos.y, 0xff))
 
                             room.find(FIND_STRUCTURES).forEach(function (struct) {
-                                if(struct.structureType === STRUCTURE_CONTROLLER){
+                                if (struct.structureType === STRUCTURE_CONTROLLER) {
                                     costs.set(struct.pos.x, struct.pos.y, 0xff)
-                                }
-                                if (struct.structureType !== STRUCTURE_CONTAINER &&
+
+                                } else if (struct.structureType !== STRUCTURE_CONTAINER &&
                                     struct.structureType !== STRUCTURE_ROAD) {
                                     // Can't walk through non-walkable buildings
-                                    costs.set(struct.pos.x, struct.pos.y, 5);
+                                    if (struct.structureType === STRUCTURE_WALL) {
+                                        costs.set(struct.pos.x, struct.pos.y, 10)
+                                    } else {
+                                        costs.set(struct.pos.x, struct.pos.y, 5);
+                                    }
                                 }
                             });
 
@@ -1131,24 +1137,21 @@ const getRoleTasks = {
                         },
                     }
                 );
-               
-                if (ret.incomplete) {
-                    path = ret.path
+
+                if (!ret.incomplete) {
+
+                    path = ret.path;
                     for (let i = 0; i < path.length; i++) {
 
                         if (!getPath(creep.pos, path[i], 1, 1, true)) {
 
-                            let targetPos = path[i - 1];
-                            if (i === 0) {
-                                targetPos = path[i]
-                            }
+                            let targetPos = path[i];
+
+
                             let target = creep.room.lookForAt(LOOK_STRUCTURES, targetPos)[0]
                             if (target)
 
-                                try { return new DismantleTask(target.id) } catch (e) {
-                                    //console.log('Failed dismantle task',creep.name,JSON.stringify(creep.pos))
-                                }
-
+                                return new DismantleTask(target.id)
                         }
                     }
 
@@ -1159,10 +1162,11 @@ const getRoleTasks = {
 
             if (storage && getPath(creep.pos, storage.pos, 1, 1, true)) {
                 ret = PathFinder.search(
-                    storage.pos, creep.pos,
+                    storage.pos, { pos: creep.pos, range: 1 },
                     {
                         // We need to set the defaults costs higher so that we
                         // can set the road cost lower in `roomCallback`
+
                         plainCost: 2,
                         swampCost: 2,
                         ignoreCreeps: false,
@@ -1177,30 +1181,36 @@ const getRoleTasks = {
                             let costs = new PathFinder.CostMatrix;
                             room.find(FIND_CREEPS).forEach(c => costs.set(c.pos.x, c.pos.y, 0xff))
                             room.find(FIND_STRUCTURES).forEach(function (struct) {
-                                if(struct.structureType === STRUCTURE_CONTROLLER){
+                                if (struct.structureType === STRUCTURE_CONTROLLER) {
                                     costs.set(struct.pos.x, struct.pos.y, 0xff)
-                                }
-                                if (struct.structureType !== STRUCTURE_CONTAINER &&
+
+                                } else if (struct.structureType !== STRUCTURE_CONTAINER &&
                                     struct.structureType !== STRUCTURE_ROAD) {
                                     // Can't walk through non-walkable buildings
-                                    costs.set(struct.pos.x, struct.pos.y, 10);
+                                    if (struct.structureType === STRUCTURE_WALL) {
+                                        costs.set(struct.pos.x, struct.pos.y, 15)
+                                    } else {
+                                        costs.set(struct.pos.x, struct.pos.y, 5);
+                                    }
                                 }
                             });
+
 
                             return costs;
                         },
                     }
                 );
 
-                if (ret.incomplete) {
+                if (!ret.incomplete) {
+
                     path = ret.path;
                     for (let i = 0; i < path.length; i++) {
 
                         if (!getPath(creep.pos, path[i], 1, 1, true)) {
-                            let targetPos = path[i - 1];
-                            if (i === 0) {
-                                targetPos = path[i];
-                            }
+
+                            let targetPos = path[i];
+
+
                             let target = creep.room.lookForAt(LOOK_STRUCTURES, targetPos)[0]
                             if (target)
 
@@ -1215,8 +1225,8 @@ const getRoleTasks = {
 
 
             let missionData = MEMORY.rooms[creep.memory.home].missions.find(m => m.roomName === creep.room.name)
-           
-            let structures = creep.room.find(FIND_STRUCTURES)
+
+
 
             let targets = [];
             for (let s of structures) {
@@ -1546,20 +1556,30 @@ const getRoleTasks = {
                 return new MoveToRoomTask(homeRoomName)
 
             } else if (creep.room.name === assignedRoomName) {
-                let resources = room.find(FIND_DROPPED_RESOURCES)
+                let resources;
+                let structures;
+                if (creep.room.controller && creep.room.controller.my) {
+                    structures = room.find(FIND_HOSTILE_STRUCTURES)
+                    resources = room.find(FIND_DROPPED_RESOURCES).filter(r => r.amount > creep.store.getFreeCapacity())
+
+
+                } else {
+                    structures = room.find(FIND_STRUCTURES).filter(s => {
+                        let pos = s.pos
+                        let rampart = room.find(FIND_STRUCTURES).filter(r => r.structureType === STRUCTURE_RAMPART && r.pos.x === pos.x && r.pos.y === pos.y)[0]
+                        if (rampart) {
+                            return false;
+                        }
+                        return true;
+                    })
+                    resources = room.find(FIND_DROPPED_RESOURCES).filter(r => r.amount > 50)
+                }
                 if (resources.length) {
                     resources = resources.sort((a, b) => b.forecast() - a.forecast())
 
                     return new PickupTask(resources[0].id, Math.min(creep.store.getFreeCapacity(), resources[0].amount))
                 }
-                let structures = room.find(FIND_STRUCTURES).filter(s => {
-                    let pos = s.pos
-                    let rampart = room.find(FIND_STRUCTURES).filter(r => r.structureType === STRUCTURE_RAMPART && r.pos.x === pos.x && r.pos.y === pos.y)[0]
-                    if (rampart) {
-                        return false;
-                    }
-                    return true;
-                })
+
                 let storeStructures = [];
                 for (let s of structures) {
                     if (s.structureType === STRUCTURE_NUKER) {
@@ -1877,9 +1897,79 @@ const getRoleTasks = {
      * @returns 
      */
     scout: function (room, creep) {
-        if(Game.cpu.bucket < 100){
+        if (Game.cpu.bucket < 100) {
             return undefined;
         }
+
+        const controller = creep.room.controller;
+        if (controller && !controller.safeMode) {
+            let hostileSites = creep.room.find(FIND_HOSTILE_CONSTRUCTION_SITES).filter(s => s.pos.x !== creep.pos.x && s.pos.y !== creep.pos.y)
+
+            if (hostileSites.length) {
+                let closest = _.min(hostileSites, s => s.pos.getRangeTo(creep))
+                if (!getPath(creep.pos, closest.pos, 0, 1, true)) {
+
+                    console.log(creep.name, 'stomping enemy site at', JSON.stringify(closest.pos))
+                    return new MoveTask(closest.pos)
+                }
+            }
+        }
+
+        if (controller && !getPath(creep.pos, controller.pos, 1, 1, true)) {
+
+            const sign = controller.sign;
+
+            if (!sign || sign.username !== MEMORY.username) {
+                return new SignTask(controller.id, 'RA was here.')
+            }
+
+        }
+
+
+        let currentRoomName = creep.room.name;
+        let homeRoomName = creep.memory.home;
+
+        let neighbors = Object.values(Game.map.describeExits(currentRoomName))
+        //console.log(creep.name, creep.room, neighbors)
+        let availableNextRooms = []
+
+        for (const neighborName of neighbors) {
+
+            if (MEMORY.monitoredRooms[neighborName] && (Game.map.findExit(currentRoomName, neighborName) !== ERR_NO_PATH || Game.map.getRoomLinearDistance(homeRoomName, neighborName) < 11)) {
+                availableNextRooms.push(neighborName)
+            }
+
+        }
+        //console.log('availableNextRooms',availableNextRooms)
+        let roomsNeedingScan = availableNextRooms.filter(r => {
+            if (!MEMORY.monitoredRooms[r]) {
+                return false;
+            }
+            let lastScan = MEMORY.monitoredRooms[r].lastScan;
+            let distance = Game.map.findRoute(homeRoomName, r).length;
+
+            return Game.time - lastScan > (100 * distance)
+
+        })
+
+        if (roomsNeedingScan.length === 0) {
+            roomsNeedingScan = availableNextRooms;
+        }
+        let min = Infinity;
+        let nextRoom = undefined;
+        for (let neighborName of availableNextRooms) {
+            let lastScanTime = MEMORY.monitoredRooms[neighborName].lastScan
+            if (lastScanTime < min) {
+                min = lastScanTime;
+                nextRoom = neighborName
+            }
+        }
+
+        if (nextRoom) {
+            return new MoveToRoomTask(nextRoom)
+        }
+
+        /*
         const controller = creep.room.controller;
         if (controller && !controller.safeMode) {
             let hostileSites = creep.room.find(FIND_HOSTILE_CONSTRUCTION_SITES).filter(s => s.pos.x !== creep.pos.x && s.pos.y !== creep.pos.y)
@@ -2037,7 +2127,7 @@ const getRoleTasks = {
         }
 
         return undefined;
-
+        */
     },
 
     /**
@@ -2117,37 +2207,6 @@ const getRoleTasks = {
         }
 
         MEMORY.monitoredRooms[creep.room.name].occupied = false;
-        let mission = MEMORY.mission
-        if (mission && MEMORY.mission.roomName === creep.room.name) {
-            const type = mission.type
-
-
-            if (type === 'INVADER_CORE') {
-                if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].monitoredRooms) {
-                    for (let rName of MEMORY.rooms[creep.memory.home].monitoredRooms) {
-                        if (MEMORY.monitoredRooms[rName].invaderCore) {
-                            creep.memory.assignedRoom = rName;
-                            return new MoveToRoomTask(rName)
-                            MEMORY.mission.complete = true;
-                        }
-                    }
-                }
-                // console.log(JSON.stringify(MEMORY.rooms[creep.memory.home]))
-                if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].monitoredRooms) {
-                    for (let rName of MEMORY.rooms[creep.memory.home].monitoredRooms) {
-                        if (MEMORY.monitoredRooms[rName].occupied) {
-                            creep.memory.assignedRoom = rName;
-                            return new MoveToRoomTask(rName)
-                        }
-                    }
-                }
-            }
-
-
-
-        }
-
-
 
         return helper.parkTask(creep.room, creep)
 

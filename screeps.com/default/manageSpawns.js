@@ -208,7 +208,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
         if (creepsCount['worker'] === undefined) {
             body = getBody.worker(room.energyAvailable, conserveEnergy)
-         
+
             if (body.length === 0) return spawnQueue;
 
             options = {
@@ -657,7 +657,7 @@ const getBody = {
      * @param {Creep[]} hostiles 
      */
     defender: function (budget, hostiles) {
-        let enemyAttackParts = 0;
+        let enemyAttackParts = 5;
 
         if (hostiles === undefined) {
             enemyAttackParts = 50;
@@ -675,12 +675,12 @@ const getBody = {
         }
 
         let attackParts = 2; // 80
-        let moveParts = 2; // 100
+        let moveParts = 4; // 200
         let toughParts = 0;
         let healParts = 1; // 250
         let rangedAttackParts = 1; // 150
-        let cost = 660;
-        if (budget < 660) {
+        let cost = 760;
+        if (budget < 760) {
             attackParts = 2;
             moveParts = 1
             rangedAttackParts = 0
@@ -688,11 +688,12 @@ const getBody = {
             cost = 210
         }
 
-        while (cost + 280 <= budget && attackParts < enemyAttackParts + 1 && attackParts + moveParts + toughParts < 47) {
+        while (cost + 330 <= budget && attackParts < enemyAttackParts + 1 && attackParts + moveParts + toughParts < 47) {
             attackParts++;
             moveParts++;
+            moveParts++
             rangedAttackParts++;
-            cost += 280
+            cost += 330
         }
 
 
@@ -720,7 +721,7 @@ const getBody = {
             body.push(HEAL);
         };
 
-       
+
         return body;
 
     },
@@ -1012,24 +1013,24 @@ const getBody = {
     },
 
     longHauler: function (budget, homeRoomName, missionRoomName, qty) { // Game.rooms[homeRoomName].energyCapacityAvailable, homeRoomName, mission.roomName, data.storeQty
-        
-        let distance = Math.max(50,(Game.map.findRoute(homeRoomName, missionRoomName).length - 1) * 50);
-    
-       
+
+        let distance = Math.max(50, (Game.map.findRoute(homeRoomName, missionRoomName).length - 1) * 50);
+
+
 
         let tripTime = distance * 2
-  
+
 
         let tripsPerLife = Math.floor(1500 / tripTime)
-    
+
         let carryPerTrip = qty / tripsPerLife
-  
+
         let cost = carryPerTrip * 2
-      
+
         let creepsNeeded = Math.ceil(cost / budget)
-       
+
         let carryParts = Math.ceil((carryPerTrip / 50) / creepsNeeded)
-   
+
         let body = []
         for (let i = 0; i < carryParts; i++) {
             body.push(CARRY)
@@ -1250,7 +1251,7 @@ const getBody = {
     },
 
     remoteBuilder: function (energyBudget, room, conserveEnergy) {
-      
+
         if (conserveEnergy) {
             return [WORK, CARRY, MOVE]
         }
@@ -1847,7 +1848,7 @@ const getTargetCount = {
     },
 
     scout: function (room) {
-   
+
         if (room.controller.level === 8) {
             return 0;
         }
@@ -1921,7 +1922,7 @@ const getTargetCount = {
     * @returns {number} 
     */
     worker: function (minerCount, fillerCount, room, storedEnergy) {
-     
+
         if (room.controller.level <= 2) {
             return 2
         }
@@ -1939,7 +1940,7 @@ const getTargetCount = {
         if (fillerCount === 0 && room.energyAvailable < room.energyCapacityAvailable) {
             count++
         }
-     
+
         return count;
 
     },

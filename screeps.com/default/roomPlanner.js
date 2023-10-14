@@ -104,11 +104,21 @@ function validateStructures(room, plans) {
             console.log('removing structure', s.structureType, JSON.stringify(s.pos))
             s.destroy()
         }
-        if (s.store && (s.store.getUsedCapacity(RESOURCE_ENERGY) > 0 || s.store.getUsedCapacity() > 0)) {
-            continue;
+        let destroy = true
+        if (s.store) {
+            for (let r of Object.keys(s.store)) {
+                if (s.store[r] > 0) {
+                    destroy = false;
+                    break;
+                }
+            }
+
+
         }
-        console.log('removing structure', s.structureType, JSON.stringify(s.pos))
-        s.destroy()
+        if (destroy) {
+            console.log('removing structure', s.structureType, JSON.stringify(s.pos))
+            s.destroy()
+        }
     }
 
     for (let s of structures) {
@@ -133,8 +143,22 @@ function validateStructures(room, plans) {
                 }
 
             } else {
-                console.log('removing structure', s.structureType, JSON.stringify(s.pos))
-                s.destroy()
+                let destroy = true
+                if (!s.my && s.store) {
+                    for (let r of Object.keys(s.store)) {
+                        if (s.store[r] > 0) {
+                            destroy = false;
+                            break;
+                        }
+                    }
+
+
+                }
+                if (destroy) {
+                    console.log('removing structure', s.structureType, JSON.stringify(s.pos))
+                    s.destroy()
+                }
+
 
             }
         }

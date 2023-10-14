@@ -22,7 +22,7 @@ function outpostManager(homeRoom, creeps) {
     }
     let outposts = homeRoom.memory.outposts;
 
-    if(!outposts){
+    if (!outposts) {
         return;
     }
     for (let outpostName of outposts) {
@@ -53,11 +53,11 @@ function outpostManager(homeRoom, creeps) {
 
         let occupied = false
         let hostileStructures = outpostRoom.find(FIND_HOSTILE_STRUCTURES)
-        if(hostileStructures.length){
+        if (hostileStructures.length) {
             occupied = true;
         }
         let hostiles = outpostRoom.find(FIND_HOSTILE_CREEPS)
-        
+        let hostileOccupied = false;
         if (hostiles.length) {
             if (!occupied) {
                 for (let hCreep of hostiles) {
@@ -69,9 +69,11 @@ function outpostManager(homeRoom, creeps) {
                     let body = hCreep.body;
 
                     for (let part of body) {
-                        if (part.type === ATTACK || part.type === RANGED_ATTACK) {
+                        if (part.type === WORK || part.type === CARRY || part.type === CLAIM) {
                             occupied = true;
-                            break;
+
+                        } else if (part.type === ATTACK || part.type === RANGED_ATTACK){
+                            hostileOccupied = true;
                         }
                     }
 
@@ -110,6 +112,7 @@ function outpostManager(homeRoom, creeps) {
                         assignedRoom: outpostName,
                     },
                 };
+                console.log(homeRoom.name, 'spawning defender to defend', outpostName)
                 MEMORY.rooms[homeRoom.name].spawnQueue.push(new SpawnOrder('defender', 4, body, options));
                 defenderCount++;
             }
@@ -122,6 +125,7 @@ function outpostManager(homeRoom, creeps) {
         }
 
         heap.occupied = occupied
+        heap.hostileOccupied = hostileOccupied
         MEMORY.rooms[homeRoom.name].outposts[outpostName] = heap;
 
         if (Game.time % 10 === 0) {
@@ -135,7 +139,7 @@ function outpostManager(homeRoom, creeps) {
                 }
 
                 let heap = MEMORY.rooms[homeRoom.name].outposts[outpostName];
-                if (!heap || heap.occupied) {
+                if (!heap || heap.hostileOccupied) {
                     continue;
                 }
 
@@ -234,7 +238,7 @@ function outpostManager(homeRoom, creeps) {
                     heap.sources = {};
                     const sources = outpostRoom.find(FIND_SOURCES);
                     const containers = outpostRoom.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_CONTAINER);
-                  
+
                     for (let s of sources) {
 
                         let containerPos = undefined;
@@ -248,7 +252,7 @@ function outpostManager(homeRoom, creeps) {
                             }
                         }
 
-                        
+
                         distance = getRemoteSourceDistance(homeRoom, s);
 
                         for (let c of creeps) {
@@ -430,7 +434,7 @@ function outpostManager(homeRoom, creeps) {
  * @returns {Number}
  */
 function getRemoteSourceDistance(homeRoom, s) {
-    if(!s || !s.pos){
+    if (!s || !s.pos) {
         return;
     }
     //console.log('Getting distance for source', JSON.stringify(s.pos))
