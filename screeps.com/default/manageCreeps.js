@@ -743,10 +743,14 @@ function executeTask(room, creep) {
             break;
 
         case 'RANGED_ATTACK':
-            creep.rangedAttack(target) !== 0
-            if (creep.pos.getRangeTo(target) > 1) {
-                moveCreep(creep, target.pos, 1, 1);
+            let raRet = creep.rangedAttack(target)
+
+            if (raRet !== 0) {
+                moveCreep(creep, target.pos, 1, 1)
+            } else {
+                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
             }
+
             break;
 
         case 'REPAIR':
@@ -979,10 +983,8 @@ const getRoleTasks = {
             return undefined;
         }
 
-        let mission = MEMORY.rooms[creep.memory.home].missions.find(m => m.type === 'CLAIM')
-        if (mission && getPath(creep.pos, creep.room.controller.pos, 1, 1, true)) {
-
-            MEMORY.rooms[creep.memory.home].missions.find(m => m.type === 'CLAIM').pathToController = false;
+        if(!controller.my && controller.reservation && controller.reservation.username !== MEMORY.username){
+            return new AttackControllerTask(controller.id)
         }
 
         if (!controller.my) {
@@ -1090,9 +1092,12 @@ const getRoleTasks = {
             if (creep.room.controller && creep.room.controller.my) {
                 creep.suicide()
             }
+            let walls = creep.room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART)
+            let ret;
+            let path;
             let controller = creep.room.controller
             if (controller && getPath(creep.pos, controller.pos, 1, 1, true)) {
-                let path = PathFinder.search(
+                 ret = PathFinder.search(
                     controller.pos, creep.pos,
                     {
                         // We need to set the defaults costs higher so that we
@@ -1112,6 +1117,9 @@ const getRoleTasks = {
                             room.find(FIND_CREEPS).forEach(c => costs.set(c.pos.x, c.pos.y, 0xff))
 
                             room.find(FIND_STRUCTURES).forEach(function (struct) {
+                                if(struct.structureType === STRUCTURE_CONTROLLER){
+                                    costs.set(struct.pos.x, struct.pos.y, 0xff)
+                                }
                                 if (struct.structureType !== STRUCTURE_CONTAINER &&
                                     struct.structureType !== STRUCTURE_ROAD) {
                                     // Can't walk through non-walkable buildings
@@ -1122,31 +1130,35 @@ const getRoleTasks = {
                             return costs;
                         },
                     }
-                ).path;
+                );
+               
+                if (ret.incomplete) {
+                    path = ret.path
+                    for (let i = 0; i < path.length; i++) {
 
-                console.log('A',creep.name,creep.room.name,JSON.stringify(path),)
-                for (let i = 1; i < path.length; i++) {
+                        if (!getPath(creep.pos, path[i], 1, 1, true)) {
 
-                    if (!getPath(creep.pos, path[i], 1, 1, true)) {
-                        
-                        let targetPos = path[i - 1];
-                        if(i === 1){
-                            targetPos = path[i]
+                            let targetPos = path[i - 1];
+                            if (i === 0) {
+                                targetPos = path[i]
+                            }
+                            let target = creep.room.lookForAt(LOOK_STRUCTURES, targetPos)[0]
+                            if (target)
+
+                                try { return new DismantleTask(target.id) } catch (e) {
+                                    //console.log('Failed dismantle task',creep.name,JSON.stringify(creep.pos))
+                                }
+
                         }
-                        let target = creep.room.lookForAt(LOOK_STRUCTURES, targetPos)[0]
-                        if (target)
-                            console.log(creep.name,'targeting',JSON.stringify(target.pos))
-                            try{ return new DismantleTask(target.id)} catch(e){ console.log('Failed dismantle task',creep.name,JSON.stringify(creep.pos))}
-                            
                     }
-                }
 
+                }
             }
             let storage = creep.room.storage
 
 
             if (storage && getPath(creep.pos, storage.pos, 1, 1, true)) {
-                let path = PathFinder.search(
+                ret = PathFinder.search(
                     storage.pos, creep.pos,
                     {
                         // We need to set the defaults costs higher so that we
@@ -1165,6 +1177,9 @@ const getRoleTasks = {
                             let costs = new PathFinder.CostMatrix;
                             room.find(FIND_CREEPS).forEach(c => costs.set(c.pos.x, c.pos.y, 0xff))
                             room.find(FIND_STRUCTURES).forEach(function (struct) {
+                                if(struct.structureType === STRUCTURE_CONTROLLER){
+                                    costs.set(struct.pos.x, struct.pos.y, 0xff)
+                                }
                                 if (struct.structureType !== STRUCTURE_CONTAINER &&
                                     struct.structureType !== STRUCTURE_ROAD) {
                                     // Can't walk through non-walkable buildings
@@ -1175,30 +1190,32 @@ const getRoleTasks = {
                             return costs;
                         },
                     }
-                ).path;
+                );
 
+                if (ret.incomplete) {
+                    path = ret.path;
+                    for (let i = 0; i < path.length; i++) {
 
-                for (let i = 1; i < path.length; i++) {
+                        if (!getPath(creep.pos, path[i], 1, 1, true)) {
+                            let targetPos = path[i - 1];
+                            if (i === 0) {
+                                targetPos = path[i];
+                            }
+                            let target = creep.room.lookForAt(LOOK_STRUCTURES, targetPos)[0]
+                            if (target)
 
-                    if (!getPath(creep.pos, path[i], 1, 1, true)) {
-                        let targetPos = path[i - 1];
-                        let target = creep.room.lookForAt(LOOK_STRUCTURES, targetPos)[0]
-                        if (target)
-
-                            return new DismantleTask(target.id)
+                                return new DismantleTask(target.id)
+                        }
                     }
-                }
 
+                }
             }
 
 
 
 
             let missionData = MEMORY.rooms[creep.memory.home].missions.find(m => m.roomName === creep.room.name)
-            if (missionData) {
-                missionData.pathToController = true;
-                missionData.pathToStorage = true;
-            }
+           
             let structures = creep.room.find(FIND_STRUCTURES)
 
             let targets = [];
@@ -1338,33 +1355,31 @@ const getRoleTasks = {
     filler: function (room, creep, creeps) {
         let tasks = [];
         let fillTasks = getTasks.fill(room, creep)
-        if (fillTasks.length) {
-            if (creep.store[RESOURCE_ENERGY] > 0) {
 
-                tasks.push(...fillTasks);
+        if (creep.store[RESOURCE_ENERGY] > 0) {
 
-            }
-            ;
-            if (creep.store.getFreeCapacity() > 0) {
+            tasks.push(...fillTasks);
 
-                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, false));
-
-                if (room.storage && room.storage.store[RESOURCE_ENERGY] > creep.store.getFreeCapacity()) {
-                    tasks.push(new WithdrawTask(room.storage.id, RESOURCE_ENERGY, creep.store.getFreeCapacity()))
-                } else {
-                    tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, true));
-                    tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, true));
-
-                    if (tasks.length === 0) {
-                        tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, false));
-                        tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, false));
-                    }
-
-                }
-            }
-        } else {
-            tasks.push(...getRoleTasks.hauler(room, creep, creeps))
         }
+        ;
+        if (creep.store.getFreeCapacity() > 0) {
+
+            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, false));
+
+            if (room.storage && room.storage.store[RESOURCE_ENERGY] > creep.store.getFreeCapacity()) {
+                tasks.push(new WithdrawTask(room.storage.id, RESOURCE_ENERGY, creep.store.getFreeCapacity()))
+            } else {
+                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, true));
+                tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, true));
+
+                if (tasks.length === 0) {
+                    tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, false));
+                    tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, false));
+                }
+
+            }
+        }
+
 
 
 
@@ -1530,14 +1545,21 @@ const getRoleTasks = {
 
                 return new MoveToRoomTask(homeRoomName)
 
-            } else {
+            } else if (creep.room.name === assignedRoomName) {
                 let resources = room.find(FIND_DROPPED_RESOURCES)
                 if (resources.length) {
                     resources = resources.sort((a, b) => b.forecast() - a.forecast())
 
                     return new PickupTask(resources[0].id, Math.min(creep.store.getFreeCapacity(), resources[0].amount))
                 }
-                let structures = room.find(FIND_STRUCTURES)
+                let structures = room.find(FIND_STRUCTURES).filter(s => {
+                    let pos = s.pos
+                    let rampart = room.find(FIND_STRUCTURES).filter(r => r.structureType === STRUCTURE_RAMPART && r.pos.x === pos.x && r.pos.y === pos.y)[0]
+                    if (rampart) {
+                        return false;
+                    }
+                    return true;
+                })
                 let storeStructures = [];
                 for (let s of structures) {
                     if (s.structureType === STRUCTURE_NUKER) {
@@ -1562,6 +1584,12 @@ const getRoleTasks = {
                         return new WithdrawTask(closest.id, r, Math.min(closest.store[r], creep.store.getFreeCapacity()))
                     }
 
+                }
+            } else {
+                if (creep.store.getUsedCapacity > 0) {
+                    return new MoveToRoomTask(homeRoomName)
+                } else {
+                    return new MoveToRoomTask(assignedRoomName)
                 }
             }
 
@@ -1829,6 +1857,9 @@ const getRoleTasks = {
 
             return new MoveToRoomTask(assignedRoom)
         }
+        if (!creep.room.controller) {
+            return;
+        }
         if (creep.room.controller.reservation && creep.room.controller.reservation.username !== MEMORY.username) {
             return new AttackControllerTask(creep.room.controller.id)
         } else if (creep.room.controller.owner && creep.room.controller.owner.username !== MEMORY.username) {
@@ -1846,16 +1877,20 @@ const getRoleTasks = {
      * @returns 
      */
     scout: function (room, creep) {
-
+        if(Game.cpu.bucket < 100){
+            return undefined;
+        }
         const controller = creep.room.controller;
-        let hostileSites = creep.room.find(FIND_HOSTILE_CONSTRUCTION_SITES)
+        if (controller && !controller.safeMode) {
+            let hostileSites = creep.room.find(FIND_HOSTILE_CONSTRUCTION_SITES).filter(s => s.pos.x !== creep.pos.x && s.pos.y !== creep.pos.y)
 
-        if (hostileSites.length) {
-            let closest = _.min(hostileSites, s => s.pos.getRangeTo(creep))
-            if (!getPath(creep.pos, closest.pos, 0, 1, true)) {
+            if (hostileSites.length) {
+                let closest = _.min(hostileSites, s => s.pos.getRangeTo(creep))
+                if (!getPath(creep.pos, closest.pos, 0, 1, true)) {
 
-                console.log(creep.name, 'stomping enemy site at', JSON.stringify(closest.pos))
-                return new MoveTask(closest.pos)
+                    console.log(creep.name, 'stomping enemy site at', JSON.stringify(closest.pos))
+                    return new MoveTask(closest.pos)
+                }
             }
         }
 
@@ -1979,7 +2014,7 @@ const getRoleTasks = {
 
                 })
 
-                if (route.length ) {
+                if (route.length) {
                     targetFound = true;
 
                 } else {
@@ -2005,55 +2040,76 @@ const getRoleTasks = {
 
     },
 
+    /**
+     * 
+     * @param {Creep} creep 
+     * @returns 
+     */
     soldier: function (creep,) {
         const assignedRoom = creep.memory.assignedRoom
 
-        let hostiles = creep.room.find(FIND_HOSTILE_CREEPS)
+        let controller = creep.room.controller
+        let searchRange = 50;
+        if (creep.room.name !== assignedRoom) {
+            searchRange = 4
+        }
+        if (!controller || (controller && !controller.safeMode)) {
 
-        if (hostiles.length === 0) {
-            hostiles = creep.room.find(FIND_HOSTILE_STRUCTURES)
-                .filter(s => s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_POWER_BANK)
-            let invaderCore = hostiles.find(h => h.structureType === STRUCTURE_INVADER_CORE)
+            let hostiles;
+            if (creep.room.controller && creep.room.controller.my) {
+                hostiles = creep.room.find(FIND_HOSTILE_CREEPS)
+            } else {
+                hostiles = creep.room.find(FIND_HOSTILE_CREEPS).concat(creep.room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_RAMPART))
+            }
+
+            let invaderCore = creep.room.find(FIND_HOSTILE_STRUCTURES).find(h => h.structureType === STRUCTURE_INVADER_CORE)
             if (invaderCore) {
                 return new AttackTask(invaderCore.id)
             }
 
-        }
 
 
-        if (hostiles.length) {
-            let closest = undefined;
-            let min = Infinity;
-            for (let h of hostiles) {
 
-                let range = h.pos.getRangeTo(creep)
-                if (range < min) {
-                    min = range,
-                        closest = h
-                }
-            }
+            if (hostiles.length) {
+                let closest = undefined;
+                let min = Infinity;
+                for (let h of hostiles) {
 
-            return new AttackTask(closest.id)
-        } else {
-
-            let creeps = creep.room.find(FIND_MY_CREEPS)
-            let closest = undefined;
-            let min = Infinity;
-
-            for (let c of creeps) {
-                if (c.hits < c.hitsMax) {
-                    let range = c.pos.getRangeTo(creep)
-                    if (range < min) {
+                    let range = h.pos.getRangeTo(creep)
+                    if (range < min && range <= searchRange) {
                         min = range,
-                            closest = c
+                            closest = h
                     }
                 }
-            }
-
-            if (closest) {
-                return new HealTask(closest.id)
+                if (closest && closest.structureType) {
+                    return new RangedAttackTask(closest.id)
+                }
+                if (closest) {
+                    return new AttackTask(closest.id)
+                }
             }
         }
+
+
+
+        let creeps = creep.room.find(FIND_MY_CREEPS)
+        let closest = undefined;
+        let min = Infinity;
+
+        for (let c of creeps) {
+            if (c.hits < c.hitsMax) {
+                let range = c.pos.getRangeTo(creep)
+                if (range < min) {
+                    min = range,
+                        closest = c
+                }
+            }
+        }
+
+        if (closest) {
+            return new HealTask(closest.id)
+        }
+
         if (creep.room.name !== assignedRoom) {
 
 
@@ -2876,7 +2932,7 @@ function validateTask(room, creep) {
 
         case 'RANGED_ATTACK':
             if (!target) return false;
-            if (target.pos.getRangeTo(creep) > 3) {
+            if (target.pos.getRangeTo(creep) == 1) {
                 return false;
             }
             if (!creep.getActiveBodyparts(RANGED_ATTACK)) return false;

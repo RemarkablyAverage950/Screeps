@@ -687,11 +687,11 @@ const getBody = {
             cost = 210
         }
 
-        while (cost + 210 <= budget && attackParts < enemyAttackParts + 1 && attackParts + moveParts + toughParts < 47) {
+        while (cost + 280 <= budget && attackParts < enemyAttackParts + 1 && attackParts + moveParts + toughParts < 47) {
             attackParts++;
             moveParts++;
-            attackParts++;
-            cost += 210
+            rangedAttackParts++;
+            cost += 280
         }
 
 
@@ -1011,24 +1011,24 @@ const getBody = {
     },
 
     longHauler: function (budget, homeRoomName, missionRoomName, qty) { // Game.rooms[homeRoomName].energyCapacityAvailable, homeRoomName, mission.roomName, data.storeQty
-        console.log('Entering getBody.longHauler()',budget,homeRoomName,missionRoomName,qty)
+        
         let distance = Math.max(50,(Game.map.findRoute(homeRoomName, missionRoomName).length - 1) * 50);
-        console.log('Distance:',distance)
+    
        
 
         let tripTime = distance * 2
-        console.log('tripTime:',tripTime)
+  
 
         let tripsPerLife = Math.floor(1500 / tripTime)
-        console.log('tripsPerLife:',tripsPerLife)
+    
         let carryPerTrip = qty / tripsPerLife
-        console.log('carryPerTrip:',carryPerTrip)
+  
         let cost = carryPerTrip * 2
-        console.log('cost:',cost)
+      
         let creepsNeeded = Math.ceil(cost / budget)
-        console.log('creepsNeeded:',creepsNeeded)
+       
         let carryParts = Math.ceil((carryPerTrip / 50) / creepsNeeded)
-        console.log('carryParts:',carryParts)
+   
         let body = []
         for (let i = 0; i < carryParts; i++) {
             body.push(CARRY)
@@ -1848,7 +1848,7 @@ const getTargetCount = {
     },
 
     scout: function (room) {
-        return 0
+   
         if (room.controller.level === 8) {
             return 0;
         }

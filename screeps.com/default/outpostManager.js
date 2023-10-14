@@ -248,7 +248,7 @@ function outpostManager(homeRoom, creeps) {
                             }
                         }
 
-
+                        
                         distance = getRemoteSourceDistance(homeRoom, s);
 
                         for (let c of creeps) {
