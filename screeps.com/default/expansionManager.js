@@ -510,9 +510,9 @@ function expansionManager(myRooms) {
             }
 
             if (room.memory.outposts && room.memory.outposts.length < maxRooms) {
-         
+
                 for (let i = 1; i <= maxRange; i++) {
-             
+
                     for (let r of Object.values(MEMORY.monitoredRooms)) {
 
                         if (r.lastScan === 0) {
@@ -530,16 +530,16 @@ function expansionManager(myRooms) {
                         if (next) {
                             continue;
                         }
-                       
-                        
+
+
                         if (roomName === r.homeRoom && r.distance === i && r.controller_id && !r.occupied && !r.my && r.structureCount < 2 && !room.memory.outposts.some(o => o === r.roomName)) {
-                       
+
                             if (i === 2) {
                                 let pathHome = Game.map.findRoute(roomName, r.roomName)
 
                                 try {
                                     if (!Game.rooms[r.homeRoom].memory.outposts.includes(pathHome[0].room)) {
-                                    
+
                                         continue;
                                     }
                                 } catch (e) {
@@ -559,7 +559,7 @@ function expansionManager(myRooms) {
         }
     }
 
-    if (Game.time % 50 === 0 && Game.cpu.bucket > 100) {
+    if (Game.time % 10 === 0 && Game.cpu.bucket > 100) {
 
 
         getMission(myRooms)
@@ -580,6 +580,7 @@ function executeMissions(myRooms) {
 
         let homeRoom = Game.rooms[homeRoomName]
         let missions = MEMORY.rooms[homeRoomName].missions
+
         let spawnQueue = MEMORY.rooms[homeRoomName].spawnQueue
         if (!missions.length) {
             continue;
@@ -1094,7 +1095,7 @@ function executeMissions(myRooms) {
                     }
 
                     if (!mission.unitsReq) {
-                      
+
                         let unitsReq = []
                         let targetRoom = Game.rooms[mission.roomName]
 
@@ -1464,111 +1465,110 @@ function getMission(myRooms) {
 
     if (myRooms.length + claimMissionCount < Game.gcl.level) {
         // We can generate a claim mission.
-        for (let homeRoomName of myRooms) {
-            if (!MEMORY.rooms[homeRoomName]) {
+
+
+
+
+        let potentialSettlements = [];
+
+        // Fill preferred minerals if empty array.
+        if (preferredMinerals.length === 0) {
+
+            for (let myRoom of myRooms) {
+                let mineral = Game.rooms[myRoom].find(FIND_MINERALS)[0];
+                ownedMinerals.find(m => m.constant === mineral.mineralType).count++;
+            }
+
+            let min = Infinity;
+            for (let m of ownedMinerals) {
+                if (m.count < min) {
+                    min = m.count;
+                }
+            }
+
+            for (let m of ownedMinerals) {
+                if (m.count === min) {
+                    preferredMinerals.push(m.constant);
+                }
+            }
+
+        }
+
+        // Look through monitored rooms and generate list of targets
+        for (let r of Object.values(MEMORY.monitoredRooms)) {
+
+
+            if (r.lastScan === 0) {
                 continue;
             }
 
-            let missions = MEMORY.rooms[homeRoomName].missions
-            if (!missions.some(m => m.type === 'CLAIM')) {
-                // This homeRoom can generate a claim mission.
 
-                let potentialSettlements = [];
 
-                // Fill preferred minerals if empty array.
-                if (preferredMinerals.length === 0) {
+            // Skip this target room if it is an outpost for one of my rooms
+            let next = false;
 
-                    for (let myRoom of myRooms) {
-                        let mineral = Game.rooms[myRoom].find(FIND_MINERALS)[0];
-                        ownedMinerals.find(m => m.constant === mineral.mineralType).count++;
-                    }
+            for (let myRoom of myRooms) {
+                if (Game.rooms[myRoom].memory.outposts && Game.rooms[myRoom].memory.outposts.some(o => o === r.roomName) || MEMORY.rooms[myRoom].missions.some(m => m.type === 'CLAIM' && m.roomName === r.roomName)) {
+                    next = true;
+                    break;
+                }
+            }
+            if (next) {
+                continue;
+            }
 
-                    let min = Infinity;
-                    for (let m of ownedMinerals) {
-                        if (m.count < min) {
-                            min = m.count;
-                        }
-                    }
+            // See if room meets criteria for being a new room
+            if (r.distance > 3 && r.controller_id && !r.reserved && !r.ownedBy && !r.hostileTarget) {
 
-                    for (let m of ownedMinerals) {
-                        if (m.count === min) {
-                            preferredMinerals.push(m.constant);
-                        }
-                    }
 
+                let score = r.rating;
+
+                if (!preferredMinerals.includes(r.mineralType)) {
+                    score -= 250;
+                } else {
+                    score += 250;
                 }
 
-                // Look through monitored rooms and generate list of targets
-                for (let roomName of MEMORY.rooms[homeRoomName].monitoredRooms) {
-                    let r = MEMORY.monitoredRooms[roomName]
-
-                    if (r.lastScan === 0) {
-                        continue;
-                    }
+                potentialSettlements.push({
+                    roomName: r.roomName,
+                    score: score,
+                })
+            }
 
 
 
-                    // Skip this target room if it is an outpost for one of my rooms
-                    let next = false;
+        }
 
-                    for (let myRoom of myRooms) {
-                        if (Game.rooms[myRoom].memory.outposts && Game.rooms[myRoom].memory.outposts.some(o => o === r.roomName) || MEMORY.rooms[myRoom].missions.some(m => m.type === 'CLAIM' && m.roomName === r.roomName)) {
-                            next = true;
-                            break;
-                        }
-                    }
-                    if (next) {
-                        continue;
-                    }
+        // Generate a claim mission if criteria met
 
-                    // See if room meets criteria for being a new room
-                    if (r.distance > 3 && r.controller_id && !r.reserved && !r.ownedBy && !r.hostileTarget) {
+        //console.log('Potential Settlements for', homeRoomName + ':', JSON.stringify(potentialSettlements), potentialSettlements.length)
+        let potentialSettlementCount = 0
+        for (let s of potentialSettlements) {
 
-
-                        let score = r.rating;
-
-                        if (!preferredMinerals.includes(r.mineralType)) {
-                            score -= 250;
-                        } else {
-                            score += 250;
-                        }
-
-                        potentialSettlements.push({
-                            roomName: r.roomName,
-                            score: score,
-                        })
-                    }
-
-
-
-                }
-
-                // Generate a claim mission if criteria met
-
-                //console.log('Potential Settlements for', homeRoomName + ':', JSON.stringify(potentialSettlements), potentialSettlements.length)
-                let potentialSettlementCount = 0
-                for (let s of potentialSettlements) {
-
-                    if (s.score >= 1000) {
-                        potentialSettlementCount++;
-                    }
-                }
-
-                if (potentialSettlementCount > 0) {
-
-                    let bestTarget = _.max(potentialSettlements, s => s.score)
-                    console.log(homeRoomName, 'Generating ClaimMission for', bestTarget.roomName)
-
-                    let mission = new ClaimMission(bestTarget.roomName)
-                    MEMORY.rooms[homeRoomName].missions.push(mission)
-
-
-                }
-
-
-
+            if (s.score >= 1000) {
+                potentialSettlementCount++;
             }
         }
+
+        if (potentialSettlementCount > 0) {
+
+            let bestTarget = _.max(potentialSettlements, s => s.score)
+
+
+            let mission = new ClaimMission(bestTarget.roomName)
+
+            let closestRoom = _.min(myRooms.filter(mr => Game.rooms[mr].storage), myRoom => Game.map.findRoute(myRoom, bestTarget.roomName).length)
+
+            console.log(closestRoom, 'Generating ClaimMission for', bestTarget.roomName)
+            MEMORY.rooms[closestRoom].missions.push(mission)
+
+
+        }
+
+
+
+
+
     }
 
     for (let r of Object.values(monitoredRooms)) {

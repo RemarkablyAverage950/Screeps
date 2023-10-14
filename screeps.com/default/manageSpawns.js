@@ -203,11 +203,12 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
     let body = [];
     let options = undefined;
+
     while (workerCount < targetWorkerCount) {
 
-        if (creepsCount['worker'] == 0 || undefined) {
+        if (creepsCount['worker'] === undefined) {
             body = getBody.worker(room.energyAvailable, conserveEnergy)
-
+         
             if (body.length === 0) return spawnQueue;
 
             options = {
@@ -719,7 +720,7 @@ const getBody = {
             body.push(HEAL);
         };
 
-        console.log('Generating body for defender', JSON.stringify(body))
+       
         return body;
 
     },
@@ -1249,9 +1250,7 @@ const getBody = {
     },
 
     remoteBuilder: function (energyBudget, room, conserveEnergy) {
-        if (room.name === 'W55S29') {
-            console.log('energyBudget', energyBudget)
-        }
+      
         if (conserveEnergy) {
             return [WORK, CARRY, MOVE]
         }
@@ -1922,9 +1921,9 @@ const getTargetCount = {
     * @returns {number} 
     */
     worker: function (minerCount, fillerCount, room, storedEnergy) {
-
+     
         if (room.controller.level <= 2) {
-            return 4
+            return 2
         }
 
         let count = 0;
@@ -1940,7 +1939,7 @@ const getTargetCount = {
         if (fillerCount === 0 && room.energyAvailable < room.energyCapacityAvailable) {
             count++
         }
-
+     
         return count;
 
     },
