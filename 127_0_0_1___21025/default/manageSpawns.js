@@ -73,16 +73,16 @@ function manageSpawns(room, creeps) {
                     const name = getCreepName(room.name, spawnQueue[i].role)
 
                     ret = spawn.spawnCreep(spawnQueue[i].body, name, spawnQueue[i].options)
-
-                    if (ret == 0) {
+                    if (ret === 0) {
                         // Successful
                         spawnQueue.splice(i, 1)
                         MEMORY.rooms[room.name].spawnQueue = spawnQueue;
                         break;
 
-                    } else if (ret == -6 || creeps.length === 0) {
-
+                    } if (ret === -6 && creeps.length === 0) {
                         MEMORY.rooms[room.name].spawnQueue = [];
+                    } else if (ret === -6) {
+
                         return;
 
                     } else {
@@ -203,9 +203,10 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
     let body = [];
     let options = undefined;
+
     while (workerCount < targetWorkerCount) {
 
-        if (workerCount == 0) {
+        if (creepsCount['worker'] === undefined) {
             body = getBody.worker(room.energyAvailable, conserveEnergy)
 
             if (body.length === 0) return spawnQueue;
@@ -404,7 +405,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
         if (body.length === 0) {
             let ret = getBody.builder(energyBudget, room, conserveEnergy);
             body = ret[0];
-            console.log('conserveEnergy', conserveEnergy)
+
             if (!conserveEnergy) {
                 targetBuilderCount = Math.max(1, Math.min(ret[1], 4))
             }
@@ -656,7 +657,7 @@ const getBody = {
      * @param {Creep[]} hostiles 
      */
     defender: function (budget, hostiles) {
-        let enemyAttackParts = 0;
+        let enemyAttackParts = 5;
 
         if (hostiles === undefined) {
             enemyAttackParts = 50;
@@ -674,12 +675,12 @@ const getBody = {
         }
 
         let attackParts = 2; // 80
-        let moveParts = 2; // 100
+        let moveParts = 4; // 200
         let toughParts = 0;
         let healParts = 1; // 250
         let rangedAttackParts = 1; // 150
-        let cost = 660;
-        if (budget < 660) {
+        let cost = 760;
+        if (budget < 760) {
             attackParts = 2;
             moveParts = 1
             rangedAttackParts = 0
@@ -687,11 +688,12 @@ const getBody = {
             cost = 210
         }
 
-        while (cost + 210 <= budget && attackParts < enemyAttackParts + 1 && attackParts + moveParts + toughParts < 47) {
+        while (cost + 330 <= budget && attackParts < enemyAttackParts + 1 && attackParts + moveParts + toughParts < 47) {
             attackParts++;
             moveParts++;
-            attackParts++;
-            cost += 210
+            moveParts++
+            rangedAttackParts++;
+            cost += 330
         }
 
 
@@ -719,7 +721,7 @@ const getBody = {
             body.push(HEAL);
         };
 
-        console.log('Generating body for defender', JSON.stringify(body))
+
         return body;
 
     },
@@ -983,15 +985,15 @@ const getBody = {
      * 
      * @param {Room} homeRoom 
      */
-    longHauler: function (homeRoom){
-        
+    longHauler: function (homeRoom) {
+
         const budget = homeRoom.energyCapacity;
-        
+
         let carryParts = 1;
         let moveParts = 1;
         let cost = 100;
 
-        while(cost+100 <= budget){
+        while (cost + 100 <= budget) {
             carryParts++;
             moveParts++;
             cost += 100;
@@ -999,14 +1001,45 @@ const getBody = {
 
         let body = [];
 
-        for(let i = 0; i < carryParts; i++){
+        for (let i = 0; i < carryParts; i++) {
             body.push(CARRY);
         }
-        for(let i = 0; i < moveParts; i++){
+        for (let i = 0; i < moveParts; i++) {
             body.push(MOVE);
         }
 
         return body;
+
+    },
+
+    longHauler: function (budget, homeRoomName, missionRoomName, qty) { // Game.rooms[homeRoomName].energyCapacityAvailable, homeRoomName, mission.roomName, data.storeQty
+
+        let distance = Math.max(50, (Game.map.findRoute(homeRoomName, missionRoomName).length - 1) * 50);
+
+
+
+        let tripTime = distance * 2
+
+
+        let tripsPerLife = Math.floor(1500 / tripTime)
+
+        let carryPerTrip = qty / tripsPerLife
+
+        let cost = carryPerTrip * 2
+
+        let creepsNeeded = Math.ceil(cost / budget)
+
+        let carryParts = Math.ceil((carryPerTrip / 50) / creepsNeeded)
+
+        let body = []
+        for (let i = 0; i < carryParts; i++) {
+            body.push(CARRY)
+        }
+        for (let i = 0; i < carryParts; i++) {
+            body.push(MOVE)
+        }
+
+        return [body, creepsNeeded]
 
     },
 
@@ -1819,7 +1852,7 @@ const getTargetCount = {
         if (room.controller.level === 8) {
             return 0;
         }
-        return 2;
+        return 1;
 
 
         //return 0;
@@ -1891,7 +1924,7 @@ const getTargetCount = {
     worker: function (minerCount, fillerCount, room, storedEnergy) {
 
         if (room.controller.level <= 2) {
-            return 4
+            return 2
         }
 
         let count = 0;

@@ -125,7 +125,7 @@ class ScanData {
         this.resources = {}
         this.storeQty = 0
         for (let s of structures) {
-            if (s.structureType === STRUCTURE_RAMPART) {
+            if (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_NUKER) {
                 strucHits += s.hits;
                 continue;
             }
@@ -300,12 +300,12 @@ class ScanData {
         this.resources = {}
         this.storeQty = 0
         for (let s of structures) {
-            if (s.structureType === STRUCTURE_RAMPART) {
+            if (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_NUKER) {
                 strucHits += s.hits;
                 continue;
             }
             if (s.store) {
-                if (structures.some(r => r.structureType === STRUCTURE_RAMPART && r.pos.x === s.pos.x && r.pos.y === s.pos.y).length > 0) {
+                if (structures.some(r => r.structureType === STRUCTURE_RAMPART && r.pos.x === s.pos.x && r.pos.y === s.pos.y)) {
                     continue;
                 }
                 let storeStocked = false;
@@ -566,8 +566,9 @@ function expansionManager(myRooms) {
         }
     }
 
-    if (Game.time % 10 === 0 && Game.cpu.bucket > 100) {
+  
 
+    if (Game.time % 10 === 0 && Game.cpu.bucket > 100) {
 
         getMission(myRooms)
 
@@ -1127,7 +1128,7 @@ function executeMissions(myRooms) {
                                 assignedRoom: mission.roomName,
                             },
                         };
-                        console.log(homeRoomName, 'adding solder to queue for',mission.roomName)
+                        console.log(homeRoomName, 'adding solder to queue for', mission.roomName)
                         MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('soldier', 6, body, options));
                         soldierCount++;
                     }
@@ -1423,7 +1424,25 @@ function getMission(myRooms) {
                 flag.remove()
 
             }
+        } else if (flag.name == 'DEFEND' || flag.name == 'DEFEND1') {
+
+            let targetRoomName = flag.pos.roomName
+            let availableRooms = []
+            for (let roomName of myRooms) {
+                let room = Game.rooms[roomName]
+                if (!MEMORY.rooms[roomName].missions.some(m => m.type === 'DEFEND') && room.controller.level > 3 && Game.map.findRoute(roomName, targetRoomName).length <= 10) {
+                    availableRooms.push(roomName)
+                }
+            }
+            for (let assignedRoom of availableRooms) {
+                MEMORY.rooms[assignedRoom].missions.push(new DismantleMission(targetRoomName))
+                console.log(assignedRoom, 'defending', targetRoomName, 'per flag')
+                flag.remove()
+
+            }
         }
+
+
     }
 
 

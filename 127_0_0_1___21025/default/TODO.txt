@@ -194,9 +194,9 @@ Expansion Manager:
             [x] Single room assigned
             [] Objectives:
                 [x] Clear path to controller
-                [] Clear path to storage.
+                [x] Clear path to storage.
                 [] Empty enemy structures with stores
-                [] Only delete structures that have an empty store
+                [x] Only delete structures that have an empty store
                 [x] Claim room
 
         [] Invader Core
@@ -229,3 +229,9 @@ Expansion Manager:
     [] Haulers/fillers can deliver to stationary builders and upgraders.
 
     [] Send miners to help set up new rooms if no spawn.
+
+    DISMANTLE MISSION OBSERVATIONS:
+
+        - Spawns 1 Dismantler initially.
+        - Spawns more Dismantlers according to strucHits
+    

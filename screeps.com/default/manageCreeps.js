@@ -1224,11 +1224,12 @@ const getRoleTasks = {
 
 
 
-            let missionData = MEMORY.rooms[creep.memory.home].missions.find(m => m.roomName === creep.room.name)
+
 
 
 
             let targets = [];
+            let storeUsedStructures = [];
             for (let s of structures) {
                 if (s.structureType === STRUCTURE_NUKER) {
                     targets.push(s)
@@ -1239,10 +1240,25 @@ const getRoleTasks = {
                 }
 
                 if (s.store && (s.store[RESOURCE_ENERGY] > 0 || s.store.getUsedCapacity() > 0)) {
+                    storeUsedStructures.push(s)
                     continue;
                 }
                 targets.push(s)
             }
+
+            storeUsedStructures = storeUsedStructures.sort((a, b) =>
+                (b.store.getUsedCapacity() || b.store[RESOURCE_ENERGY]) - (a.store.getUsedCapacity() || a.store[RESOURCE_ENERGY])
+            )
+           
+            for (let s of storeUsedStructures) {
+                let rampart = targets.find(t => t.pos.x === s.pos.x && t.pos.y === s.pos.y && t.structureType === STRUCTURE_RAMPART)
+
+                if (rampart) {
+                    return new DismantleTask(rampart.id)
+                }
+
+            }
+
 
 
             if (targets.length) {

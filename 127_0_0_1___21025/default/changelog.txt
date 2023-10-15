@@ -54,6 +54,10 @@ Version 0.1
             - Units now deliver to spawn containers.
             - Units will try and deliver to stationary builders/upgraders/workers until a storage is present.
 
+        Reserver:
+
+            - Unit now attacks enemy owned controllers
+
         Scout:
 
             - Now only targets rooms that a different scout is not going to.
@@ -90,6 +94,9 @@ Version 0.1
         - Lowered search radius to 6
         - Lowered requirements for setting a ClaimMission.
         - Added dismantle mission for rooms at distance <=  2.
+        - Fixed bug that would cause visible rooms to be infinitely added to heap monitoredRooms
+        - Set up assault mission.
+        - Added claim and dismantle mission generation from flags.
 
     ROOM PLANNER:
 

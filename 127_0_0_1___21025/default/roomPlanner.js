@@ -81,7 +81,7 @@ function roomPlanner(room) {
         placeSites(room, plans);
     };
 
-    if (plans) visualizeStructures(plans, room, 8);
+    if (plans) visualizeStructures(plans, room, room.controller.level);
 
 };
 
@@ -100,10 +100,25 @@ function validateStructures(room, plans) {
         s.remove()
     }
     for (let s of enemyStructures) {
-        if(s.structureType === STRUCTURE_STORAGE && room.controller.level <4){
-            continue;
+        if (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_NUKER) {
+            console.log('removing structure', s.structureType, JSON.stringify(s.pos))
+            s.destroy()
         }
-        s.destroy()
+        let destroy = true
+        if (s.store) {
+            for (let r of Object.keys(s.store)) {
+                if (s.store[r] > 0) {
+                    destroy = false;
+                    break;
+                }
+            }
+
+
+        }
+        if (destroy) {
+            console.log('removing structure', s.structureType, JSON.stringify(s.pos))
+            s.destroy()
+        }
     }
 
     for (let s of structures) {
@@ -128,8 +143,22 @@ function validateStructures(room, plans) {
                 }
 
             } else {
-                console.log('removing structure', s.structureType, JSON.stringify(s.pos))
-                s.destroy()
+                let destroy = true
+                if (!s.my && s.store) {
+                    for (let r of Object.keys(s.store)) {
+                        if (s.store[r] > 0) {
+                            destroy = false;
+                            break;
+                        }
+                    }
+
+
+                }
+                if (destroy) {
+                    console.log('removing structure', s.structureType, JSON.stringify(s.pos))
+                    s.destroy()
+                }
+
 
             }
         }
@@ -1770,8 +1799,8 @@ let setStamp = {
             [0, -2, STRUCTURE_LAB, 8],
             [1, -2, STRUCTURE_LAB, 8],
             [2, -2, 'BUFFER', 9],
-            [-1, -1, STRUCTURE_LAB, 6],
-            [0, -1, STRUCTURE_LAB, 7],
+            [-1, -1, STRUCTURE_LAB, 7],
+            [0, -1, STRUCTURE_LAB, 6],
             [1, -1, STRUCTURE_ROAD, 6],
             [2, -1, STRUCTURE_LAB, 7],
             [-1, 0, STRUCTURE_LAB, 7],
