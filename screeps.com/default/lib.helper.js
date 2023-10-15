@@ -29,7 +29,7 @@ let helper = {
      */
     pushCreep: function (creep, pushingCreep) {
         let role = creep.memory.role
-        if (role === 'miner' || role === 'remoteMiner') { // role === 'fastFiller
+        if (role === 'miner' || role === 'remoteMiner' || role === 'claimer' || role === 'reserver') { // role === 'fastFiller
             return false
         }
 
@@ -212,7 +212,7 @@ let helper = {
                             break;
                         } else if (l.type === LOOK_CREEPS && l.creep.name != creep.name) {
                             let lookCreep = l.creep
-                            if (!lookCreep.my || !MEMORY.rooms[lookCreep.memory.home] ||!MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] || !MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
+                            if (!lookCreep.my || !MEMORY.rooms[lookCreep.memory.home] || !MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] || !MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
                                 valid = false;
                             }
                         }

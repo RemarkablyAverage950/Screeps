@@ -2,7 +2,6 @@ let MEMORY = require('memory');
 const { moveCreep, moveCreepToRoom, getPath } = require('pathfinder');
 const getAssignedCreeps = require('prototypes');
 const helper = require('lib.helper');
-const { parkTask } = require('./lib.helper');
 require('prototypes');
 
 class Task {
@@ -92,10 +91,9 @@ class MoveToRoomTask extends Task {
      * @constructor
      * @param {string} roomName 
      */
-    constructor(roomName, targetPos = undefined) {
+    constructor(roomName) {
         super('MOVE_TO_ROOM');
         this.roomName = roomName
-        this.targetPos = targetPos
     }
 }
 
@@ -467,7 +465,7 @@ function assignTask(room, creep, creeps) {
             }
         }
     } else if (role === 'remoteHauler') {
-        task = getRoleTasks.remoteHauler(room, creep, creeps)
+        task = getRoleTasks.remoteHauler(creep.room, creep, creeps)
         /*if (creep.store.getUsedCapacity() === 0) {
             if (creep.room.name !== creep.memory.home) {
                 task = new MoveToRoomTask(creep.memory.home)
@@ -721,9 +719,8 @@ function executeTask(room, creep) {
 
             break;
         case 'MOVE_TO_ROOM':
-            try {
-                moveCreepToRoom(creep, task.roomName, task.targetPos)
-            } catch (e) { console.log(creep.name, 'failed moveCreepToRoom', JSON.stringify(task)) } /*try {
+            moveCreepToRoom(creep, task.roomName)
+            /*try {
                
             } catch (e) {
                 console.log(creep.name, 'failed to move to room', task.roomName)
@@ -736,7 +733,7 @@ function executeTask(room, creep) {
 
             if (creep.pickup(target) != 0) {
 
-                moveCreep(creep, target.pos, 1, 16);
+                moveCreep(creep, target.pos, 1, 1);
 
             } else {
 
@@ -798,7 +795,7 @@ function executeTask(room, creep) {
 
             if (creep.transfer(target, task.resourceType) != 0) {
 
-                moveCreep(creep, target.pos, 1, 16);
+                moveCreep(creep, target.pos, 1, 1);
 
             } else {
 
@@ -913,7 +910,7 @@ function executeTask(room, creep) {
 
             if (wRet !== 0) {
                 if (creep.pos.getRangeTo(target) > 1) {
-                    moveCreep(creep, target.pos, 1, 16);
+                    moveCreep(creep, target.pos, 1, 1);
                 }
 
             } else {
@@ -1252,7 +1249,7 @@ const getRoleTasks = {
             storeUsedStructures = storeUsedStructures.sort((a, b) =>
                 (b.store.getUsedCapacity() || b.store[RESOURCE_ENERGY]) - (a.store.getUsedCapacity() || a.store[RESOURCE_ENERGY])
             )
-
+           
             for (let s of storeUsedStructures) {
                 let rampart = targets.find(t => t.pos.x === s.pos.x && t.pos.y === s.pos.y && t.structureType === STRUCTURE_RAMPART)
 
@@ -1767,85 +1764,45 @@ const getRoleTasks = {
 
         let tasks = []
         let task = [];
-        const homeRoomName = creep.memory.home
-        const capacity = creep.store.getFreeCapacity()
 
-        if (creep.store[RESOURCE_ENERGY] > 0) {
+        if (room.name === creep.memory.home) {
             // We are in homeRoom
+            if (creep.store[RESOURCE_ENERGY] > 0) {
 
+                tasks.push(...getTasks.deliver(creep.room, creep, creeps))
 
-            tasks.push(...getTasks.deliver(room, creep, creeps))
-
-
-        }
-
-        if (capacity > 0) {
-
-
-            // Get new assigned rooom
-            const outpostsNames = Memory.rooms[homeRoomName].outposts;
-            let maxQty = 0;
-
-            let pickUpTarget = undefined;
-
-
-            for (let outpostName of outpostsNames) {
-                let outpostRoom = Game.rooms[outpostName]
-                if (!outpostRoom) {
-
-                    continue;
+                if (tasks.length === 0) {
+                    return helper.parkTask(room, creep)
                 }
-                const dropped = outpostRoom.find(FIND_DROPPED_RESOURCES)
-
-                for (let r of dropped) {
-                    if (r.resourceType === RESOURCE_ENERGY) {
-                        const forecast = r.forecast()
-                        if (forecast > maxQty && forecast > capacity) {
-                            pickUpTarget = r
-                            maxQty = forecast
-                        }
-                    }
-
-                }
-            }
-            if (pickUpTarget) {
-
-                tasks.push(new PickupTask(pickUpTarget.id, capacity))
             } else {
-                let withdrawTarget = undefined;
-                maxQty = 0;
-                for (let outpostName of outpostsNames) {
-                    let outpostRoom = Game.rooms[outpostName]
-                    if (!outpostRoom) {
-                        continue;
-                    }
-                    const structures = outpostRoom.find(FIND_STRUCTURES)
-
-                    for (let s of structures) {
-                        if (s.structureType === STRUCTURE_CONTAINER) {
-                            const forecast = s.forecast(RESOURCE_ENERGY)
-                            if (forecast > maxQty && forecast > capacity) {
-                                pickUpTarget = s
-                                maxQty = forecast
-                            }
-                        }
-
-                    }
-                }
-
-                if (withdrawTarget) {
-                    tasks.push(new WithdrawTask(withdrawTarget.id, RESOURCE_ENERGY, capacity))
-                }
-
+                return new MoveToRoomTask(creep.memory.assignedRoom)
             }
 
-        }
-       
-        if (tasks.length === 0) {
-            if(creep.room.name !== homeRoomName){
-                return new MoveToRoomTask(homeRoomName)
+        } else if (room.name === creep.memory.assignedRoom) {
+            // We are in assigned room.
+            if (creep.store.getFreeCapacity() > 0) {
+                tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, true));
+                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, true));
+
+                if (tasks.length === 0) {
+                    tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, false));
+                    tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, false));
+                }
+
+                if (tasks.length === 0) {
+                    return helper.parkTask(room, creep)
+                }
+
+            } else {
+                return new MoveToRoomTask(creep.memory.home)
+
             }
-            return helper.parkTask(room, creep)
+        } else {
+            if (creep.store.getFreeCapacity() === 0) {
+                return new MoveToRoomTask(creep.memory.home)
+            } else {
+                return new MoveToRoomTask(creep.memory.assignedRoom)
+            }
         }
 
         task = _.min(tasks, t => Game.getObjectById(t.id).pos.getRangeTo(creep))
@@ -2032,77 +1989,77 @@ const getRoleTasks = {
         const controller = creep.room.controller;
         if (controller && !controller.safeMode) {
             let hostileSites = creep.room.find(FIND_HOSTILE_CONSTRUCTION_SITES).filter(s => s.pos.x !== creep.pos.x && s.pos.y !== creep.pos.y)
-     
+
             if (hostileSites.length) {
                 let closest = _.min(hostileSites, s => s.pos.getRangeTo(creep))
                 if (!getPath(creep.pos, closest.pos, 0, 1, true)) {
-     
+
                     console.log(creep.name, 'stomping enemy site at', JSON.stringify(closest.pos))
                     return new MoveTask(closest.pos)
                 }
             }
         }
-     
+
         if (controller && !getPath(creep.pos, controller.pos, 1, 1, true)) {
-     
+
             const sign = controller.sign;
-     
+
             if (!sign || sign.username !== MEMORY.username) {
                 return new SignTask(controller.id, 'RA was here.')
             }
-     
+
         }
-     
+
         // Find nearest room needing a scan update.
-     
+
         let monitoredRooms = MEMORY.rooms[room.name].monitoredRooms
-     
-     
+
+
         if (monitoredRooms) {
-     
+
             let targetScanRooms = [];
-     
+
             for (let name of monitoredRooms) {
-     
+
                 let data = MEMORY.monitoredRooms[name]
-     
+
                 if (data) {
                     targetScanRooms.push(name)
                 }
-     
+
             }
-     
+
             for (let c of Object.values(Game.creeps)) {
                 if (c.name === creep.name) {
                     continue;
                 }
                 if (c.memory.role === 'scout') {
-     
+
                     if (MEMORY.rooms[c.memory.home] && MEMORY.rooms[c.memory.home].creeps[c.name]) {
-     
+
                         let task = MEMORY.rooms[c.memory.home].creeps[c.name].tasks[0]
-     
-     
+
+
                         if (task && task.type === 'MOVE_TO_ROOM') {
-     
+
                             let idx = targetScanRooms.findIndex(t => t === task.roomName)
-     
+
                             targetScanRooms.splice(idx, 1)
-     
-     
+
+
                         }
                     }
                 }
             }
-     
-     
+
+
             // Find closest room.
             let minScanTime = Infinity;
             let minDistance = Infinity;
             let targetRoom = undefined;
             let minHomeDistance = Infinity;
             let targetFound = false;
-     
+
             while (!targetFound) {
                 for (let r of targetScanRooms) {
                     const lastScan = MEMORY.monitoredRooms[r].lastScan
@@ -2120,71 +2077,71 @@ const getRoleTasks = {
                         minDistance = distance;
                         minHomeDistance = Game.map.findRoute(r, creep.memory.home).length
                     }
-     
+
                     const homeDistance = Game.map.findRoute(creep.memory.home, r).length
-     
+
                     if (lastScan === minScanTime && distance === minDistance && homeDistance < minHomeDistance) {
                         targetRoom = r
                         minHomeDistance = homeDistance
                         continue;
                     }
                 }
-     
-     
+
+
                 let route = Game.map.findRoute(creep.room.name, targetRoom, {
                     routeCallback(roomName) {
-     
+
                         let isMyRoom = Game.rooms[roomName] &&
                             Game.rooms[roomName].controller &&
                             Game.rooms[roomName].controller.my;
                         let scanData = MEMORY.monitoredRooms[roomName]
-     
+
                         if (scanData && scanData.hostileTarget) {
                             if (scanData.towers) {
                                 return 0xff;
                             }
                             return 10
                         }
-     
+
                         if (!scanData || scanData.hostileTarget === undefined || scanData.occupied) {
                             return 3;
                         }
-     
+
                         let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
                         let isHighway = (parsed[1] % 10 === 0) ||
                             (parsed[2] % 10 === 0);
                         if (isHighway || isMyRoom) {
                             return 1
                         }
-     
+
                         return 2;
                     }
-     
-     
+
+
                 })
-     
+
                 if (route.length) {
                     targetFound = true;
-     
+
                 } else {
                     let idx = targetScanRooms.findIndex(r => r === targetRoom)
                     targetScanRooms.splice(idx, 1)
-     
+
                 }
-     
+
             }
-     
-     
+
+
             if (targetRoom) {
-     
+
                 return new MoveToRoomTask(targetRoom)
             }
-     
-     
+
+
             return undefined;
-     
+
         }
-     
+
         return undefined;
         */
     },
@@ -2494,7 +2451,6 @@ const getTasks = {
 
             //console.log('C',JSON.stringify(tasks))
         }
-
         return tasks;
     },
 

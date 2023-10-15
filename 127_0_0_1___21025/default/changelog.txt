@@ -32,6 +32,9 @@ Version 0.1
 
             - Handles dismantle missions.
             - Targets a path to controller first.
+            - Targets a path to storage second.
+            - Targets ramparts ontop of fullest structure third.
+
 
         Hauler:
 
@@ -43,6 +46,10 @@ Version 0.1
         Hub: 
 
             - Unit now loads and unloads all resources to and from terminal.
+
+        LongHauler:
+
+            - Spawns when there is a dismantle mission and target structures have reachable store stock.
 
         Remote builder:
 
@@ -97,6 +104,7 @@ Version 0.1
         - Fixed bug that would cause visible rooms to be infinitely added to heap monitoredRooms
         - Set up assault mission.
         - Added claim and dismantle mission generation from flags.
+        - Automatically sets up dismantle, claim, assault, defend, and invader core missions
 
     ROOM PLANNER:
 

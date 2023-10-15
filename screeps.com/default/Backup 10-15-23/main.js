@@ -14,10 +14,6 @@ require('RoomVisual');
 
 let start = false;
 module.exports.loop = function () {
-    if(Game.time % 10000 === 0){
-        console.log('Resetting memory')
-        return;
-    }
 
     if (!start) {
         if (Game.cpu.bucket > 200) {
@@ -28,7 +24,7 @@ module.exports.loop = function () {
             return;
         }
     }
-
+  
     //Game.rooms['W58S32'].memory.outposts.push('W58S31')
     /*let rn = 'W5N1'
     delete Memory.rooms[rn].outposts
@@ -59,7 +55,7 @@ module.exports.loop = function () {
         }
         const room = Game.rooms[roomName];
         const creeps = Object.values(Game.creeps).filter(c => c.memory.home === roomName);
-
+    
         if (room.controller.level < 2 || room.find(FIND_MY_SPAWNS).length === 0) {
 
             let closest = _.min(myRooms.filter(r => r != roomName && Game.rooms[r].controller.level > 3), r => Game.map.findRoute(roomName, r).length)
@@ -134,7 +130,7 @@ module.exports.loop = function () {
     }
 
     if (Game.cpu.bucket >= 10000) {
-        //Game.cpu.generatePixel();
+        Game.cpu.generatePixel();
     }
 }
 

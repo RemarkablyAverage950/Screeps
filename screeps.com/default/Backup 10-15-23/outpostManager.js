@@ -72,7 +72,7 @@ function outpostManager(homeRoom, creeps) {
                         if (part.type === WORK || part.type === CARRY || part.type === CLAIM) {
                             occupied = true;
 
-                        } else if (part.type === ATTACK || part.type === RANGED_ATTACK) {
+                        } else if (part.type === ATTACK || part.type === RANGED_ATTACK){
                             hostileOccupied = true;
                         }
                     }
@@ -129,53 +129,6 @@ function outpostManager(homeRoom, creeps) {
         MEMORY.rooms[homeRoom.name].outposts[outpostName] = heap;
 
         if (Game.time % 10 === 0) {
-
-            // get haulersCount required;
-            let energyCapacityAvailable = homeRoom.energyCapacityAvailable;
-            let maxCapacity = Math.min(Math.floor(energyCapacityAvailable / 150) * 100, 1600);
-            let haulerCapacityReq = 0
-            for (let outpostName of outposts) {
-                if (MEMORY.rooms[homeRoom.name].outposts[outpostName] && MEMORY.rooms[homeRoom.name].outposts[outpostName].haulerCapacityReq) {
-                    haulerCapacityReq += MEMORY.rooms[homeRoom.name].outposts[outpostName].haulerCapacityReq
-                }
-            }
-
-            let haulerCountRequired = Math.min(Math.ceil(haulerCapacityReq / maxCapacity), 10);
-            let capacityRequiredPerHauler = Math.ceil(haulerCapacityReq / haulerCountRequired)
-
-            //console.log('totalCapcityReq', heap.haulerCapacityReq, 'CapacityReqPerHauler', capacityRequiredPerHauler, 'haulerCountReq', haulerCountRequired)
-
-            // Find out how many haulers we have;
-            let haulerCount = 0;
-            for (let c of creeps) {
-                if (c.memory.role === 'remoteHauler' && c.memory.home === homeRoom.name) {
-                    haulerCount++;
-                }
-            }
-            MEMORY.rooms[homeRoom.name].spawnQueue.forEach(spawnOrder => {
-
-                if (spawnOrder.options.memory.role === 'remoteHauler') {
-                    haulerCount++;
-                }
-
-            })
-
-            let body = [];
-            while (haulerCount < haulerCountRequired) {
-                if (body.length === 0) {
-                    body = getBody.remoteHauler(homeRoom.energyCapacityAvailable, capacityRequiredPerHauler)
-                }
-                options = {
-                    memory: {
-                        role: 'remoteHauler',
-                        home: homeRoom.name,
-
-                    },
-                };
-                MEMORY.rooms[homeRoom.name].spawnQueue.push(new SpawnOrder('remoteHauler', 5, body, options));
-                haulerCount++;
-            }
-
 
             for (let outpostName of outposts) {
 
@@ -388,7 +341,47 @@ function outpostManager(homeRoom, creeps) {
                 }
 
 
+                // get haulersCount required;
 
+                let energyCapacityAvailable = homeRoom.energyCapacityAvailable;
+
+                let maxCapacity = Math.min(Math.floor(energyCapacityAvailable / 150) * 100, 1600);
+
+                let haulerCountRequired = Math.min(Math.ceil(heap.haulerCapacityReq / maxCapacity), 2);
+                let capacityRequiredPerHauler = Math.ceil(heap.haulerCapacityReq / haulerCountRequired)
+
+                //console.log('totalCapcityReq', heap.haulerCapacityReq, 'CapacityReqPerHauler', capacityRequiredPerHauler, 'haulerCountReq', haulerCountRequired)
+
+                // Find out how many haulers we have;
+                let haulerCount = 0;
+                for (let c of creeps) {
+                    if (c.memory.role === 'remoteHauler' && c.memory.assignedRoom === outpostName) {
+                        haulerCount++;
+                    }
+                }
+                MEMORY.rooms[homeRoom.name].spawnQueue.forEach(spawnOrder => {
+
+                    if (spawnOrder.options.memory.role === 'remoteHauler' && spawnOrder.options.memory.assignedRoom === outpostName) {
+                        haulerCount++;
+                    }
+
+                })
+
+                let body = [];
+                while (haulerCount < haulerCountRequired) {
+                    if (body.length === 0) {
+                        body = getBody.remoteHauler(homeRoom.energyCapacityAvailable, capacityRequiredPerHauler)
+                    }
+                    options = {
+                        memory: {
+                            role: 'remoteHauler',
+                            home: homeRoom.name,
+                            assignedRoom: outpostName,
+                        },
+                    };
+                    MEMORY.rooms[homeRoom.name].spawnQueue.push(new SpawnOrder('remoteHauler', 5, body, options));
+                    haulerCount++;
+                }
 
                 let targetReserverCount = 0;
                 if (!outpostRoom.controller.reservation) {

@@ -566,7 +566,7 @@ function expansionManager(myRooms) {
         }
     }
 
-
+  
 
     if (Game.time % 10 === 0 && Game.cpu.bucket > 100) {
 
@@ -1613,10 +1613,9 @@ function getMission(myRooms) {
             let mission = new ClaimMission(bestTarget.roomName)
 
             let closestRoom = _.min(myRooms.filter(mr => Game.rooms[mr].storage), myRoom => Game.map.findRoute(myRoom, bestTarget.roomName).length)
-            if (closestRoom !== Infinity) {
-                console.log(closestRoom, 'Generating ClaimMission for', bestTarget.roomName)
-                MEMORY.rooms[closestRoom].missions.push(mission)
-            }
+
+            console.log(closestRoom, 'Generating ClaimMission for', bestTarget.roomName)
+            MEMORY.rooms[closestRoom].missions.push(mission)
 
 
         }

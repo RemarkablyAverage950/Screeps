@@ -61,7 +61,8 @@ function getPath(origin, destination, range, maxRooms, incomplete = false, avoid
         return undefined;
     }
 
-    
+
+    ret.path.length = Math.min(ret.path.length, MAX_PATH_LENGTH)
 
     return ret.path;
 }
@@ -165,16 +166,15 @@ function moveCreep(creep, destination, range, maxRooms) {
  * 
  * @param {Creep} creep 
  * @param {String} targetRoomName 
- * @param {RoomPosition} targetPos
  * @param {number} hostileRoomValue 
  * @param {boolean} returnRoute 
  * @returns 
  */
-function moveCreepToRoom(creep, targetRoomName, targetPos = undefined, hostileRoomValue = 10) {
+function moveCreepToRoom(creep, targetRoomName, hostileRoomValue = 10) {
 
 
     let nextRoom = MEMORY.rooms[creep.memory.home].creeps[creep.name].nextroom;
-    let route = []
+
     if (!nextRoom) {
 
         let from = creep.pos;
@@ -183,7 +183,7 @@ function moveCreepToRoom(creep, targetRoomName, targetPos = undefined, hostileRo
         // Use `findRoute` to calculate a high-level plan for this path,
         // prioritizing highways and owned rooms
 
-         route = Game.map.findRoute(from.roomName, to.roomName, {
+        let route = Game.map.findRoute(from.roomName, to.roomName, {
             routeCallback(roomName) {
 
                 let isMyRoom = Game.rooms[roomName] &&
@@ -228,15 +228,7 @@ function moveCreepToRoom(creep, targetRoomName, targetPos = undefined, hostileRo
 
 
     // Invoke PathFinder, allowing access only to rooms from `findRoute`
-    let destination;
-
-
-    if (route.length === 1 && targetPos) {
-        destination = targetPos
-    } else {
-        destination = new RoomPosition(25, 25, nextRoom)
-    }
-
+    let destination = new RoomPosition(25, 25, nextRoom)
     moveCreep(creep, destination, 23, 16)
 
 }
@@ -320,23 +312,23 @@ function getCostMatrix(room, avoidCreeps) {
             continue;
         }
 
+        try {
+            if (MEMORY.rooms[creep.memory.home].creeps[creep.name]) {
+                const moving = MEMORY.rooms[creep.memory.home].creeps[creep.name].moving;
 
-        if (MEMORY.rooms[creep.memory.home].creeps[creep.name]) {
-            const moving = MEMORY.rooms[creep.memory.home].creeps[creep.name].moving;
-
-            if (moving === false) {
-                let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0]
-                if (task && task.type === 'HARVEST') {
-                    costMatrix.set(creep.pos.x, creep.pos.y, 0xff);
+                if (moving === false) {
+                    let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0]
+                    if (task && task.type === 'HARVEST') {
+                        costMatrix.set(creep.pos.x, creep.pos.y, 0xff);
+                    } else {
+                        costMatrix.set(creep.pos.x, creep.pos.y, costMatrix.get(creep.pos.x, creep.pos.y) + 5)
+                    }
                 } else {
-                    costMatrix.set(creep.pos.x, creep.pos.y, costMatrix.get(creep.pos.x, creep.pos.y) + 5)
+                    costMatrix.set(creep.pos.x, creep.pos.y, costMatrix.get(creep.pos.x, creep.pos.y) + 2)
                 }
-            } else {
-                costMatrix.set(creep.pos.x, creep.pos.y, costMatrix.get(creep.pos.x, creep.pos.y) + 2)
             }
-        }
+        } catch { }
     }
-
 
 
     // Prefer distancing from hostile creeps
