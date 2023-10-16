@@ -319,7 +319,7 @@ function outpostManager(homeRoom, creeps) {
                     if (!s.distance) {
                         s.distance = getRemoteSourceDistance(homeRoom, s)
                     }
-                    if (!creeps.some(c => c.memory.role === 'remoteMiner' && c.memory.assignedSource === s.id && (c.spawning || (s.distance && c.ticksToLive > s.distance + 20)))) {
+                    if (!creeps.some(c => c.memory.role === 'remoteMiner' && c.memory.assignedSource === s.id)) {
 
                         heap.sources[s.id].assignedMiner = undefined;
 
@@ -334,6 +334,22 @@ function outpostManager(homeRoom, creeps) {
                             }
 
                         })
+
+                        if (Game.rooms[heap.name]) {
+                            let source = Game.getObjectById(s.id)
+                            let structures = Game.rooms[heap.name].find(FIND_STRUCTURES)
+                            for (let struct of structures) {
+                                if (struct.structureType === STRUCTURE_CONTAINER && struct.pos.isNearTo(source)) {
+                                    if (struct.forecast(RESOURCE_ENERGY) === 2000){
+                                        creepNeeded = false;
+                                        
+                                    }
+                                    break;
+                                }
+                            }
+
+
+                        }
 
                         if (creepNeeded) {
                             //console.log('Adding remoteMiner to spawnQueue for', s.id, outpostName)

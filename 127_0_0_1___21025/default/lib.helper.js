@@ -140,7 +140,7 @@ let helper = {
             }
         }
         //console.log('Attempting parkTask on', creep.name)
-        MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks.unshift(helper.parkTask(creep.room, creep, true))
+        MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks.unshift(helper.parkTask(creep.room, creep, true, pushingCreep))
 
         taskCreated = true;
         return taskCreated
@@ -154,7 +154,7 @@ let helper = {
     * @param {boolean} avoidCurrentPosition
     * @returns {MoveTask}
     */
-    parkTask: function (room, creep, avoidCurrentPosition = false) {
+    parkTask: function (room, creep, avoidCurrentPosition = false, pushingCreep = undefined) {
 
         let range = 0;
         let xStart = creep.pos.x;
@@ -163,6 +163,9 @@ let helper = {
 
         let avoidPos = [];
         if (avoidCurrentPosition) {
+            if (pushingCreep) {
+                avoidPos.push([pushingCreep.pos.x, pushingCreep.pos.y])
+            }
             avoidPos.push([creep.pos.x, creep.pos.y])
         }
 

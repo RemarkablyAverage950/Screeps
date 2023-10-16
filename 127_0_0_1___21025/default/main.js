@@ -14,7 +14,10 @@ require('RoomVisual');
 
 let start = false;
 module.exports.loop = function () {
-
+    if(Game.time % 10000 === 0){
+        console.log('Resetting memory')
+        return;
+    }
 
     if (!start) {
         if (Game.cpu.bucket > 200) {

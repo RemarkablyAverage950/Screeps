@@ -102,7 +102,7 @@ class ScanData {
         this.safeMode = safeMode;
         let pathToController = true;
         let exit = room.find(FIND_EXIT)[0]
-        if (controller && getPath(exit, controller.pos, 1, 1, true)) {
+        if (controller && getPath(undefined,exit, controller.pos, 1, 1, true)) {
             pathToController = false;
         }
         this.pathToController = pathToController;
@@ -118,7 +118,7 @@ class ScanData {
         let strucHits = 0
         let storage = room.storage;
         let pathToStorage = true;
-        if (storage && getPath(exit, storage.pos, 1, 1, true)) {
+        if (storage && getPath(undefined,exit, storage.pos, 1, 1, true)) {
             pathToStorage = false;
         }
         this.pathToStorage = pathToStorage;
@@ -285,7 +285,7 @@ class ScanData {
             safeMode = true;
         }
         this.safeMode = safeMode;
-        if (controller && getPath(exit, controller.pos, 1, 1, true)) {
+        if (controller && getPath(undefined,exit, controller.pos, 1, 1, true)) {
             pathToController = false;
         }
         this.pathToController = pathToController;
@@ -933,9 +933,11 @@ function executeMissions(myRooms) {
                                 reserverCount++;
                             }
                         }
-                        for (let so of MEMORY.rooms[homeRoomName].spawnQueue) {
-                            if (so.role === 'reserver' && so.options.memory.assignedRoom === mission.roomName) {
-                                reserverCount++
+                        for (let roomName of myRooms) {
+                            for (let so of MEMORY.rooms[roomName].spawnQueue) {
+                                if (so.role === 'reserver' && so.options.memory.assignedRoom === mission.roomName) {
+                                    reserverCount++
+                                }
                             }
                         }
 

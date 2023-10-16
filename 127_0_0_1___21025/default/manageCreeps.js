@@ -1101,7 +1101,7 @@ const getRoleTasks = {
             let ret;
             let path;
             let controller = creep.room.controller
-            if (controller && getPath(creep.pos, controller.pos, 1, 1, true)) {
+            if (controller && getPath(creep, creep.pos, controller.pos, 1, 1, true)) {
                 ret = PathFinder.search(
                     controller.pos, { pos: creep.pos, range: 1 },
                     {
@@ -1146,7 +1146,7 @@ const getRoleTasks = {
                     path = ret.path;
                     for (let i = 0; i < path.length; i++) {
 
-                        if (!getPath(creep.pos, path[i], 1, 1, true)) {
+                        if (!getPath(creep, creep.pos, path[i], 1, 1, true)) {
 
                             let targetPos = path[i];
 
@@ -1163,7 +1163,7 @@ const getRoleTasks = {
             let storage = creep.room.storage
 
 
-            if (storage && getPath(creep.pos, storage.pos, 1, 1, true)) {
+            if (storage && getPath(creep, creep.pos, storage.pos, 1, 1, true)) {
                 ret = PathFinder.search(
                     storage.pos, { pos: creep.pos, range: 1 },
                     {
@@ -1209,7 +1209,7 @@ const getRoleTasks = {
                     path = ret.path;
                     for (let i = 0; i < path.length; i++) {
 
-                        if (!getPath(creep.pos, path[i], 1, 1, true)) {
+                        if (!getPath(creep, creep.pos, path[i], 1, 1, true)) {
 
                             let targetPos = path[i];
 
@@ -1254,6 +1254,9 @@ const getRoleTasks = {
             )
 
             for (let s of storeUsedStructures) {
+                if (getPath(creep, creep.pos, s.pos, 1, 1, true, true)) {
+                    continue;
+                }
                 let rampart = targets.find(t => t.pos.x === s.pos.x && t.pos.y === s.pos.y && t.structureType === STRUCTURE_RAMPART)
 
                 if (rampart) {
@@ -1824,8 +1827,8 @@ const getRoleTasks = {
                     for (let s of structures) {
                         if (s.structureType === STRUCTURE_CONTAINER) {
                             const forecast = s.forecast(RESOURCE_ENERGY)
-                            if (forecast > maxQty && forecast > capacity) {
-                                pickUpTarget = s
+                            if (forecast > maxQty) {
+                                withdrawTarget = s
                                 maxQty = forecast
                             }
                         }
@@ -1840,9 +1843,9 @@ const getRoleTasks = {
             }
 
         }
-       
+
         if (tasks.length === 0) {
-            if(creep.room.name !== homeRoomName){
+            if (creep.room.name !== homeRoomName) {
                 return new MoveToRoomTask(homeRoomName)
             }
             return helper.parkTask(room, creep)
@@ -1966,7 +1969,7 @@ const getRoleTasks = {
 
             if (hostileSites.length) {
                 let closest = _.min(hostileSites, s => s.pos.getRangeTo(creep))
-                if (!getPath(creep.pos, closest.pos, 0, 1, true)) {
+                if (!getPath(creep, creep.pos, closest.pos, 0, 1, true)) {
 
                     console.log(creep.name, 'stomping enemy site at', JSON.stringify(closest.pos))
                     return new MoveTask(closest.pos)
@@ -1974,7 +1977,7 @@ const getRoleTasks = {
             }
         }
 
-        if (controller && !getPath(creep.pos, controller.pos, 1, 1, true)) {
+        if (controller && !getPath(creep, creep.pos, controller.pos, 1, 1, true)) {
 
             const sign = controller.sign;
 
@@ -2015,19 +2018,26 @@ const getRoleTasks = {
             roomsNeedingScan = availableNextRooms;
         }
         let min = Infinity;
-        let nextRoom = undefined;
+
+        let nextTargets = []
         for (let neighborName of availableNextRooms) {
             let lastScanTime = MEMORY.monitoredRooms[neighborName].lastScan
             if (lastScanTime < min) {
                 min = lastScanTime;
-                nextRoom = neighborName
+
+                nextTargets = [neighborName]
+            } else if (lastScanTime === min) {
+                nextTargets.push(neighborName)
             }
         }
+        if (nextTargets.length) {
+            let idx = Math.floor(Math.random() * (nextTargets.length-.001))
 
-        if (nextRoom) {
-            return new MoveToRoomTask(nextRoom)
+            let nextRoom = nextTargets[idx];
+            if (nextRoom) {
+                return new MoveToRoomTask(nextRoom)
+            }
         }
-
         /*
         const controller = creep.room.controller;
         if (controller && !controller.safeMode) {

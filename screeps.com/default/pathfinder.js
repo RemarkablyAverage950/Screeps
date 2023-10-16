@@ -16,7 +16,7 @@ const MAX_PATH_LENGTH = 5;
  * @param {boolean} incomplete Return path incomplete of !incomplete.
  * @returns {RoomPosition[] | Boolean} The path results from PathFinder.search
  */
-function getPath(origin, destination, range, maxRooms, incomplete = false, avoidCreeps = false) {
+function getPath(creep = undefined, origin, destination, range, maxRooms, incomplete = false, avoidCreeps = false) {
 
     let ret = PathFinder.search(
         origin, { pos: destination, range: range }, {
@@ -28,7 +28,17 @@ function getPath(origin, destination, range, maxRooms, incomplete = false, avoid
         roomCallback: function (roomName) {
 
             let room = Game.rooms[roomName];
-            if (!room) return undefined;
+            if (!room) {
+                if (MEMORY.rooms[roomName]) {
+                    let cm = MEMORY.rooms[roomName].costMatrix[0]
+                    if (cm) {
+                        return cm
+                    }
+                }
+                return undefined;
+            }
+
+
 
             if (!MEMORY.rooms[roomName]) {
                 MEMORY.rooms[roomName] = {}
@@ -43,7 +53,64 @@ function getPath(origin, destination, range, maxRooms, incomplete = false, avoid
 
 
             if (matrix) {
-                return matrix[0];
+                // Modify matrix
+                let m = matrix[0]
+                if (creep) {
+                    let myCreeps = room.find(FIND_MY_CREEPS).filter(c => c.pos.getRangeTo(creep) < 5)
+                    for (let creep of myCreeps) {
+                        if (avoidCreeps) {
+                            m.set(creep.pos.x, creep.pos.y, 0xff)
+                            continue;
+                        }
+                        if (creep.memory.role === 'defender' || creep.memory.role === 'soldier') {
+                            m.set(creep.pos.x, creep.pos.y, 0xff)
+                            continue;
+                        }
+
+                        if (MEMORY.rooms[creep.memory.home].creeps[creep.name]) {
+                            const moving = MEMORY.rooms[creep.memory.home].creeps[creep.name].moving;
+
+                            if (moving === false) {
+                                let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0]
+                                if (task && task.type === 'HARVEST') {
+                                    m.set(creep.pos.x, creep.pos.y, 0xff);
+                                } else {
+                                    m.set(creep.pos.x, creep.pos.y, m.get(creep.pos.x, creep.pos.y) + 5)
+                                }
+                            } else {
+                                m.set(creep.pos.x, creep.pos.y, m.get(creep.pos.x, creep.pos.y) + 2)
+                            }
+                        }
+                    }
+
+
+
+                    // Prefer distancing from hostile creeps
+                    let hostileCreeps = room.find(FIND_HOSTILE_CREEPS)
+
+                    if (hostileCreeps.length > 0) {
+                        let terrain = new Room.Terrain(roomName)
+                        hostileCreeps.forEach(c => m.set(c.pos.x, c.pos.y, 0xff))
+                        hostileCreeps = hostileCreeps.filter(c => c.body.some(b => b.type === ATTACK) || c.body.some(b => b.type === RANGED_ATTACK))
+
+                        for (let creep of hostileCreeps) {
+
+                            for (let x = creep.pos.x - HOSTILE_BUFFER; x <= creep.pos.x + HOSTILE_BUFFER; x++) {
+                                for (let y = creep.pos.y - HOSTILE_BUFFER; y <= creep.pos.y + HOSTILE_BUFFER; y++) {
+                                    if (x > 49 || x < 0 || y > 49 || y < 0) {
+                                        continue;
+                                    }
+
+                                    if (terrain.get(x, y) !== 1) {
+                                        m.set(x, y, m.get(x, y) + 20);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return m;
             } else {
                 return undefined;
             }
@@ -61,7 +128,9 @@ function getPath(origin, destination, range, maxRooms, incomplete = false, avoid
         return undefined;
     }
 
-    
+    if (creep) {
+        ret.path = ret.path.filter(p => p.roomName === creep.room.name)
+    }
 
     return ret.path;
 }
@@ -89,7 +158,7 @@ function moveCreep(creep, destination, range, maxRooms) {
 
     // Generate a path if needed.
     if (!path || path.length === 0) {
-        path = getPath(creep.pos, destination, range, maxRooms);
+        path = getPath(creep, creep.pos, destination, range, maxRooms);
         if (!path) {
             MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
             MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks = [];
@@ -120,7 +189,7 @@ function moveCreep(creep, destination, range, maxRooms) {
                 if (!moving) {
 
 
-                    path = getPath(creep.pos, destination, range, maxRooms, false, true);
+                    path = getPath(creep, creep.pos, destination, range, maxRooms, false, true);
                     if (!path || path.length === 0) {
                         MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
                         MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks = [];
@@ -183,7 +252,7 @@ function moveCreepToRoom(creep, targetRoomName, targetPos = undefined, hostileRo
         // Use `findRoute` to calculate a high-level plan for this path,
         // prioritizing highways and owned rooms
 
-         route = Game.map.findRoute(from.roomName, to.roomName, {
+        route = Game.map.findRoute(from.roomName, to.roomName, {
             routeCallback(roomName) {
 
                 let isMyRoom = Game.rooms[roomName] &&
@@ -313,57 +382,7 @@ function getCostMatrix(room, avoidCreeps) {
     };
 
     // Set parked or undetermined creeps to impassable
-    let myCreeps = room.find(FIND_MY_CREEPS)
-    for (let creep of myCreeps) {
-        if (avoidCreeps) {
-            costMatrix.set(creep.pos.x, creep.pos.y, 0xff)
-            continue;
-        }
-        if(creep.memory.role === 'defender' || creep.memory.role === 'soldier'){
-            costMatrix.set(creep.pos.x, creep.pos.y, 0xff)
-            continue;
-        }
 
-        if (MEMORY.rooms[creep.memory.home].creeps[creep.name]) {
-            const moving = MEMORY.rooms[creep.memory.home].creeps[creep.name].moving;
-
-            if (moving === false) {
-                let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0]
-                if (task && task.type === 'HARVEST') {
-                    costMatrix.set(creep.pos.x, creep.pos.y, 0xff);
-                } else {
-                    costMatrix.set(creep.pos.x, creep.pos.y, costMatrix.get(creep.pos.x, creep.pos.y) + 5)
-                }
-            } else {
-                costMatrix.set(creep.pos.x, creep.pos.y, costMatrix.get(creep.pos.x, creep.pos.y) + 2)
-            }
-        }
-    }
-
-
-
-    // Prefer distancing from hostile creeps
-    let hostileCreeps = room.find(FIND_HOSTILE_CREEPS)
-
-    if (hostileCreeps.length > 0) {
-        hostileCreeps.forEach(c => costMatrix.set(c.pos.x, c.pos.y, 0xff))
-        hostileCreeps = hostileCreeps.filter(c => c.body.some(b => b.type === ATTACK) || c.body.some(b => b.type === RANGED_ATTACK))
-
-        for (let creep of hostileCreeps) {
-
-            for (let x = creep.pos.x - HOSTILE_BUFFER; x <= creep.pos.x + HOSTILE_BUFFER; x++) {
-                for (let y = creep.pos.y - HOSTILE_BUFFER; y <= creep.pos.y + HOSTILE_BUFFER; y++) {
-                    if (x > 49 || x < 0 || y > 49 || y < 0) {
-                        continue;
-                    }
-
-                    if (terrain.get(x, y) !== 1) {
-                        costMatrix.set(x, y, costMatrix.get(x, y) + 20);
-                    }
-                }
-            }
-        }
-    }
 
     MEMORY.rooms[room.name].costMatrix = [costMatrix, Game.time];
 
