@@ -102,7 +102,7 @@ class ScanData {
         this.safeMode = safeMode;
         let pathToController = true;
         let exit = room.find(FIND_EXIT)[0]
-        if (controller && getPath(undefined,exit, controller.pos, 1, 1, true)) {
+        if (controller && getPath(undefined, exit, controller.pos, 1, 1, true)) {
             pathToController = false;
         }
         this.pathToController = pathToController;
@@ -118,7 +118,7 @@ class ScanData {
         let strucHits = 0
         let storage = room.storage;
         let pathToStorage = true;
-        if (storage && getPath(undefined,exit, storage.pos, 1, 1, true)) {
+        if (storage && getPath(undefined, exit, storage.pos, 1, 1, true)) {
             pathToStorage = false;
         }
         this.pathToStorage = pathToStorage;
@@ -285,7 +285,7 @@ class ScanData {
             safeMode = true;
         }
         this.safeMode = safeMode;
-        if (controller && getPath(undefined,exit, controller.pos, 1, 1, true)) {
+        if (controller && getPath(undefined, exit, controller.pos, 1, 1, true)) {
             pathToController = false;
         }
         this.pathToController = pathToController;
@@ -1464,7 +1464,7 @@ function getMission(myRooms) {
         }
     }
 
-    let availableRooms = myRooms.filter(homeRoomName => !MEMORY.rooms[homeRoomName].missions.some(m => m.type === 'DISMANTLE') && Game.rooms[homeRoomName].storage)
+    let availableRooms = myRooms.filter(homeRoomName => MEMORY.rooms[homeRoomName].missions && !MEMORY.rooms[homeRoomName].missions.some(m => m.type === 'DISMANTLE') && Game.rooms[homeRoomName].storage)
 
     if (availableRooms.length > 0) {
 
@@ -1607,7 +1607,7 @@ function getMission(myRooms) {
             }
         }
 
-        if (potentialSettlementCount > 0) {
+        if (potentialSettlementCount >= Math.min(myRooms.length, 5)) {
 
             let bestTarget = _.max(potentialSettlements, s => s.score)
 

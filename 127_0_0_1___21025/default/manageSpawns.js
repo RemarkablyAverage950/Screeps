@@ -835,20 +835,28 @@ const getBody = {
         if (room.storage) {
             for (let s of sources) {
 
-                distance += s.pos.getRangeTo(room.storage);
+                distance += s.pos.findPathTo(room.storage,{
+                    ignoreCreeps: true,
+                }).length;
             };
             if (haulMinerals) {
                 const mineral = room.find(FIND_MINERALS)[0]
-                distance += mineral.pos.getRangeTo(room.storage)
+                distance += mineral.pos.findPathTo(room.storage,{
+                    ignoreCreeps: true,
+                }).length;
             }
         } else {
             for (let s of sources) {
 
-                distance += s.pos.getRangeTo(spawn);
+                distance += s.pos.findPathTo(spawn,{
+                    ignoreCreeps: true,
+                }).length;
             };
             if (haulMinerals) {
                 const mineral = room.find(FIND_MINERALS)[0]
-                distance += mineral.pos.getRangeTo(spawn)
+                distance += mineral.pos.findPathTo(spawn,{
+                    ignoreCreeps: true,
+                }).length;
             }
         }
 

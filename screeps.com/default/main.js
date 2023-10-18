@@ -14,17 +14,24 @@ require('RoomVisual');
 
 let start = false;
 module.exports.loop = function () {
-    if(Game.time % 10000 === 0){
+    if (Game.time % 10000 === 0) {
+
         console.log('Resetting memory')
+
+        MEMORY = {
+            rooms: {},
+            username: getUserName()
+        };
         return;
     }
 
     if (!start) {
-        if (Game.cpu.bucket > 200) {
+        
+        if (Game.cpu.bucket > 499) {
 
             start = true;
         } else {
-            console.log('Waiting for bucket to reach 200 to start')
+            console.log('Initializing bucket:',Game.cpu.bucket,'/500')
             return;
         }
     }
@@ -54,13 +61,14 @@ module.exports.loop = function () {
     expansionManager(myRooms);
 
     for (const roomName of myRooms) {
-        if (Game.cpu.bucket < 20) {
-            continue;
+        if (Game.cpu.bucket < 100) {
+            console.log('Breaking out of main for CPU Bucket')
+            break;
         }
         const room = Game.rooms[roomName];
         const creeps = Object.values(Game.creeps).filter(c => c.memory.home === roomName);
 
-        if (room.controller.level < 2 || room.find(FIND_MY_SPAWNS).length === 0) {
+        if (Game.time % 20 === 0 && room.controller.level < 2 || room.find(FIND_MY_SPAWNS).length === 0) {
 
             let closest = _.min(myRooms.filter(r => r != roomName && Game.rooms[r].controller.level > 3), r => Game.map.findRoute(roomName, r).length)
 
@@ -93,7 +101,7 @@ module.exports.loop = function () {
             }
 
         }
-
+        /*
         let structures = room.find(FIND_STRUCTURES)
         let energy = 0;
         let dropped = room.find(FIND_DROPPED_RESOURCES)
@@ -119,7 +127,7 @@ module.exports.loop = function () {
         } else {
             MEMORY.rooms[roomName].needEnergy = false;
         }
-
+        */
 
 
         manageMemory(room, creeps);
@@ -134,7 +142,7 @@ module.exports.loop = function () {
     }
 
     if (Game.cpu.bucket >= 10000) {
-        //Game.cpu.generatePixel();
+        Game.cpu.generatePixel();
     }
 }
 

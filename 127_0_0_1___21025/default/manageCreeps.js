@@ -2,7 +2,7 @@ let MEMORY = require('memory');
 const { moveCreep, moveCreepToRoom, getPath } = require('pathfinder');
 const getAssignedCreeps = require('prototypes');
 const helper = require('lib.helper');
-const { parkTask } = require('./lib.helper');
+
 require('prototypes');
 
 class Task {
@@ -218,7 +218,7 @@ function manageCreeps(room, creeps) {
             console.log(creep.name, 'Task:', JSON.stringify(MEMORY.rooms[room.name].creeps[creep.name].tasks[0]))
             //console.log('Path:',MEMORY.rooms[room.name].creeps[creep.name].path)
         }*/
-
+        if (Game.cpu.bucket < 20) { return }
         if (creep.spawning) continue;
         let taskValid = false;
 
@@ -1146,7 +1146,7 @@ const getRoleTasks = {
                     path = ret.path;
                     for (let i = 0; i < path.length; i++) {
 
-                        if (!getPath(creep, creep.pos, path[i], 1, 1, true)) {
+                        if (!getPath(creep, creep.pos, path[i], 1, 1, true, true)) {
 
                             let targetPos = path[i];
 
@@ -1163,7 +1163,7 @@ const getRoleTasks = {
             let storage = creep.room.storage
 
 
-            if (storage && getPath(creep, creep.pos, storage.pos, 1, 1, true)) {
+            if (storage && getPath(creep, creep.pos, storage.pos, 1, 1, true, false)) {
                 ret = PathFinder.search(
                     storage.pos, { pos: creep.pos, range: 1 },
                     {
@@ -1209,7 +1209,7 @@ const getRoleTasks = {
                     path = ret.path;
                     for (let i = 0; i < path.length; i++) {
 
-                        if (!getPath(creep, creep.pos, path[i], 1, 1, true)) {
+                        if (!getPath(creep, creep.pos, path[i], 1, 1, true, true)) {
 
                             let targetPos = path[i];
 
@@ -1260,21 +1260,25 @@ const getRoleTasks = {
                 let rampart = targets.find(t => t.pos.x === s.pos.x && t.pos.y === s.pos.y && t.structureType === STRUCTURE_RAMPART)
 
                 if (rampart) {
+
                     return new DismantleTask(rampart.id)
                 }
 
             }
 
 
+            targets = targets.sort((a, b) => b.pos.getRangeTo(creep) - a.pos.getRangeTo(creep))
+            while (targets.length) {
+                let target = targets.pop()
+                if (!getPath(creep, creep.pos, target.pos, 1, 1, true, true)) {
 
-            if (targets.length) {
-                let target = _.min(targets, t => t.pos.getRangeTo(creep))
 
-                return new DismantleTask(target.id)
+                    return new DismantleTask(target.id)
+                }
             }
-            else {
-                return helper.parkTask(creep.room, creep)
-            }
+
+            return helper.parkTask(creep.room, creep)
+
         }
 
 
@@ -1328,7 +1332,7 @@ const getRoleTasks = {
 
             return new MoveTask(pos)
         } else {
-
+            let capacity = creep.store.getCapacity()
             const structures = room.find(FIND_STRUCTURES).filter(s => s.pos.isNearTo(creep) && s.structureType !== STRUCTURE_ROAD)
             let containers = []
             for (let s of structures) {
@@ -1339,13 +1343,13 @@ const getRoleTasks = {
                 if ((s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
 
                     if (creep.store[RESOURCE_ENERGY] === 0) {
-                        if (spawnLink && spawnLink.forecast(RESOURCE_ENERGY) >= 50) {
-                            return new WithdrawTask(spawnLink.id, RESOURCE_ENERGY, 50)
+                        if (spawnLink && spawnLink.forecast(RESOURCE_ENERGY) >= 0) {
+                            return new WithdrawTask(spawnLink.id, RESOURCE_ENERGY, capacity)
                         }
 
                         for (let _s of structures) {
-                            if ((_s.structureType === STRUCTURE_CONTAINER) && _s.forecast(RESOURCE_ENERGY) >= 50) {
-                                return new WithdrawTask(_s.id, RESOURCE_ENERGY, 50)
+                            if ((_s.structureType === STRUCTURE_CONTAINER) && _s.forecast(RESOURCE_ENERGY) >= 0) {
+                                return new WithdrawTask(_s.id, RESOURCE_ENERGY, capacity)
                             }
                         }
                     } else {
@@ -1360,9 +1364,9 @@ const getRoleTasks = {
 
                     if (creep.store[RESOURCE_ENERGY] === 0) {
 
-                        if (spawnLink && spawnLink.forecast(RESOURCE_ENERGY) >= 50) {
+                        if (spawnLink && spawnLink.forecast(RESOURCE_ENERGY) >= 0) {
 
-                            return new WithdrawTask(spawnLink.id, RESOURCE_ENERGY, 50)
+                            return new WithdrawTask(spawnLink.id, RESOURCE_ENERGY, capacity)
                         }
                     } else {
 
@@ -1594,12 +1598,17 @@ const getRoleTasks = {
                         }
                         return true;
                     })
-                    resources = room.find(FIND_DROPPED_RESOURCES).filter(r => r.amount > 50)
+                    resources = room.find(FIND_DROPPED_RESOURCES).filter(r => r.amount > 100)
                 }
                 if (resources.length) {
-                    resources = resources.sort((a, b) => b.forecast() - a.forecast())
+                    resources = resources.sort((a, b) => a.forecast() - b.forecast())
+                }
+                while (resources.length) {
+                    let r = resources.pop()
+                    if (!getPath(creep, creep.pos, r.pos, 1, 1, true, true)) {
 
-                    return new PickupTask(resources[0].id, Math.min(creep.store.getFreeCapacity(), resources[0].amount))
+                        return new PickupTask(r.id, Math.min(creep.store.getFreeCapacity(), r.amount))
+                    }
                 }
 
                 let storeStructures = [];
@@ -1619,15 +1628,19 @@ const getRoleTasks = {
                 if (storeStructures.length === 0) {
                     return new MoveToRoomTask(homeRoomName)
                 }
-                let closest = _.min(storeStructures, s => s.pos.getRangeTo(creep))
-                if (closest) {
-                    for (let r of Object.keys(closest.store)) {
 
-                        return new WithdrawTask(closest.id, r, Math.min(closest.store[r], creep.store.getFreeCapacity()))
+                storeStructures = storeStructures.sort((a, b) => b.pos.getRangeTo(creep) - a.pos.getRangeTo(creep))
+                while (storeStructures.length) {
+                    let closest = storeStructures.pop()
+                    if (!getPath(creep, creep.pos, closest.pos, 1, 1, true, true)) {
+                        for (let r of Object.keys(closest.store)) {
+
+                            return new WithdrawTask(closest.id, r, Math.min(closest.store[r], creep.store.getFreeCapacity()))
+                        }
+
                     }
-
                 }
-            } else {
+
                 if (creep.store.getUsedCapacity > 0) {
                     return new MoveToRoomTask(homeRoomName)
                 } else {
@@ -1787,10 +1800,12 @@ const getRoleTasks = {
 
             // Get new assigned rooom
             const outpostsNames = Memory.rooms[homeRoomName].outposts;
-            let maxQty = 0;
 
             let pickUpTarget = undefined;
+            let maxPickupQty = 0;
 
+            let withdrawTarget = undefined;
+            let maxWithdrawQty = 0;
 
             for (let outpostName of outpostsNames) {
                 let outpostRoom = Game.rooms[outpostName]
@@ -1803,44 +1818,43 @@ const getRoleTasks = {
                 for (let r of dropped) {
                     if (r.resourceType === RESOURCE_ENERGY) {
                         const forecast = r.forecast()
-                        if (forecast > maxQty && forecast > capacity) {
+                        if (forecast > maxPickupQty) {
                             pickUpTarget = r
-                            maxQty = forecast
+                            maxPickupQty = forecast
+                        }
+                    }
+
+                }
+
+                const structures = outpostRoom.find(FIND_STRUCTURES)
+
+                for (let s of structures) {
+                    if (s.structureType === STRUCTURE_CONTAINER) {
+                        const forecast = s.forecast(RESOURCE_ENERGY)
+                        if (forecast > maxWithdrawQty) {
+                            withdrawTarget = s
+                            maxWithdrawQty = forecast
                         }
                     }
 
                 }
             }
-            if (pickUpTarget) {
 
-                tasks.push(new PickupTask(pickUpTarget.id, capacity))
-            } else {
-                let withdrawTarget = undefined;
-                maxQty = 0;
-                for (let outpostName of outpostsNames) {
-                    let outpostRoom = Game.rooms[outpostName]
-                    if (!outpostRoom) {
-                        continue;
-                    }
-                    const structures = outpostRoom.find(FIND_STRUCTURES)
-
-                    for (let s of structures) {
-                        if (s.structureType === STRUCTURE_CONTAINER) {
-                            const forecast = s.forecast(RESOURCE_ENERGY)
-                            if (forecast > maxQty) {
-                                withdrawTarget = s
-                                maxQty = forecast
-                            }
-                        }
-
-                    }
-                }
-
-                if (withdrawTarget) {
+            if (pickUpTarget && withdrawTarget) {
+                if (maxWithdrawQty > maxPickupQty) {
                     tasks.push(new WithdrawTask(withdrawTarget.id, RESOURCE_ENERGY, capacity))
+                } else {
+                    tasks.push(new PickupTask(pickUpTarget.id, capacity))
                 }
-
+            } else if (pickUpTarget) {
+                tasks.push(new PickupTask(pickUpTarget.id, capacity))
+            } else if (withdrawTarget) {
+                tasks.push(new WithdrawTask(withdrawTarget.id, RESOURCE_ENERGY, capacity))
             }
+
+
+
+
 
         }
 
@@ -2031,7 +2045,7 @@ const getRoleTasks = {
             }
         }
         if (nextTargets.length) {
-            let idx = Math.floor(Math.random() * (nextTargets.length-.001))
+            let idx = Math.floor(Math.random() * (nextTargets.length - .001))
 
             let nextRoom = nextTargets[idx];
             if (nextRoom) {
@@ -3096,6 +3110,9 @@ function validateTask(room, creep) {
                 return false;
             }
             if (target.store.getFreeCapacity(task.resourceType) === 0 || creep.store[task.resourceType] === 0) {
+                return false;
+            }
+            if (target.body && MEMORY.rooms[target.memory.home].creeps[target.name].moving) {
                 return false;
             }
 

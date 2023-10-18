@@ -67,6 +67,14 @@ class InvaderCoreMission extends Mission {
     }
 }
 
+class PowerBankMission extends Mission {
+    constructor(roomName, position) {
+        super('POWER');
+        this.roomName = roomName;
+        this.position = position;
+    }
+}
+
 class SupplyMission extends Mission {
     constructor(roomName, resource, qty) {
         super('SUPPLY');
@@ -102,7 +110,7 @@ class ScanData {
         this.safeMode = safeMode;
         let pathToController = true;
         let exit = room.find(FIND_EXIT)[0]
-        if (controller && getPath(undefined,exit, controller.pos, 1, 1, true)) {
+        if (controller && getPath(undefined, exit, controller.pos, 1, 1, true)) {
             pathToController = false;
         }
         this.pathToController = pathToController;
@@ -118,7 +126,7 @@ class ScanData {
         let strucHits = 0
         let storage = room.storage;
         let pathToStorage = true;
-        if (storage && getPath(undefined,exit, storage.pos, 1, 1, true)) {
+        if (storage && getPath(undefined, exit, storage.pos, 1, 1, true)) {
             pathToStorage = false;
         }
         this.pathToStorage = pathToStorage;
@@ -154,6 +162,7 @@ class ScanData {
 
             } else if (s.structureType === STRUCTURE_POWER_BANK) {
                 powerBank = true;
+                this.powerBankPos = s.pos
             } else if (s.structureType === STRUCTURE_PORTAL) {
                 portal = true;
             } else {
@@ -285,7 +294,7 @@ class ScanData {
             safeMode = true;
         }
         this.safeMode = safeMode;
-        if (controller && getPath(undefined,exit, controller.pos, 1, 1, true)) {
+        if (controller && getPath(undefined, exit, controller.pos, 1, 1, true)) {
             pathToController = false;
         }
         this.pathToController = pathToController;
@@ -328,6 +337,7 @@ class ScanData {
 
             } else if (s.structureType === STRUCTURE_POWER_BANK) {
                 powerBank = true;
+                this.powerBankPos = s.pos
             } else if (s.structureType === STRUCTURE_PORTAL) {
                 portal = true;
             } else {
@@ -1258,6 +1268,71 @@ function executeMissions(myRooms) {
 
 
 
+                } else if (mission.type === 'POWER') {
+                    if (room
+                        && !room.find(FIND_STRUCTURES).some(s => s.structureType === STRUCTURE_POWER_BANK)
+                        && !room.find(FIND_DROPPED_RESOURCES).some(r => r.resourceType === RESOURCE_POWER)) {
+                        mission.complete = true;
+                        continue;
+                    }
+
+                    let squadCount = 0;
+                    // Require a squad
+                    let powerBankSquadsRequired = 1;
+                    for (let creep of Object.values(Game.creeps)) {
+                        if (creep.memory.role === 'powerMiner' && creep.memory.home === homeRoomName) {
+                            squadCount++;
+                        }
+                    }
+                    for (let so of MEMORY.rooms[homeRoomName].spawnQueue) {
+                        if (so.role === 'powerMiner') {
+                            squadCount++
+                        }
+                    }
+
+
+                    if (squadCount === 0) {
+                        let healerCount = 0;
+                        let targetHealerCount = 2;
+                        let powerMinerCount = 0;
+                        let targetPowerMinerCount = 1;
+                        body = [];
+                        while (healerCount < targetHealerCount) {
+                            if (body.length === 0) {
+                                body = getBody.healer(Game.rooms[homeRoomName].energyCapacityAvailable)
+                            }
+                            options = {
+                                memory: {
+                                    role: 'healer',
+                                    home: homeRoomName,
+                                    assignedRoom: mission.roomName,
+                                },
+                            };
+                            console.log(homeRoomName, 'adding healer to queue for', mission.roomName)
+                            MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('healer', 4, body, options));
+                            healerCount++;
+                        }
+                        body = [];
+                        while (powerMinerCount < targetPowerMinerCount) {
+                            if (body.length === 0) {
+                                body = getBody.powerMiner(Game.rooms[homeRoomName].energyCapacityAvailable)
+                            }
+                            options = {
+                                memory: {
+                                    role: 'powerMiner',
+                                    home: homeRoomName,
+                                    assignedRoom: mission.roomName,
+                                },
+                            };
+                            console.log(homeRoomName, 'adding powerMiner to queue for', mission.roomName)
+                            MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('powerMiner', 4, body, options));
+                            powerMinerCount++;
+                        }
+                    }
+
+                    // Require longDistance haulers
+
+
                 }
 
 
@@ -1464,7 +1539,7 @@ function getMission(myRooms) {
         }
     }
 
-    let availableRooms = myRooms.filter(homeRoomName => !MEMORY.rooms[homeRoomName].missions.some(m => m.type === 'DISMANTLE') && Game.rooms[homeRoomName].storage)
+    let availableRooms = myRooms.filter(homeRoomName => MEMORY.rooms[homeRoomName].missions && !MEMORY.rooms[homeRoomName].missions.some(m => m.type === 'DISMANTLE') && Game.rooms[homeRoomName].storage)
 
     if (availableRooms.length > 0) {
 
@@ -1607,7 +1682,7 @@ function getMission(myRooms) {
             }
         }
 
-        if (potentialSettlementCount > 0) {
+        if (potentialSettlementCount >= Math.min(myRooms.length, 5)) {
 
             let bestTarget = _.max(potentialSettlements, s => s.score)
 
@@ -1686,15 +1761,18 @@ function getMission(myRooms) {
                 MEMORY.rooms[closest].missions.push(new EmptyEnemyStructuresMission(roomName))
             }
 
-
-
-
-
-
-
         }
 
 
+    }
+
+    for (let r of Object.values(monitoredRooms)) {
+        if (r.powerBank && Game.rooms[r.homeRoom].controller.level > 6 && !MEMORY.rooms[r.homeRoom].mission.some(m => m.type === 'POWER')) {
+
+            MEMORY.rooms[r.homeRoom].mission.push(new PowerBankMission(r.roomName, r.powerBankPos))
+
+
+        }
     }
 
     /*

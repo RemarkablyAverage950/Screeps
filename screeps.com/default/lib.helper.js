@@ -29,7 +29,7 @@ let helper = {
      */
     pushCreep: function (creep, pushingCreep) {
         let role = creep.memory.role
-        if (role === 'miner' || role === 'remoteMiner' || role === 'claimer' || role === 'reserver') { // role === 'fastFiller
+        if (role === 'miner' || role === 'remoteMiner' || role === 'claimer' || role === 'reserver' || role === 'hub') { // role === 'fastFiller
             return false
         }
 

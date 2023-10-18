@@ -31,8 +31,8 @@ function manageTowers(room) {
             }
         }
 
-        
-        if (tower.store[RESOURCE_ENERGY] <= 500 || (room.storage && room.storage.store[RESOURCE_ENERGY] < 200000)) {
+
+        if (!room.storage || room.storage.store[RESOURCE_ENERGY] < 200000 || tower.store[RESOURCE_ENERGY] <= 500) {
             continue;
         }
         const structures = room.find(FIND_STRUCTURES);
