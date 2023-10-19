@@ -340,9 +340,9 @@ function outpostManager(homeRoom, creeps) {
                             let structures = Game.rooms[heap.name].find(FIND_STRUCTURES)
                             for (let struct of structures) {
                                 if (struct.structureType === STRUCTURE_CONTAINER && struct.pos.isNearTo(source)) {
-                                    if (struct.forecast(RESOURCE_ENERGY) === 2000){
+                                    if (struct.forecast(RESOURCE_ENERGY) === 2000) {
                                         creepNeeded = false;
-                                        
+
                                     }
                                     break;
                                 }
@@ -383,9 +383,9 @@ function outpostManager(homeRoom, creeps) {
                     let totalDistance = 0;
                     let energyGeneratedPerLife;
                     if (outpostRoom.controller.reservation) {
-                        energyGeneratedPerLife = (15000) * Object.keys(heap.sources).length * 1.1
+                        energyGeneratedPerLife = (15000) - 750 * Object.keys(heap.sources).length
                     } else {
-                        energyGeneratedPerLife = energyGeneratedPerLife = (7500) * Object.keys(heap.sources).length * 1.1
+                        energyGeneratedPerLife = energyGeneratedPerLife = (7500) - 750 * Object.keys(heap.sources).length
                     }
 
                     for (let s of Object.values(heap.sources)) {

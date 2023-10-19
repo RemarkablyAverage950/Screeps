@@ -137,6 +137,13 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
                 conserveEnergy = true;
             }
             break;
+        case 5:
+            if (room.storage && storedEnergy < 50000) {
+                conserveEnergy = true;
+            } else if (!room.storage && storedEnergy < 1000 * sources.length) {
+                conserveEnergy = true;
+            }
+            break;
         case 4:
             if (room.storage && storedEnergy < 25000) {
                 conserveEnergy = true;
@@ -144,8 +151,15 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
                 conserveEnergy = true;
             }
             break;
+        case 6:
+            if (room.storage && storedEnergy < 100000) {
+                conserveEnergy = true;
+            } else if (!room.storage && storedEnergy < 1000 * sources.length) {
+                conserveEnergy = true;
+            }
+            break;
         default:
-            if (room.storage && storedEnergy < 50000) {
+            if (room.storage && storedEnergy < 150000) {
                 conserveEnergy = true;
             } else if (!room.storage && storedEnergy < 1000 * sources.length) {
                 conserveEnergy = true;
@@ -835,26 +849,26 @@ const getBody = {
         if (room.storage) {
             for (let s of sources) {
 
-                distance += s.pos.findPathTo(room.storage,{
+                distance += s.pos.findPathTo(room.storage, {
                     ignoreCreeps: true,
                 }).length;
             };
             if (haulMinerals) {
                 const mineral = room.find(FIND_MINERALS)[0]
-                distance += mineral.pos.findPathTo(room.storage,{
+                distance += mineral.pos.findPathTo(room.storage, {
                     ignoreCreeps: true,
                 }).length;
             }
         } else {
             for (let s of sources) {
 
-                distance += s.pos.findPathTo(spawn,{
+                distance += s.pos.findPathTo(spawn, {
                     ignoreCreeps: true,
                 }).length;
             };
             if (haulMinerals) {
                 const mineral = room.find(FIND_MINERALS)[0]
-                distance += mineral.pos.findPathTo(spawn,{
+                distance += mineral.pos.findPathTo(spawn, {
                     ignoreCreeps: true,
                 }).length;
             }
@@ -1092,8 +1106,8 @@ const getBody = {
             averageContainerDistance /= (containerCount * sources.length);
 
         }
-        const roadWorkNeededPerLife = (roadCount * 150) * 2; // 2x extra to account for any non road/container buildings that need repairs + road damage from movement.
-        const conatinerWorkNeededPerLife = (containerCount * 15000) * 1.1
+        const roadWorkNeededPerLife = (roadCount * 150) * 2 * 1.2; // 2x extra to account for any non road/container buildings that need repairs + road damage from movement.
+        const conatinerWorkNeededPerLife = (containerCount * 15000) * 1.2
 
         let bodyFound = false;
         let bestBody = [1, 1, 1];
@@ -1873,9 +1887,11 @@ const getTargetCount = {
      */
     upgrader: function (room, conserveEnergy) {
 
-        if (conserveEnergy) {
+        if (room.controller.level > 7 || conserveEnergy) {
             return 1;
         }
+
+
 
         // Count total energy available.
         const structures = room.find(FIND_STRUCTURES);
@@ -1894,8 +1910,8 @@ const getTargetCount = {
             };
         };
 
-        if (room.controller.level === 8) {
-            return 1;
+        if (room.controller.level === 7) {
+            return Math.min(Math.ceil(energy / 200000), 2)
         } else if (!room.storage) {
             return Math.ceil(energy / (1000 * room.controller.level));
         } else {
@@ -1958,15 +1974,10 @@ const getTargetCount = {
 function getWallHitsTarget(room) {
     switch (room.controller.level) {
         case 8:
-            return 20000000;
-        case 7:
-            return 4000000;
-        case 6:
-            return 3000000;
-        case 5:
-            return 2000000;
+            return 5000000;
+        
         default:
-            return 1000000;
+            return 500000;
     };
 };
 

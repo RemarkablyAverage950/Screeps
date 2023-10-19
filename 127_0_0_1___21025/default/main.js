@@ -14,23 +14,24 @@ require('RoomVisual');
 
 let start = false;
 module.exports.loop = function () {
-    if (Game.time % 10000 === 0) {
+    if (Game.time % 15000 === 0) {
 
         console.log('Resetting memory')
 
         MEMORY = {
             rooms: {},
-            username: getUserName()
+            
         };
         return;
     }
 
     if (!start) {
-        if (Game.cpu.bucket > 500) {
+        
+        if (Game.cpu.bucket > 499) {
 
             start = true;
         } else {
-            console.log('Waiting for bucket to reach 200 to start')
+            console.log('Initializing bucket:',Game.cpu.bucket,'/500')
             return;
         }
     }
@@ -42,6 +43,7 @@ module.exports.loop = function () {
     */
 
     // Remove dead creeps from memory.
+    //let cpuStart = Game.cpu.getUsed()
     for (let name in Memory.creeps) {
         if (!Game.creeps[name]) {
             const roomName = Memory.creeps[name].home
@@ -52,15 +54,22 @@ module.exports.loop = function () {
             //console.log('Cleared memory for ' + name)
         }
     }
-
+    //console.log('Deleting creeps from memory',Game.cpu.getUsed()-cpuStart)
+    //cpuStart = Game.cpu.getUsed()
 
     const myRooms = getMyRooms()
+    //console.log('Getting Rooms',Game.cpu.getUsed()-cpuStart)
+    //cpuStart = Game.cpu.getUsed()
 
     manageTerminals(myRooms);
+    //console.log('Managing terminals',Game.cpu.getUsed()-cpuStart)
+    //cpuStart = Game.cpu.getUsed()
     expansionManager(myRooms);
-
+    //console.log('Expansion Manager',Game.cpu.getUsed()-cpuStart)
+   
     for (const roomName of myRooms) {
-        if (Game.cpu.bucket < 20) {
+        //console.log('Room',roomName)
+        if (Game.cpu.bucket < 100) {
             console.log('Breaking out of main for CPU Bucket')
             break;
         }
@@ -128,15 +137,30 @@ module.exports.loop = function () {
         }
         */
 
-
+        //cpuStart = Game.cpu.getUsed()
         manageMemory(room, creeps);
+        //console.log('manageMemory',Game.cpu.getUsed()-cpuStart)
+        //cpuStart = Game.cpu.getUsed()
         manageRoomDefense(room);
+        //console.log('manageRoomDefense',Game.cpu.getUsed()-cpuStart)
+        //cpuStart = Game.cpu.getUsed()
         outpostManager(room, creeps);
+        //console.log('outpostManager',Game.cpu.getUsed()-cpuStart)
+        //cpuStart = Game.cpu.getUsed()
         manageLinks(room);
+        //console.log('manageLinks',Game.cpu.getUsed()-cpuStart)
+        //cpuStart = Game.cpu.getUsed()
         roomPlanner(room);
+        //console.log('roomPlanner',Game.cpu.getUsed()-cpuStart)
+        //cpuStart = Game.cpu.getUsed()
         manageTowers(room);
+        //console.log('manageTowers',Game.cpu.getUsed()-cpuStart)
+        //cpuStart = Game.cpu.getUsed()
         manageSpawns(room, creeps);
+        //console.log('manageSpawns',Game.cpu.getUsed()-cpuStart)
+        //cpuStart = Game.cpu.getUsed()
         manageCreeps(room, creeps);
+        //console.log('manageCreeps',Game.cpu.getUsed()-cpuStart)
 
     }
 
