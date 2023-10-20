@@ -14,7 +14,7 @@ require('RoomVisual');
 
 let start = false;
 module.exports.loop = function () {
-    if (Game.time % 15000 === 0) {
+    /*if (Game.time % 15000 === 0) {
 
         console.log('Resetting memory')
 
@@ -23,7 +23,7 @@ module.exports.loop = function () {
             
         };
         return;
-    }
+    }*/
 
     if (!start) {
         

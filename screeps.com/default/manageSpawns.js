@@ -175,6 +175,10 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let fillerCount = creepsCount['filler'] || 0;
     let fastFillerCount = creepsCount['fastFiller'] || 0;
     let hubCount = creepsCount['hub'] || 0;
+    if (hubCount && !creeps.some(c => c.memory.role === 'hub' && c.ticksToLive > 50)) {
+        hubCount = 0;
+    }
+
     let haulerCount = creepsCount['hauler'] || 0;
 
     const targetWorkerCount = getTargetCount.worker(minerCount, fillerCount, room, storedEnergy);
@@ -184,6 +188,8 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     const targetHubCount = getTargetCount.hub(room, storedEnergy);
     const targetHaulerCount = getTargetCount.hauler(room);
     const targetMineralMinerCount = getTargetCount.mineralMiner(room, conserveEnergy);
+
+
 
     for (let order of existingSpawnQueue) {
 
@@ -1975,7 +1981,7 @@ function getWallHitsTarget(room) {
     switch (room.controller.level) {
         case 8:
             return 5000000;
-        
+
         default:
             return 500000;
     };

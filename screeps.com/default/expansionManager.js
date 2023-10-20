@@ -163,6 +163,20 @@ class ScanData {
 
         this.structureHits = strucHits;
 
+        const dropped = room.find(FIND_DROPPED_RESOURCES)
+        for (let r of dropped) {
+            if (!this.resources[r.resourceType]) {
+                this.resources[r.resourceType] = r.amount
+                this.storeQty += r.amount
+
+            } else {
+                this.resources[r] += r.amount
+                this.storeQty += r.amount
+
+            }
+        }
+
+
         let invaderCore = false
         let towers = false;
 
@@ -336,6 +350,21 @@ class ScanData {
         }
 
         this.structureHits = strucHits;
+
+        const dropped = room.find(FIND_DROPPED_RESOURCES)
+        for (let r of dropped) {
+            if (!this.resources[r.resourceType]) {
+                this.resources[r.resourceType] = r.amount
+                this.storeQty += r.amount
+
+            } else {
+                this.resources[r] += r.amount
+                this.storeQty += r.amount
+
+            }
+        }
+
+
         let invaderCore = false
         let towers = false;
         for (let s of hostileStructures) {
