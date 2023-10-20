@@ -1705,7 +1705,7 @@ const getRoleTasks = {
         if (creep.store[RESOURCE_ENERGY] > 0) {
 
 
-            tasks.push(...getTasks.repair(room));
+            tasks.push(...getTasks.repair(creep, room));
 
         };
 
@@ -2652,20 +2652,35 @@ const getTasks = {
 
     },
 
-    repair: function (room) {
+    /**
+     * 
+     * @param {Creep} creep 
+     * @param {Room} room 
+     * @returns 
+     */
+    repair: function (creep, room) {
 
         const structures = room.find(FIND_STRUCTURES);
         let tasks = [];
+        let body = creep.body
 
+
+        let workPerRepair = 0
+
+        for (let part of body) {
+            if (part.type === WORK) {
+                workPerRepair += 100
+            }
+        }
 
         for (let s of structures) {
             if (s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART) {
                 continue;
             }
-            if (s.hits < .5 * s.hitsMax) {
+            if (s.hits < .75 * s.hitsMax) {
                 return [new RepairTask(s.id)]
             }
-            if (s.hits < s.hitsMax) {
+            if (s.hits + workPerRepair <= s.hitsMax) {
                 tasks.push(new RepairTask(s.id));
             }
 

@@ -1012,7 +1012,7 @@ const getBody = {
     /**
      * 
      * @param {Room} homeRoom 
-     */
+     *//*
     longHauler: function (homeRoom) {
 
         const budget = homeRoom.energyCapacity;
@@ -1038,7 +1038,7 @@ const getBody = {
 
         return body;
 
-    },
+    },*/
 
     longHauler: function (budget, homeRoomName, missionRoomName, qty) { // Game.rooms[homeRoomName].energyCapacityAvailable, homeRoomName, mission.roomName, data.storeQty
 

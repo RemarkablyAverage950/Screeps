@@ -1022,24 +1022,18 @@ function executeMissions(myRooms) {
                                 targetLongHaulerCount = Math.min(4, ret[1])
 
                             }
-
-                            options = {
-                                memory: {
-                                    role: 'longHauler',
-                                    home: homeRoomName,
-                                    assignedRoom: mission.roomName,
-                                },
-                            };
-                            MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('longHauler', 5, body, options));
-                            longHaulerCount++;
+                            if (longHaulerCount < targetLongHaulerCount) {
+                                options = {
+                                    memory: {
+                                        role: 'longHauler',
+                                        home: homeRoomName,
+                                        assignedRoom: mission.roomName,
+                                    },
+                                };
+                                MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('longHauler', 5, body, options));
+                                longHaulerCount++;
+                            }
                         }
-
-
-
-
-                        ;
-
-
                     }
 
 
