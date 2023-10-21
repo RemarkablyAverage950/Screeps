@@ -55,14 +55,14 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
             if (matrix) {
                 // Modify matrix
                 let m = matrix[0]
-                if (creep) {
+                if (creep && avoidCreeps) {
                     let myCreeps = room.find(FIND_MY_CREEPS).filter(c => c.pos.getRangeTo(creep) < 5)
                     for (let creep of myCreeps) {
-                        if (avoidCreeps) {
+                        if (!MEMORY.rooms[creep.memory.home].creeps[creep.name].moving) {
                             m.set(creep.pos.x, creep.pos.y, 0xff)
                             continue;
                         }
-                        if (creep.memory.role === 'defender' || creep.memory.role === 'soldier') {
+                        /*if (creep.memory.role === 'defender' || creep.memory.role === 'soldier') {
                             m.set(creep.pos.x, creep.pos.y, 0xff)
                             continue;
                         }
@@ -80,7 +80,7 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
                             } else {
                                 m.set(creep.pos.x, creep.pos.y, m.get(creep.pos.x, creep.pos.y) + 2)
                             }
-                        }
+                        }*/
                     }
 
 
@@ -221,7 +221,7 @@ function moveCreep(creep, destination, range, maxRooms) {
         8: '↖',
     }
 
-    //creep.say(directions[next])
+    creep.say(directions[next])
     const ret = creep.move(next)
     if (ret !== 0) {
         //MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;

@@ -1,48 +1,23 @@
 storage.db['rooms.objects'].update({ _id: 'cf030773144fccf' },{ $set: { level: 6 }})
 
+
 Room Planner:
 
-    [x] Create a function for placing all connecting roads.
-        [x] Roads place after all stamps are placed, before ramparts and before additional structures
-        [x] Spawn block center to Hub, sources
-        [x] Each extension to hub
-        [x] Each source and mineral to hub
-        [x] Leave labs to hub, let lab stamp handle it.
+    [] Fix roads leading from ramparts. Sometimes, they place outside of rampart walls. It would be best if they did not go through rampart walls at all.
     
-    [x] Try to snap extension blocks to existing extension blocks.
-    [x] Keep structures a little further from exits. This can be done by declaring those tiles near exits unavailable initially.
     [] Place towers at closest optimal positions (where filler cannot get range attacked.)
-
-    [x] Fix bug where outpost road does not get placed at a boundry rampart.
-
-    [x] Bug where 2 ramparts did not place on road leading away from center of rampart wall.
 
     [] Only containers & links near an edge wall and outside base get a rampart
         [x] Outside
         [] Edge wall
 
     [] Save interior positions in memory for later pathfinding (when hostiles are present)
-    
-    [x] Have extension blocks imperfectly snap to eathother as well.
 
-    [x] Broken road placement from some ramparts. Unable to place roads on ramparts leading away from wall centers.
-        [x] Does not appear to be correctly creating a new tile, or is overwriting existing tile(more likely).
-
-    Extensions:
-        [x] Start looking for open spot in direction of spawn at about range 2 from storage
-        [x] When placing each block, find all possible snap positions for an existing block. If there are any, snap to the closest one to the storage. 
-        [x] Place freeform extensions on top, left, right, and bottom of an extension block
-            -[0,3],[3,0] etc.
-
-    Low Priority:
-
-    [x] Rampart roads should stay inside base area
-        - May be able to use minimum cut to generate a costMatrix for area outside of ramparts. 
 
 Pathfinding:
 
     [] Creeps can/should path all the way to destinations, including in other rooms.
-    [] Initial cost matrix does not looks for creeps, enemy or otherwise.
+    [x] Initial cost matrix does not looks for creeps, enemy or otherwise.
     [] Some units bounce in and out when transitioning between rooms.
     [] Better classification of what rooms are safe to travel through to prevent erratic paths avoiding safe rooms (one hostile structure that is not a tower, etc.)
 
@@ -55,183 +30,92 @@ Pathfinding:
         [] Scan for hostile creeps and re-gen if in range of 5
         [] Scan path for stationary creeps in next position (including fatigued), regen path if nescessary
 
-    [x] Consider pushing creeps blocking a path out of the way.
-        [x] Can modify park task and disallow the current position.
 
     
 
 Roles:
 
-    Builder:
-        [x] Choose most built of a certain structure to build first.
-
-    Defender:
-        [] When there are no live parts of a type, disable that type of part.
-
-    Dismantler:
-        [x] ScanData looks for rooms with structures, not mine, not my outpost, and then creates mission to send dismantler.
-        [x] Dismantler takes down all structures 
-
-    fastFillers:
-        [x] Spawn at level 4:
-
-    Hauler:
-        [x] Can deposit into spawn containers (if no storage exists)
-        [x] Spawn if container count > 2.
-        [x] Deposits into spawn containers first, but only if the container can take 50 % of creep load.
+    
 
     Hub:
         [] Spawn this unit if there are 2 links, and one is the hub link OR if a storage and a terminal is present.
-        [x] Set up non-energy resource management.
-            [x] Load terminal
-            [x] Load storage
-        
-    Maintainer:
-        [x] Seems to only be generating a 1work/1carry/1move creep when no storage present. Some structures are too degraded.
+
+    Long Hauler:
+
+        [] Look for dropped tombstones
+        [] Look for pickup targets when entering a room.
 
     Remote Hauler:
-        [x] Can deposit into spawn containers (if no storage exists)
         [] Fix: When assigned room is under attack, even if they are full they are not delivering to storage.
-        [] Unit was ignoring one overflowing source container and trying to pick up crumbs from the closer one.
-        [x] Should find closest creep or container when looking to deliver without a storage
-        [x] Deposits into spawn containers first, but only if the container can take 50% of creep load
         [] Units find fullest container by forecast to pickup from. (only visible outposts)
-
-    Scout:
-        [] Fix multiple scouts are targeting the same room due to lastScanTime.
-            - Need to target room not assigned to a scout.
-        [x] Should use Game.map.findRoute().length instead of r.distance for calculating distance to homeroom.
 
 
     RemoteWorker
-        [x] Continues spawning until room level 2
-        [x] Harvests
-        [x] Picks up dropped energy
-        [x] Withdraws energy
-        [x] Builds spawn
+
         [] Upgrades controller if downgrade in < 10k ticks
         When spawn built:
-            [] 1. Fills spawn
-            [] 2. Builds other structures
+            [x] 1. Fills spawn
+            [x] 2. Builds other structures
             
     
 Room Defense:
 
     [] Spawn defender(s) to handle units if no towers, or if towers cannot damage on their own.
 
-Spawning:
-
-    [x] Only need to spawn a remote maintainer if home room RCL >= 4.
-    [x] Spawn multiple scouts if RCL < 8
-    [x] Spawning too many soldiers to handle invader core missions.
 
 Outposts:
 
-    [x] Only declare new outpost if the room is not currently reserved by another player.
-    [x] Do not declare an outpost if room has structures, send dismantler instead.
+    [] Rename manageOutposts
+
+    [] If a source is too many steps away, don't mine it. Don't outpost rooms that have no minable sources.
+
     [] If taking an outpost from an enemy is uneffective, cancel outpost and asses what is needed before targeting as an outpost again.
-    [x] Send defender if an invader core pops up in outpost.
-    [x] Still creating too many outposts for only having 1 spawn. This needs to be capped at 3.
     [] Calculate remote haulers required as a whole across all outposts
 
 Expansion Manager:
 
-    [] Stick with one mission per room. Currently Trying to claim 1 room, build another, and dismantle a 3rd, all from one homeRoom
-        [] Assign a mission to a room. This should be hardcoded somewhere so we don't lose the data on a re-initialize.
-        [] Stick with the mission until it is complete.
+    [] Re-name manageMissions
 
+    Power Bank Missions:
+
+        [] Req RCL: 8
+        [] Implement mission type.
+        [] Create a squad for this
+            [] Roles
+                [] Power miner
+                [] Healer
+        [] Assign long haulers as needed.
+
+MEMORY:
+
+    [] Track some data used by owned rooms
+        [] Want to track if we are in energy conservation mode
+
+Lab Manager:
+
+    [] Module
     
-    Implement Mission types:
+    [] Tracks compounds needed from most basic to most advanced.
 
-        [] Invader core no towers
-            [] Send single soldier.
+    [] Seperate compound by body part type
 
-        [] Invader core with towers
-            [] Assess, most likely send multiple quads
+    [] Find central labs
 
-        [] Player room lower level.
-            [] Assess
+    [] Tracks available compounds for boosting
 
-        [] Player room no units.
-            [] Soldiers
+    [] Sets up creep tasks for creeps to referance if they need work, to fill and unfill labs
 
-        [] Other player's outpost
+Manage Squads:
 
-        [] Player room same level.
+    [] Handle joining of creeps to squads in memory.
 
+    [] Handle renewing before deployment
 
-    Invader Reserved Rooms:
-        [] Better classify via ScanData these reserved rooms.
-        [] Create more specific type of mission to destroy these invader cores.
-        [] Currently generating multiple (too many) assault missions but does not seem to be executing them.
+    When ready:
 
-    [x] W7N3 set up an outpost way over in W4N2. There is an issue with range/homeroom assignment.
+        [] Creeps find valid position to meet up in.
 
-    Claim Missions:
+        [] Move to target room
 
-        [] End claim mission when controller.my and RCL >= 2
+        [] Handle specific mission types:
 
-    Invade undefended room mission:
-
-        [] Detect and assign this mission if controller is owned but there are no units.
-        [] Consider following up with claiming the room for myself.
-
-    Bugs:
-
-        [] ScanRoom data being duplicated in monitoredRooms (MEMORY.rooms[room.name].monitoredRooms)
-            - Think this is fixed.
-
-10/9/23
-
-    [] Re-work mission system.
-        [] Assign missions to individual rooms.
-        [] Assign multiple missions at once (one of each type)
-        [] Ability to assign multiple rooms to missions
-        [] Works off an objective system.
-
-    [] Mission types:
-        [] Claim
-            [x] Single room assigned
-            [] Objectives:
-                [x] Clear path to controller
-                [x] Clear path to storage.
-                [] Empty enemy structures with stores
-                [x] Only delete structures that have an empty store
-                [x] Claim room
-
-        [] Invader Core
-            [] One room needs to be assigned.
-            [] Store core position and calculate perfect body to destroy core
-            [] Objectives
-                [] Destroy Invader core.
-                [] Find more invader cores to destroy.
-
-        [] Dismantle
-            [] Multiple rooms can be assigned.
-
-            [] Objectives:
-                [] Clear path to controller.
-                [] Clear path to storage.
-                [] Empty enemy structures with stores.
-                [] Dismantle all structures.
-
-        [] Supply
-            [] Multiple rooms can supply at once.
-            [] Objectives
-                [] Send long haulers to room with demand.
-                [] Repeat path until mission complete.
-            [] Long haulers become regular haulers if objective complete.
-
-    [] Fix scout pathfinding
-        [] May require re-work of multi-room pathfinding
-        [x] Cancel searching for rooms that cannot be accessed.
-
-    [] Haulers/fillers can deliver to stationary builders and upgraders.
-
-    [] Send miners to help set up new rooms if no spawn.
-
-    DISMANTLE MISSION OBSERVATIONS:
-
-        - Spawns 1 Dismantler initially.
-        - Spawns more Dismantlers according to strucHits
-    

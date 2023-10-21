@@ -175,6 +175,10 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let fillerCount = creepsCount['filler'] || 0;
     let fastFillerCount = creepsCount['fastFiller'] || 0;
     let hubCount = creepsCount['hub'] || 0;
+    if (hubCount && !creeps.some(c => c.memory.role === 'hub' && (c.spawning || c.ticksToLive > 50))) {
+        hubCount = 0;
+    }
+
     let haulerCount = creepsCount['hauler'] || 0;
 
     const targetWorkerCount = getTargetCount.worker(minerCount, fillerCount, room, storedEnergy);
@@ -184,6 +188,8 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     const targetHubCount = getTargetCount.hub(room, storedEnergy);
     const targetHaulerCount = getTargetCount.hauler(room);
     const targetMineralMinerCount = getTargetCount.mineralMiner(room, conserveEnergy);
+
+
 
     for (let order of existingSpawnQueue) {
 
@@ -1006,33 +1012,33 @@ const getBody = {
     /**
      * 
      * @param {Room} homeRoom 
-     */
-    longHauler: function (homeRoom) {
+     *//*
+  longHauler: function (homeRoom) {
 
-        const budget = homeRoom.energyCapacity;
+      const budget = homeRoom.energyCapacity;
 
-        let carryParts = 1;
-        let moveParts = 1;
-        let cost = 100;
+      let carryParts = 1;
+      let moveParts = 1;
+      let cost = 100;
 
-        while (cost + 100 <= budget) {
-            carryParts++;
-            moveParts++;
-            cost += 100;
-        }
+      while (cost + 100 <= budget) {
+          carryParts++;
+          moveParts++;
+          cost += 100;
+      }
 
-        let body = [];
+      let body = [];
 
-        for (let i = 0; i < carryParts; i++) {
-            body.push(CARRY);
-        }
-        for (let i = 0; i < moveParts; i++) {
-            body.push(MOVE);
-        }
+      for (let i = 0; i < carryParts; i++) {
+          body.push(CARRY);
+      }
+      for (let i = 0; i < moveParts; i++) {
+          body.push(MOVE);
+      }
 
-        return body;
+      return body;
 
-    },
+  },*/
 
     longHauler: function (budget, homeRoomName, missionRoomName, qty) { // Game.rooms[homeRoomName].energyCapacityAvailable, homeRoomName, mission.roomName, data.storeQty
 
@@ -1804,16 +1810,13 @@ const getTargetCount = {
      */
     mineralMiner: function (room, conserveEnergy) {
 
-        if (room.controller.level < 6) {
+        if (room.controller.level < 6 || conserveEnergy || !room.storage) {
             return 0;
-        } else if (conserveEnergy) {
-            return 0;
-        }
-        else {
+        } else {
             const extractor = room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_EXTRACTOR)[0]
             if (extractor) {
                 let mineral = room.find(FIND_MINERALS)[0]
-                if (mineral.mineralAmount > 0) {
+                if (mineral.mineralAmount > 0 && room.storage.store[mineral.mineralType] < 100000) {
                     return 1;
                 }
             }
@@ -1974,15 +1977,10 @@ const getTargetCount = {
 function getWallHitsTarget(room) {
     switch (room.controller.level) {
         case 8:
-            return 20000000;
-        case 7:
-            return 4000000;
-        case 6:
-            return 3000000;
-        case 5:
-            return 2000000;
+            return 5000000;
+
         default:
-            return 1000000;
+            return 500000;
     };
 };
 

@@ -67,14 +67,6 @@ class InvaderCoreMission extends Mission {
     }
 }
 
-class PowerBankMission extends Mission {
-    constructor(roomName, position) {
-        super('POWER');
-        this.roomName = roomName;
-        this.position = position;
-    }
-}
-
 class SupplyMission extends Mission {
     constructor(roomName, resource, qty) {
         super('SUPPLY');
@@ -162,7 +154,6 @@ class ScanData {
 
             } else if (s.structureType === STRUCTURE_POWER_BANK) {
                 powerBank = true;
-                this.powerBankPos = s.pos
             } else if (s.structureType === STRUCTURE_PORTAL) {
                 portal = true;
             } else {
@@ -171,6 +162,20 @@ class ScanData {
         }
 
         this.structureHits = strucHits;
+
+        const dropped = room.find(FIND_DROPPED_RESOURCES)
+        for (let r of dropped) {
+            if (!this.resources[r.resourceType]) {
+                this.resources[r.resourceType] = r.amount
+                this.storeQty += r.amount
+
+            } else {
+                this.resources[r] += r.amount
+                this.storeQty += r.amount
+
+            }
+        }
+
 
         let invaderCore = false
         let towers = false;
@@ -337,7 +342,6 @@ class ScanData {
 
             } else if (s.structureType === STRUCTURE_POWER_BANK) {
                 powerBank = true;
-                this.powerBankPos = s.pos
             } else if (s.structureType === STRUCTURE_PORTAL) {
                 portal = true;
             } else {
@@ -346,6 +350,21 @@ class ScanData {
         }
 
         this.structureHits = strucHits;
+
+        const dropped = room.find(FIND_DROPPED_RESOURCES)
+        for (let r of dropped) {
+            if (!this.resources[r.resourceType]) {
+                this.resources[r.resourceType] = r.amount
+                this.storeQty += r.amount
+
+            } else {
+                this.resources[r] += r.amount
+                this.storeQty += r.amount
+
+            }
+        }
+
+
         let invaderCore = false
         let towers = false;
         for (let s of hostileStructures) {
@@ -1003,24 +1022,18 @@ function executeMissions(myRooms) {
                                 targetLongHaulerCount = Math.min(4, ret[1])
 
                             }
-
-                            options = {
-                                memory: {
-                                    role: 'longHauler',
-                                    home: homeRoomName,
-                                    assignedRoom: mission.roomName,
-                                },
-                            };
-                            MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('longHauler', 5, body, options));
-                            longHaulerCount++;
+                            if (longHaulerCount < targetLongHaulerCount) {
+                                options = {
+                                    memory: {
+                                        role: 'longHauler',
+                                        home: homeRoomName,
+                                        assignedRoom: mission.roomName,
+                                    },
+                                };
+                                MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('longHauler', 5, body, options));
+                                longHaulerCount++;
+                            }
                         }
-
-
-
-
-                        ;
-
-
                     }
 
 
@@ -1268,71 +1281,6 @@ function executeMissions(myRooms) {
 
 
 
-                } else if (mission.type === 'POWER') {
-                    if (room
-                        && !room.find(FIND_STRUCTURES).some(s => s.structureType === STRUCTURE_POWER_BANK)
-                        && !room.find(FIND_DROPPED_RESOURCES).some(r => r.resourceType === RESOURCE_POWER)) {
-                        mission.complete = true;
-                        continue;
-                    }
-
-                    let squadCount = 0;
-                    // Require a squad
-                    let powerBankSquadsRequired = 1;
-                    for (let creep of Object.values(Game.creeps)) {
-                        if (creep.memory.role === 'powerMiner' && creep.memory.home === homeRoomName) {
-                            squadCount++;
-                        }
-                    }
-                    for (let so of MEMORY.rooms[homeRoomName].spawnQueue) {
-                        if (so.role === 'powerMiner') {
-                            squadCount++
-                        }
-                    }
-
-
-                    if (squadCount === 0) {
-                        let healerCount = 0;
-                        let targetHealerCount = 2;
-                        let powerMinerCount = 0;
-                        let targetPowerMinerCount = 1;
-                        body = [];
-                        while (healerCount < targetHealerCount) {
-                            if (body.length === 0) {
-                                body = getBody.healer(Game.rooms[homeRoomName].energyCapacityAvailable)
-                            }
-                            options = {
-                                memory: {
-                                    role: 'healer',
-                                    home: homeRoomName,
-                                    assignedRoom: mission.roomName,
-                                },
-                            };
-                            console.log(homeRoomName, 'adding healer to queue for', mission.roomName)
-                            MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('healer', 4, body, options));
-                            healerCount++;
-                        }
-                        body = [];
-                        while (powerMinerCount < targetPowerMinerCount) {
-                            if (body.length === 0) {
-                                body = getBody.powerMiner(Game.rooms[homeRoomName].energyCapacityAvailable)
-                            }
-                            options = {
-                                memory: {
-                                    role: 'powerMiner',
-                                    home: homeRoomName,
-                                    assignedRoom: mission.roomName,
-                                },
-                            };
-                            console.log(homeRoomName, 'adding powerMiner to queue for', mission.roomName)
-                            MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('powerMiner', 4, body, options));
-                            powerMinerCount++;
-                        }
-                    }
-
-                    // Require longDistance haulers
-
-
                 }
 
 
@@ -1550,7 +1498,7 @@ function getMission(myRooms) {
             let data = monitoredRooms[r]
             let myOutpost = false;
             for (let myRoomName of myRooms) {
-                if (Memory.rooms[myRoomName].outposts.includes(data.roomName)) {
+                if (Memory.rooms[myRoomName].outposts && Memory.rooms[myRoomName].outposts.includes(data.roomName)) {
                     myOutpost = true;
                     break;
                 }
@@ -1761,18 +1709,15 @@ function getMission(myRooms) {
                 MEMORY.rooms[closest].missions.push(new EmptyEnemyStructuresMission(roomName))
             }
 
-        }
 
 
-    }
 
-    for (let r of Object.values(monitoredRooms)) {
-        if (r.powerBank && Game.rooms[r.homeRoom].controller.level > 6 && !MEMORY.rooms[r.homeRoom].mission.some(m => m.type === 'POWER')) {
 
-            MEMORY.rooms[r.homeRoom].mission.push(new PowerBankMission(r.roomName, r.powerBankPos))
 
 
         }
+
+
     }
 
     /*

@@ -45,7 +45,7 @@ class Tile {
 function roomPlanner(room) {
 
     //room.memory.plans = undefined;
-    if (room.name === 'W3N7') {
+    if (room.name === 'W7N2') {
         //room.memory.plans = undefined;
     }
     let plans = room.memory.plans;

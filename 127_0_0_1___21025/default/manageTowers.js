@@ -66,15 +66,10 @@ function manageTowers(room) {
 function getWallHitsTarget(room) {
     switch (room.controller.level) {
         case 8:
-            return 20000000;
-        case 7:
-            return 4000000;
-        case 6:
-            return 3000000;
-        case 5:
-            return 2000000;
+            return 5000000;
+        
         default:
-            return 1000000;
+            return 500000;
     };
 };
 

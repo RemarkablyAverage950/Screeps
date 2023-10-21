@@ -175,7 +175,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let fillerCount = creepsCount['filler'] || 0;
     let fastFillerCount = creepsCount['fastFiller'] || 0;
     let hubCount = creepsCount['hub'] || 0;
-    if (hubCount && !creeps.some(c => c.memory.role === 'hub' && c.ticksToLive > 50)) {
+    if (hubCount && !creeps.some(c => c.memory.role === 'hub' && (c.spawning || c.ticksToLive > 50))) {
         hubCount = 0;
     }
 
@@ -1013,32 +1013,32 @@ const getBody = {
      * 
      * @param {Room} homeRoom 
      *//*
-    longHauler: function (homeRoom) {
+  longHauler: function (homeRoom) {
 
-        const budget = homeRoom.energyCapacity;
+      const budget = homeRoom.energyCapacity;
 
-        let carryParts = 1;
-        let moveParts = 1;
-        let cost = 100;
+      let carryParts = 1;
+      let moveParts = 1;
+      let cost = 100;
 
-        while (cost + 100 <= budget) {
-            carryParts++;
-            moveParts++;
-            cost += 100;
-        }
+      while (cost + 100 <= budget) {
+          carryParts++;
+          moveParts++;
+          cost += 100;
+      }
 
-        let body = [];
+      let body = [];
 
-        for (let i = 0; i < carryParts; i++) {
-            body.push(CARRY);
-        }
-        for (let i = 0; i < moveParts; i++) {
-            body.push(MOVE);
-        }
+      for (let i = 0; i < carryParts; i++) {
+          body.push(CARRY);
+      }
+      for (let i = 0; i < moveParts; i++) {
+          body.push(MOVE);
+      }
 
-        return body;
+      return body;
 
-    },*/
+  },*/
 
     longHauler: function (budget, homeRoomName, missionRoomName, qty) { // Game.rooms[homeRoomName].energyCapacityAvailable, homeRoomName, mission.roomName, data.storeQty
 
@@ -1810,16 +1810,13 @@ const getTargetCount = {
      */
     mineralMiner: function (room, conserveEnergy) {
 
-        if (room.controller.level < 6) {
+        if (room.controller.level < 6 || conserveEnergy || !room.storage) {
             return 0;
-        } else if (conserveEnergy) {
-            return 0;
-        }
-        else {
+        } else {
             const extractor = room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_EXTRACTOR)[0]
             if (extractor) {
                 let mineral = room.find(FIND_MINERALS)[0]
-                if (mineral.mineralAmount > 0) {
+                if (mineral.mineralAmount > 0 && room.storage.store[mineral.mineralType] < 100000) {
                     return 1;
                 }
             }

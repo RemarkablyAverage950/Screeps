@@ -25,6 +25,7 @@ Version 0.1
         - Now only finding new outposts in rooms that are not occupied (hostiles/reserved/owned)
         - Fixed bug where on memory reset more than max outposts could potentially be added.
         - Will not outpost in rooms that have structures. Instead a dismantle mission will be generated first.
+        - Will not spawn remote miner for a source with a full container.
 
     ROLES:
 
@@ -50,7 +51,8 @@ Version 0.1
         LongHauler:
 
             - Spawns when there is a dismantle mission and target structures have reachable store stock.
-
+            - Spawns factors in dropped resources.
+ 
         Remote builder:
 
             - Units no longer clear assigned room when finished building. 
@@ -60,6 +62,7 @@ Version 0.1
 
             - Units now deliver to spawn containers.
             - Units will try and deliver to stationary builders/upgraders/workers until a storage is present.
+            - Units now find more direct path between rooms.
 
         Reserver:
 
@@ -67,7 +70,7 @@ Version 0.1
 
         Scout:
 
-            - Now only targets rooms that a different scout is not going to.
+            - Uses a cheaper algorithm to find next room to move to. Added some randomization to help break out of equal lastScanTimes.
 
         Defender:
 
@@ -90,6 +93,7 @@ Version 0.1
         - No longer detecting hostile construction sites that units can walk over.
         - Fixed multiple bugs
         - Added mechanic for creeps to try and push stationary units out of their way.
+        - Re-worked pathfinding to generate better multi-room paths for some units.
 
     EXPANSION MANAGER: 
 
