@@ -45,7 +45,7 @@ class Tile {
 function roomPlanner(room) {
 
     //room.memory.plans = undefined;
-    if (room.name === 'W3N7') {
+    if (room.name === 'W7N7') {
         //room.memory.plans = undefined;
     }
     let plans = room.memory.plans;
@@ -772,29 +772,31 @@ function setRamparts(room, tiles, storagePos) {
 
             }
             if (center) {
-                let destination = new RoomPosition(r.x, r.y, room.name)
-                const path = getPath(destination, storagePos, 1, tiles, 1, true)
+                let origin = new RoomPosition(r.x, r.y, room.name)
+                const path = getPath(origin, storagePos, 1, tiles, 1, true)
+                try {
+                    console.log('Wall road path from', JSON.stringify(origin))
+                    for (let i = 0; i < 2; i++) {
+                        let pos = path[i]
+                        updateTile(pos.x, pos.y, STRUCTURE_ROAD, tiles, false, 4, false, true)
+                        updateTile(pos.x, pos.y, STRUCTURE_RAMPART, tiles, false, 4, false, true)
 
-                for (let i = 0; i < 2; i++) {
-                    let pos = path[i]
-                    updateTile(pos.x, pos.y, STRUCTURE_ROAD, tiles, center, 4, false, true)
-                    updateTile(pos.x, pos.y, STRUCTURE_RAMPART, tiles, center, 4, false, true)
-
+                    }
+                } catch (e) {
+                    console.log('failed on', JSON.stringify(origin)), JSON.stringify(path)
                 }
-                console.log('Setting road to', JSON.stringify(destination))
-                setRoad(room, tiles, storagePos, destination, 0, 4, true)
+
+                setRoad(room, tiles, origin, storagePos, 1, 4, true)
+                updateTile(r.x, r.y, STRUCTURE_ROAD, tiles, false, 4, false, true);
 
             }
             updateTile(r.x, r.y, STRUCTURE_RAMPART, tiles, center, 4, false, true);
 
 
+
         }
     }
 
-    for (let center of centers) {
-
-
-    }
 
 
     /*for (let center of centers) {
@@ -936,6 +938,13 @@ function updateInsideTiles(room, tiles, blocks, storagePos) {
         }
     }
 
+
+    for(let tile of tiles){
+        let it = insideTiles.find(t=> t.x === tile.x && t.y === tile.y)
+        if(it){
+            tile.inside = true;
+        }
+    }
     for (let it of insideTiles) {
         let tile = tiles.find(t => t.x === it.x && t.y === it.y)
 
@@ -1995,11 +2004,48 @@ function updatePlacedStatus(order, room) {
  */
 function updateTile(x, y, structure, tiles, center, level, protect, inside = false) {
 
+    /*
 
+    Cases: Tile available
+    Tile not available
+    Tile not available and same structure
+
+    */
 
     let tile = tiles.find(t => t.x === x && t.y === y);
 
+    if (tile && tile.available) {
+        tile.structure = structure;
+        tile.available = false;
+        tile.center = center;
+        tile.level = level, tile.level;
+        tile.protect = protect
+        tile.inside = inside
+    } else if (tile && !tile.available) {
 
+        // If we want to place a road or container
+        if (structure === STRUCTURE_ROAD || structure === STRUCTURE_CONTAINER || structure === STRUCTURE_RAMPART) {
+            let tileSameStructure = tiles.find(t => t.x === x && t.y === y && t.structure === structure)
+            if (tileSameStructure) {
+                tileSameStructure.level = Math.min(level, tileSameStructure.level)
+            } else {
+                let newTile = new Tile(x, y, tile.roomName, false, tile.nearExit);
+                newTile.structure = structure;
+                newTile.available = false;
+                newTile.center = false;
+                newTile.level = level;
+                newTile.protect = protect
+                newTile.inside = inside;
+                tiles.push(newTile);
+            }
+
+
+        }
+
+
+    }
+
+    /*
     if (tile && tile.available === false && (structure === STRUCTURE_RAMPART || structure === STRUCTURE_ROAD)) {
 
         tileSameStructure = tiles.find(t => t.x === x && t.y === y && t.structure === structure)
@@ -2051,7 +2097,7 @@ function updateTile(x, y, structure, tiles, center, level, protect, inside = fal
 
 
         tiles.push(newTile);
-    };
+    };*/
 };
 
 module.exports = roomPlanner;

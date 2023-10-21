@@ -1498,7 +1498,7 @@ function getMission(myRooms) {
             let data = monitoredRooms[r]
             let myOutpost = false;
             for (let myRoomName of myRooms) {
-                if (Memory.rooms[myRoomName].outposts && Memory.rooms[myRoomName].outposts.includes(data.roomName)) {
+                if (Memory.rooms[myRoomName].outposts.includes(data.roomName)) {
                     myOutpost = true;
                     break;
                 }

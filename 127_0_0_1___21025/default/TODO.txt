@@ -3,8 +3,10 @@ storage.db['rooms.objects'].update({ _id: 'cf030773144fccf' },{ $set: { level: 6
 
 Room Planner:
 
-    [] Fix roads leading from ramparts. Sometimes, they place outside of rampart walls. It would be best if they did not go through rampart walls at all.
+    [x] Fix roads leading from ramparts. Sometimes, they place outside of rampart walls. It would be best if they did not go through rampart walls at all.
     
+    [] Use structureType priorities for construction site placement.
+
     [] Place towers at closest optimal positions (where filler cannot get range attacked.)
 
     [] Only containers & links near an edge wall and outside base get a rampart
@@ -16,13 +18,13 @@ Room Planner:
 
 Pathfinding:
 
-    [] Creeps can/should path all the way to destinations, including in other rooms.
+    [x] Creeps can/should path all the way to destinations, including in other rooms.
     [x] Initial cost matrix does not looks for creeps, enemy or otherwise.
     [] Some units bounce in and out when transitioning between rooms.
-    [] Better classification of what rooms are safe to travel through to prevent erratic paths avoiding safe rooms (one hostile structure that is not a tower, etc.)
+    [x] Better classification of what rooms are safe to travel through to prevent erratic paths avoiding safe rooms (one hostile structure that is not a tower, etc.)
 
     getPath: (for creeps)
-        [] When generating a path for creeps, avoid stationary creeps in range of 2
+       
         [] Avoid hostile creeps by a range of 4, with +10 costs in range
         [] Creeps (scouts) unable to path to exit due to enemy in way. They just freeze.
 
@@ -35,7 +37,6 @@ Pathfinding:
 
 Roles:
 
-    
 
     Hub:
         [] Spawn this unit if there are 2 links, and one is the hub link OR if a storage and a terminal is present.

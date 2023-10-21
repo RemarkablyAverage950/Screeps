@@ -16,7 +16,7 @@ const MAX_PATH_LENGTH = 5;
  * @param {boolean} incomplete Return path incomplete of !incomplete.
  * @returns {RoomPosition[] | Boolean} The path results from PathFinder.search
  */
-function getPath(creep = undefined, origin, destination, range, maxRooms, incomplete = false, avoidCreeps = false) {
+function getPath(creep = undefined, origin, destination, range, maxRooms, incomplete = false, avoidCreeps = false, allowedRooms = false) {
 
     let ret = PathFinder.search(
         origin, { pos: destination, range: range }, {
@@ -26,6 +26,10 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
         ignoreCreeps: true,
         maxOps: 10000,
         roomCallback: function (roomName) {
+
+            if (allowedRooms.length && !allowedRooms.includes(roomName)) {
+                return false;
+            }
 
             let room = Game.rooms[roomName];
             if (!room) {
@@ -58,7 +62,7 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
                 if (creep && avoidCreeps) {
                     let myCreeps = room.find(FIND_MY_CREEPS).filter(c => c.pos.getRangeTo(creep) < 5)
                     for (let creep of myCreeps) {
-                        if (MEMORY.rooms[creep.memory.home] &&MEMORY.rooms[creep.memory.home].creeps[creep.name]&& !MEMORY.rooms[creep.memory.home].creeps[creep.name].moving) {
+                        if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].creeps[creep.name] && !MEMORY.rooms[creep.memory.home].creeps[creep.name].moving) {
                             m.set(creep.pos.x, creep.pos.y, 0xff)
                             continue;
                         }
@@ -128,9 +132,7 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
         return undefined;
     }
 
-    if (creep) {
-        ret.path = ret.path.filter(p => p.roomName === creep.room.name)
-    }
+    
 
     return ret.path;
 }
@@ -141,8 +143,9 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
  * @param {RoomPosition} destination 
  * @param {number} range 
  * @param {number} maxRooms 
+ * @param {string[]} allowedRooms
  */
-function moveCreep(creep, destination, range, maxRooms) {
+function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
 
     if (creep.fatigue > 0) {
         return;
@@ -158,7 +161,7 @@ function moveCreep(creep, destination, range, maxRooms) {
 
     // Generate a path if needed.
     if (!path || path.length === 0) {
-        path = getPath(creep, creep.pos, destination, range, maxRooms);
+        path = getPath(creep, creep.pos, destination, range, maxRooms, false, false, allowedRooms);
         if (!path) {
             MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
             MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks = [];
@@ -189,7 +192,7 @@ function moveCreep(creep, destination, range, maxRooms) {
                 if (!moving) {
 
 
-                    path = getPath(creep, creep.pos, destination, range, maxRooms, false, true);
+                    path = getPath(creep, creep.pos, destination, range, maxRooms, false, true, allowedRooms);
                     if (!path || path.length === 0) {
                         MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
                         MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks = [];
@@ -221,7 +224,7 @@ function moveCreep(creep, destination, range, maxRooms) {
         8: '↖',
     }
 
-    creep.say(directions[next])
+    //creep.say(directions[next])
     const ret = creep.move(next)
     if (ret !== 0) {
         //MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
@@ -240,7 +243,7 @@ function moveCreep(creep, destination, range, maxRooms) {
  * @returns 
  */
 function moveCreepToRoom(creep, targetRoomName, targetPos = undefined, hostileRoomValue = 10) {
-
+    let allowedRooms = false;
 
     let nextRoom = MEMORY.rooms[creep.memory.home].creeps[creep.name].nextroom;
     let route = []
@@ -288,25 +291,16 @@ function moveCreepToRoom(creep, targetRoomName, targetPos = undefined, hostileRo
         if (!route.length) {
             return;
         }
+        allowedRooms = [creep.room.name, ...route.map(r => r.room)]
 
-
-        nextRoom = route[0].room
-
-        MEMORY.rooms[creep.memory.home].creeps[creep.name].nextroom = nextRoom
     }
 
 
     // Invoke PathFinder, allowing access only to rooms from `findRoute`
-    let destination;
+    let destination = new RoomPosition(25, 25, targetRoomName)
 
 
-    if (route.length === 1 && targetPos) {
-        destination = targetPos
-    } else {
-        destination = new RoomPosition(25, 25, nextRoom)
-    }
-
-    moveCreep(creep, destination, 23, 16)
+    moveCreep(creep, destination, 23, 64, allowedRooms)
 
 }
 

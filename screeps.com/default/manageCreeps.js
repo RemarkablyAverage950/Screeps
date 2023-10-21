@@ -736,9 +736,9 @@ function executeTask(room, creep) {
 
             break;
         case 'MOVE_TO_ROOM':
-            try {
+            //try {
                 moveCreepToRoom(creep, task.roomName, task.targetPos)
-            } catch (e) { console.log(creep.name, 'failed moveCreepToRoom', JSON.stringify(task)) }
+            //} catch (e) { console.log(creep.name, 'failed moveCreepToRoom', JSON.stringify(task)) }
 
             break;
         case 'PICKUP':
