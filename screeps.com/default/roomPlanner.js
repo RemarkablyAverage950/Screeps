@@ -38,6 +38,25 @@ class Tile {
     };
 };
 
+const BUILD_PRIORITY = [
+    STRUCTURE_SPAWN,
+    STRUCTURE_ROAD,
+    STRUCTURE_EXTENSION,
+    STRUCTURE_CONTAINER,
+    STRUCTURE_STORAGE,
+    STRUCTURE_TOWER,
+    STRUCTURE_WALL,
+    STRUCTURE_RAMPART,
+    STRUCTURE_LINK,
+    STRUCTURE_TERMINAL,
+    STRUCTURE_EXTRACTOR,
+    STRUCTURE_LAB,
+    STRUCTURE_FACTORY,
+    STRUCTURE_POWER_SPAWN,
+    STRUCTURE_NUKER,
+    STRUCTURE_OBSERVER,
+];
+
 /**
  * 
  * @param {Room} room 
@@ -242,6 +261,7 @@ function getOutpostPlans(outpostRoom, homeRoom) {
             ignoreCreeps: true,
             plainCost: 3,
             swampCost: 5,
+            maxOps: 16000,
             roomCallback: function (roomName) {
 
 
@@ -939,9 +959,9 @@ function updateInsideTiles(room, tiles, blocks, storagePos) {
     }
 
 
-    for(let tile of tiles){
-        let it = insideTiles.find(t=> t.x === tile.x && t.y === tile.y)
-        if(it){
+    for (let tile of tiles) {
+        let it = insideTiles.find(t => t.x === tile.x && t.y === tile.y)
+        if (it) {
             tile.inside = true;
         }
     }
@@ -1949,17 +1969,21 @@ function placeSites(homeRoom, plans) {
             continue;
         }
         //console.log('Placing construction sites for',homeRoom.name)
-        for (let order of roomPlans) {
-            updatePlacedStatus(order, room)
+        for (let structureType of BUILD_PRIORITY) {
+            for (let order of roomPlans) {
+                if (order.structure === structureType) {
+                    updatePlacedStatus(order, room)
 
-            if (order.level <= RCL && !order.placed) {
-                let ret = room.createConstructionSite(order.x, order.y, order.structure)
-                if (ret === 0) {
-                    roomPlaced = true;
-                } else if (ret === -8) {
-                    return;
+                    if (order.level <= RCL && !order.placed) {
+                        let ret = room.createConstructionSite(order.x, order.y, order.structure)
+                        if (ret === 0) {
+                            roomPlaced = true;
+                        } else if (ret === -8) {
+                            return;
+                        }
+
+                    }
                 }
-
             }
         }
     }
@@ -2024,7 +2048,7 @@ function updateTile(x, y, structure, tiles, center, level, protect, inside = fal
     } else if (tile && !tile.available) {
 
         // If we want to place a road or container
-        if (structure === STRUCTURE_ROAD || structure === STRUCTURE_CONTAINER || structure === STRUCTURE_RAMPART) {
+        if (structure === STRUCTURE_ROAD || structure === STRUCTURE_CONTAINER || structure === STRUCTURE_RAMPART || structure === STRUCTURE_EXTRACTOR) {
             let tileSameStructure = tiles.find(t => t.x === x && t.y === y && t.structure === structure)
             if (tileSameStructure) {
                 tileSameStructure.level = Math.min(level, tileSameStructure.level)

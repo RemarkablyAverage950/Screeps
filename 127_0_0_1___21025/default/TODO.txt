@@ -1,11 +1,13 @@
-storage.db['rooms.objects'].update({ _id: 'cf030773144fccf' },{ $set: { level: 6 }})
+storage.db['rooms.objects'].update({ _id: 'be770773785ba16' },{ $set: { level: 6 }})
 
 
 Room Planner:
 
     [x] Fix roads leading from ramparts. Sometimes, they place outside of rampart walls. It would be best if they did not go through rampart walls at all.
     
-    [] Use structureType priorities for construction site placement.
+    [x] Use structureType priorities for construction site placement.
+
+    [] Outpost roads sometimes not placing correctly. (going into thin wall on edge of room)
 
     [] Place towers at closest optimal positions (where filler cannot get range attacked.)
 
@@ -13,14 +15,16 @@ Room Planner:
         [x] Outside
         [] Edge wall
 
-    [] Save interior positions in memory for later pathfinding (when hostiles are present)
+    Decide if want:
+
+        [] Save interior positions in memory for later pathfinding (when hostiles are present)
 
 
 Pathfinding:
 
     [x] Creeps can/should path all the way to destinations, including in other rooms.
     [x] Initial cost matrix does not looks for creeps, enemy or otherwise.
-    [] Some units bounce in and out when transitioning between rooms.
+    [x] Some units bounce in and out when transitioning between rooms.
     [x] Better classification of what rooms are safe to travel through to prevent erratic paths avoiding safe rooms (one hostile structure that is not a tower, etc.)
 
     getPath: (for creeps)
@@ -41,6 +45,27 @@ Roles:
     Hub:
         [] Spawn this unit if there are 2 links, and one is the hub link OR if a storage and a terminal is present.
 
+        [] Fill priorities:
+
+                [x] Energy:
+                    
+                    0. Build terminal to 10k energy
+                        - Keep storage qty > terminal qty, move energy back to storage if needed.
+                    1. Fill storage to 200k
+                    2. Fill terminal to 100k
+                    3. then rest goes into storage.
+
+
+                [] Resources:
+                
+                    1. If resource in storage < 10000, move r to storage
+                    2. then fill terminal to 2k
+                    3. then rest goes into storage
+
+    
+
+        [] Implement custom target quantities for different types of resources.
+
     Long Hauler:
 
         [] Look for dropped tombstones
@@ -48,7 +73,7 @@ Roles:
 
     Remote Hauler:
         [] Fix: When assigned room is under attack, even if they are full they are not delivering to storage.
-        [] Units find fullest container by forecast to pickup from. (only visible outposts)
+        [x] Units find fullest container by forecast to pickup from. (only visible outposts)
 
 
     RemoteWorker
@@ -61,8 +86,8 @@ Roles:
     
 Room Defense:
 
-    [] Spawn defender(s) to handle units if no towers, or if towers cannot damage on their own.
-
+    [] Spawn defender(s) to handle units if no towers, 
+    [] Spawn defender(s) if towers cannot damage on their own.
 
 Outposts:
 
@@ -71,7 +96,9 @@ Outposts:
     [] If a source is too many steps away, don't mine it. Don't outpost rooms that have no minable sources.
 
     [] If taking an outpost from an enemy is uneffective, cancel outpost and asses what is needed before targeting as an outpost again.
-    [] Calculate remote haulers required as a whole across all outposts
+    [x] Calculate remote haulers required as a whole across all outposts
+
+    [] Generate better bodies for remote builders
 
 Expansion Manager:
 

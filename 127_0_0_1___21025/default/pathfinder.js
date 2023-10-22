@@ -28,9 +28,13 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
         roomCallback: function (roomName) {
 
             if (allowedRooms.length && !allowedRooms.includes(roomName)) {
-                return false;
-            }
 
+                let scanData = MEMORY.monitoredRooms[roomName]
+
+                if (!scanData || (scanData && scanData.hostileTarget)) {
+                    return false;
+                }
+            }
             let room = Game.rooms[roomName];
             if (!room) {
                 if (MEMORY.rooms[roomName]) {
@@ -70,10 +74,10 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
                             m.set(creep.pos.x, creep.pos.y, 0xff)
                             continue;
                         }
-
+ 
                         if (MEMORY.rooms[creep.memory.home].creeps[creep.name]) {
                             const moving = MEMORY.rooms[creep.memory.home].creeps[creep.name].moving;
-
+ 
                             if (moving === false) {
                                 let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0]
                                 if (task && task.type === 'HARVEST') {
@@ -132,7 +136,7 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
         return undefined;
     }
 
-    
+
 
     return ret.path;
 }
@@ -154,6 +158,10 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
     // Pull the path from memory.
 
     let path = MEMORY.rooms[creep.memory.home].creeps[creep.name].path;
+
+    if (path && path.length > 1 && creep.room.name !== path[0].roomName && creep.room.name === path[1].roomName) {
+        path.shift()
+    }
 
     if (path && path.length > 0 && creep.pos.x === path[0].x && creep.pos.y === path[0].y) {
         path.shift()
