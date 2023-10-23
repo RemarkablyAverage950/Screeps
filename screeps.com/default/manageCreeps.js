@@ -2742,19 +2742,33 @@ const getTasks = {
 
     },
 
-    wallBuild: function (room) {
+    /**
+     * 
+     * @param {Room} room 
+     * @param {Creep} creep 
+     * @returns 
+     */
+    wallBuild: function (room, creep) {
         const structures = room.find(FIND_STRUCTURES)
 
         let task = undefined;
         let min = Infinity;
 
         for (let s of structures) {
-            if ((s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART) && s.hits < Math.min(s.hitsMax, min)) {
 
-                task = new RepairTask(s.id);
-                min = s.hits
+            if ((s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART) && s.hits < s.hitsMax) {
+
+                let range = creep.pos.getRangeTo(s)
+                let adjustedHits = s.hits + (range * 1000)
+
+                if (adjustedHits < min) {
+                    task = new RepairTask(s.id);
+                    min = adjustedHits;
+                }
             }
         }
+
+
 
         if (task) {
             let tasks = [task];

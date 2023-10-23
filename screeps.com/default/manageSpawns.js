@@ -356,7 +356,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     let mineralMinerCount = creepsCount['mineralMiner'] || 0;
 
     const targetUpgraderCount = getTargetCount.upgrader(room, conserveEnergy);
-    let targetBuilderCount = getTargetCount.builder(room);
+    let targetBuilderCount = getTargetCount.builder(room,conserveEnergy);
     const targetMaintainerCount = getTargetCount.maintainer(room);
     const targetWallBuilderCount = getTargetCount.wallBuilder(room);
     const targetScoutCount = getTargetCount.scout(room);
@@ -439,9 +439,10 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
             };
 
         };
-
-        spawnQueue.push(new SpawnOrder('builder', 4, body, options));
-        builderCount++;
+        if (builderCount < targetBuilderCount) {
+            spawnQueue.push(new SpawnOrder('builder', 4, body, options));
+            builderCount++;
+        }
     };
 
     body = [];
@@ -1013,32 +1014,32 @@ const getBody = {
      * 
      * @param {Room} homeRoom 
      *//*
- longHauler: function (homeRoom) {
+longHauler: function (homeRoom) {
 
-     const budget = homeRoom.energyCapacity;
+   const budget = homeRoom.energyCapacity;
 
-     let carryParts = 1;
-     let moveParts = 1;
-     let cost = 100;
+   let carryParts = 1;
+   let moveParts = 1;
+   let cost = 100;
 
-     while (cost + 100 <= budget) {
-         carryParts++;
-         moveParts++;
-         cost += 100;
-     }
+   while (cost + 100 <= budget) {
+       carryParts++;
+       moveParts++;
+       cost += 100;
+   }
 
-     let body = [];
+   let body = [];
 
-     for (let i = 0; i < carryParts; i++) {
-         body.push(CARRY);
-     }
-     for (let i = 0; i < moveParts; i++) {
-         body.push(MOVE);
-     }
+   for (let i = 0; i < carryParts; i++) {
+       body.push(CARRY);
+   }
+   for (let i = 0; i < moveParts; i++) {
+       body.push(MOVE);
+   }
 
-     return body;
+   return body;
 
- },*/
+},*/
 
     longHauler: function (budget, homeRoomName, missionRoomName, qty) { // Game.rooms[homeRoomName].energyCapacityAvailable, homeRoomName, mission.roomName, data.storeQty
 
@@ -1703,10 +1704,17 @@ const getTargetCount = {
     /**
      * Returns the target number of builders.
      * @param {Room} room 
+     * @param {boolean} conserveEnergy
      * @returns {number}
      */
-    builder: function (room) {
-        if (room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) return 1;
+    builder: function (room, conserveEnergy) {
+        if (room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
+            if (!conserveEnergy && Game.time % 100 === 0) {
+                return 4;
+            }
+            return 1;
+        }
+
 
         return 0
     },
