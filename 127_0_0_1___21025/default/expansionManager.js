@@ -636,6 +636,7 @@ function executeMissions(myRooms) {
                 let targetLongHaulerCount;
                 let reserverCount;
                 let targetReserverCount;
+                let ret;
 
 
                 if (mission.type == 'DEFEND') {
@@ -695,6 +696,8 @@ function executeMissions(myRooms) {
                             } else {
                                 targetSoldierCount = 2
                             }
+                        }else{
+                            targetSoldierCount = 1
                         }
                         soldierCount = 0;
                         for (let c of Object.values(Game.creeps)) {
@@ -729,7 +732,7 @@ function executeMissions(myRooms) {
                         }
 
                     }
-                    if (data.structureHits > 0 && homeRoom.controller.level > 4) {
+                    if (data.structureHits > 0 && homeRoom.storage) {
                         let targetDismantlerCount = 1;
 
 
@@ -754,8 +757,9 @@ function executeMissions(myRooms) {
 
                             if (body.length === 0) {
 
-                                body = getBody.dismantler(Game.rooms[homeRoomName].energyCapacityAvailable, data.structureHits)[0]
-
+                                ret = getBody.dismantler(Game.rooms[homeRoomName].energyCapacityAvailable, data.structureHits)[0]
+                                body = ret[0]
+                                targetDismantlerCount = Math.min(4, ret[1])
 
                             }
 
@@ -1017,7 +1021,7 @@ function executeMissions(myRooms) {
                         while (longHaulerCount < targetLongHaulerCount) {
 
                             if (body.length === 0) {
-                                let ret = getBody.longHauler(Game.rooms[homeRoomName].energyCapacityAvailable, homeRoomName, mission.roomName, data.storeQty) // budget, homeRoomName, mission
+                                ret = getBody.longHauler(Game.rooms[homeRoomName].energyCapacityAvailable, homeRoomName, mission.roomName, data.storeQty) // budget, homeRoomName, mission
                                 body = ret[0]
                                 targetLongHaulerCount = Math.min(4, ret[1])
 
@@ -1068,7 +1072,7 @@ function executeMissions(myRooms) {
                         while (dismantlerCount < targetDismantlerCount) {
 
                             if (body.length === 0) {
-                                let ret = getBody.dismantler(Game.rooms[homeRoomName].energyCapacityAvailable, data.structureHits)
+                                ret = getBody.dismantler(Game.rooms[homeRoomName].energyCapacityAvailable, data.structureHits)
                                 body = ret[0]
                                 targetDismantlerCount = Math.min(4, ret[1])
 
@@ -1192,7 +1196,7 @@ function executeMissions(myRooms) {
                     while (longHaulerCount < targetLongHaulerCount) {
 
                         if (body.length === 0) {
-                            let ret = getBody.longHauler(homeRoom.energyCapacityAvailable, homeRoomName, mission)
+                            ret = getBody.longHauler(homeRoom.energyCapacityAvailable, homeRoomName, mission)
                             body = ret[0]
                             longHaulerCount = Math.min(4, ret[1])
 
@@ -1261,7 +1265,7 @@ function executeMissions(myRooms) {
                             }
 
 
-                            let ret = getBody.longHauler(Game.rooms[homeRoomName].energyCapacityAvailable, homeRoomName, mission.roomName, storeQty) // budget, homeRoomName, mission
+                            ret = getBody.longHauler(Game.rooms[homeRoomName].energyCapacityAvailable, homeRoomName, mission.roomName, storeQty) // budget, homeRoomName, mission
                             body = ret[0]
                             targetLongHaulerCount = Math.min(4, ret[1])
 
@@ -1444,7 +1448,7 @@ function getMission(myRooms) {
             console.log('AvailableRooms', availableRooms)
             for (let availableRoom of availableRooms) {
 
-                MEMORY.rooms[availableRoom].missions.push(new AssaultMission(targetRoomName))
+                MEMORY.rooms[availableRoom].missions.push(new AssaultMission(targetRoomName,Game.time))
                 console.log(availableRoom, 'assaulting', targetRoomName, 'per flag')
                 flag.remove()
 
@@ -1653,7 +1657,7 @@ function getMission(myRooms) {
     }
 
     for (let r of Object.values(monitoredRooms)) {
-        if (r.invaderCore && r.reservedBy === 'Invader' && r.hostileTarget === false) {
+        if (r.invaderCore && r.reservedBy === 'Invader' && r.hostileTarget === false && r.distance < 4) {
             let homeRoomName = r.homeRoom
             if (!MEMORY.rooms[homeRoomName].missions.some(m => m.type === 'INVADER_CORE')) {
                 console.log(homeRoomName, 'generating invader core mission for', r.roomName)

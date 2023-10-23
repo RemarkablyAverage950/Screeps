@@ -24,10 +24,10 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
         swampCost: 10,
         maxRooms: maxRooms,
         ignoreCreeps: true,
-        maxOps: 10000,
+        maxOps: 50000,
         roomCallback: function (roomName) {
 
-            if (allowedRooms.length && !allowedRooms.includes(roomName)) {
+            if (allowedRooms.length && !allowedRooms.includes(roomName) && roomName !== destination.roomName) {
 
                 let scanData = MEMORY.monitoredRooms[roomName]
 

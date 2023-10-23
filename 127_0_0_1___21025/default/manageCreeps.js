@@ -2125,6 +2125,14 @@ const getRoleTasks = {
         let searchRange = 50;
         if (creep.room.name !== assignedRoom) {
             searchRange = 4
+        } if (creep.pos.x === 0) {
+            return new MoveTask(new RoomPosition(1, creep.pos.y, creep.room.name))
+        } else if (creep.pos.x === 49) {
+            return new MoveTask(new RoomPosition(48, creep.pos.y, creep.room.name))
+        } else if (creep.pos.y === 0) {
+            return new MoveTask(new RoomPosition(creep.pos.x, 1, creep.room.name))
+        } else if (creep.pos.y === 49) {
+            return new MoveTask(new RoomPosition(creep.pos.x, 48, creep.room.name))
         }
         if (!controller || (controller && !controller.safeMode)) {
 
@@ -2155,10 +2163,13 @@ const getRoleTasks = {
                     }
                 }
                 if (closest && closest.structureType) {
+                    console.log(creep.name, 'ranged attacking', closest.id)
                     return new RangedAttackTask(closest.id)
                 }
                 if (closest) {
+                    console.log(creep.name, 'attacking', closest.id)
                     return new AttackTask(closest.id)
+
                 }
             }
         }

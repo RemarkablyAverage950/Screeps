@@ -1013,32 +1013,32 @@ const getBody = {
      * 
      * @param {Room} homeRoom 
      *//*
-  longHauler: function (homeRoom) {
+ longHauler: function (homeRoom) {
 
-      const budget = homeRoom.energyCapacity;
+     const budget = homeRoom.energyCapacity;
 
-      let carryParts = 1;
-      let moveParts = 1;
-      let cost = 100;
+     let carryParts = 1;
+     let moveParts = 1;
+     let cost = 100;
 
-      while (cost + 100 <= budget) {
-          carryParts++;
-          moveParts++;
-          cost += 100;
-      }
+     while (cost + 100 <= budget) {
+         carryParts++;
+         moveParts++;
+         cost += 100;
+     }
 
-      let body = [];
+     let body = [];
 
-      for (let i = 0; i < carryParts; i++) {
-          body.push(CARRY);
-      }
-      for (let i = 0; i < moveParts; i++) {
-          body.push(MOVE);
-      }
+     for (let i = 0; i < carryParts; i++) {
+         body.push(CARRY);
+     }
+     for (let i = 0; i < moveParts; i++) {
+         body.push(MOVE);
+     }
 
-      return body;
+     return body;
 
-  },*/
+ },*/
 
     longHauler: function (budget, homeRoomName, missionRoomName, qty) { // Game.rooms[homeRoomName].energyCapacityAvailable, homeRoomName, mission.roomName, data.storeQty
 
@@ -1420,7 +1420,7 @@ const getBody = {
      */
     upgrader: function (budget, room, conserveEnergy) {
 
-        if ((!room.storage && conserveEnergy) || (room.storage && room.storage.store[RESOURCE_ENERGY] < 10000)) {
+        if (room.find(FIND_MY_CONSTRUCTION_SITES).length > 0 || (!room.storage && conserveEnergy) || (room.storage && room.storage.store[RESOURCE_ENERGY] < 10000)) {
             return [WORK, CARRY, MOVE]
         }
 
@@ -1810,7 +1810,7 @@ const getTargetCount = {
      */
     mineralMiner: function (room, conserveEnergy) {
 
-        if (room.controller.level < 6 || conserveEnergy || !room.storage) {
+        if (room.controller.level < 6 || conserveEnergy || !room.storage || room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
             return 0;
         } else {
             const extractor = room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_EXTRACTOR)[0]
@@ -1890,7 +1890,7 @@ const getTargetCount = {
      */
     upgrader: function (room, conserveEnergy) {
 
-        if (room.controller.level > 7 || conserveEnergy) {
+        if (room.controller.level > 7 || conserveEnergy || room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
             return 1;
         }
 

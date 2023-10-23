@@ -1,5 +1,9 @@
 storage.db['rooms.objects'].update({ _id: 'be770773785ba16' },{ $set: { level: 6 }})
 
+Spawning:
+
+    [] Slow down upgraders while there are structures to build.
+
 
 Room Planner:
 
@@ -29,8 +33,8 @@ Pathfinding:
 
     getPath: (for creeps)
        
-        [] Avoid hostile creeps by a range of 4, with +10 costs in range
-        [] Creeps (scouts) unable to path to exit due to enemy in way. They just freeze.
+        [] Avoid hostile creeps by a range of 5, with +10 costs in range
+        [] (Probably fixed) Creeps (scouts) unable to path to exit due to enemy in way. They just freeze.
 
     moveCreep:
         [] Scan for hostile creeps and re-gen if in range of 5
