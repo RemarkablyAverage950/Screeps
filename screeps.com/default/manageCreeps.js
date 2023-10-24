@@ -1871,11 +1871,24 @@ const getRoleTasks = {
 
                     continue;
                 }
+
+                let distance = 0;
+
+                let sources = undefined;
+                if (MEMORY.rooms[homeRoomName].outposts[outpostName].sources) {
+                    sources = Object.values(MEMORY.rooms[homeRoomName].outposts[outpostName].sources)
+                }
+                if (sources) {
+                    for (let s of sources) {
+                        distance += s.distance / sources.length
+                    }
+                }
+
                 const dropped = outpostRoom.find(FIND_DROPPED_RESOURCES)
 
                 for (let r of dropped) {
                     if (r.resourceType === RESOURCE_ENERGY) {
-                        const forecast = r.forecast()
+                        const forecast = r.forecast() + distance
                         if (forecast > maxPickupQty) {
                             pickUpTarget = r
                             maxPickupQty = forecast
@@ -1888,7 +1901,7 @@ const getRoleTasks = {
 
                 for (let s of structures) {
                     if (s.structureType === STRUCTURE_CONTAINER) {
-                        const forecast = s.forecast(RESOURCE_ENERGY)
+                        const forecast = s.forecast(RESOURCE_ENERGY) + distance
                         if (forecast > maxWithdrawQty) {
                             withdrawTarget = s
                             maxWithdrawQty = forecast

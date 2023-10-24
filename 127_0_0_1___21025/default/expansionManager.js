@@ -67,6 +67,19 @@ class InvaderCoreMission extends Mission {
     }
 }
 
+class PowerBankMission extends Mission {
+    /**
+     * 
+     * @param {string} roomName Name of room with power bank.
+     * @param {RoomPosition} position Position of power bank.
+     */
+    constructor(roomName, position) {
+        this.roomName = roomName;
+        this.pos = position;
+        this.ticksToDecay = undefined;
+    }
+}
+
 class SupplyMission extends Mission {
     constructor(roomName, resource, qty) {
         super('SUPPLY');
@@ -124,6 +137,7 @@ class ScanData {
         this.pathToStorage = pathToStorage;
         this.resources = {}
         this.storeQty = 0
+        this.powerBankPos = undefined;
         for (let s of structures) {
             if (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_NUKER) {
                 strucHits += s.hits;
@@ -154,6 +168,7 @@ class ScanData {
 
             } else if (s.structureType === STRUCTURE_POWER_BANK) {
                 powerBank = true;
+                this.powerBankPos = s.pos
             } else if (s.structureType === STRUCTURE_PORTAL) {
                 portal = true;
             } else {
@@ -313,6 +328,7 @@ class ScanData {
         let strucHits = 0
         this.resources = {}
         this.storeQty = 0
+        this.powerBankPos = undefined;
         for (let s of structures) {
             if (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_NUKER) {
                 strucHits += s.hits;
@@ -342,6 +358,7 @@ class ScanData {
 
             } else if (s.structureType === STRUCTURE_POWER_BANK) {
                 powerBank = true;
+                this.powerBankPos = s.pos
             } else if (s.structureType === STRUCTURE_PORTAL) {
                 portal = true;
             } else {
@@ -696,7 +713,7 @@ function executeMissions(myRooms) {
                             } else {
                                 targetSoldierCount = 2
                             }
-                        }else{
+                        } else {
                             targetSoldierCount = 1
                         }
                         soldierCount = 0;
@@ -1448,7 +1465,7 @@ function getMission(myRooms) {
             console.log('AvailableRooms', availableRooms)
             for (let availableRoom of availableRooms) {
 
-                MEMORY.rooms[availableRoom].missions.push(new AssaultMission(targetRoomName,Game.time))
+                MEMORY.rooms[availableRoom].missions.push(new AssaultMission(targetRoomName, Game.time))
                 console.log(availableRoom, 'assaulting', targetRoomName, 'per flag')
                 flag.remove()
 
@@ -1586,7 +1603,22 @@ function getMission(myRooms) {
                 continue;
             }
 
+            if (r.powerBank) {
+                // Find closest room > RCL 6
+                let availableRooms = myRooms.filter(roomName => Game.rooms[roomName].controller.level > 6
+                    && Game.map.findRoute(r.roomName, roomName).length < 6)
 
+                if (availableRooms) {
+                    let closestRoomName = _.min(availableRooms, roomName => Game.map.findRoute(r.roomName, roomName).length)
+                    // If we do not have any missions comming out of this room:
+                    if (!MEMORY.rooms[closestRoomName].missions.length) {
+                        console.log('Creating power bank mission for',closestRoomName,'at',r.roomName)
+                        MEMORY.rooms[closestRoomName].missions.push(new PowerBankMission(r.roomName, r.powerBankPos))
+
+                    }
+
+                }
+            }
 
             // Skip this target room if it is an outpost for one of my rooms
             let next = false;

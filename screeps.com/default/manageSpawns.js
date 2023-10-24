@@ -87,6 +87,8 @@ function manageSpawns(room, creeps) {
 
                     } else {
                         console.log('ret', ret, name, JSON.stringify(spawnQueue[i]))
+                        spawnQueue.splice(i, 1)
+                        MEMORY.rooms[room.name].spawnQueue = spawnQueue;
                         continue;
                     }
 
@@ -1320,12 +1322,13 @@ longHauler: function (homeRoom) {
     },
 
     remoteHauler: function (energyBudget, capacityRequired) {
+      
         let moveParts = 1;
         let carryParts = 2;
         let cost = 150;
         let capacity = 100;
 
-        while (cost + 150 <= energyBudget && capacity <= capacityRequired) {
+        while (cost + 150 <= energyBudget && capacity+100 <= capacityRequired) {
             moveParts += 1;
             carryParts += 2;
             cost += 150
@@ -1687,7 +1690,7 @@ longHauler: function (homeRoom) {
  */
 function getCreepName(roomName, role) {
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 30; i++) {
 
         const name = roomName + '_' + role + '_' + i;
 
