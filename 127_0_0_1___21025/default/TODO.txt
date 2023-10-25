@@ -1,8 +1,8 @@
-storage.db['rooms.objects'].update({ _id: 'be770773785ba16' },{ $set: { level: 6 }})
+storage.db['rooms.objects'].update({ _id: 'ff7a07728e60965' },{ $set: { level: 7 }})
 
 Spawning:
 
-    [] Slow down upgraders while there are structures to build.
+    [x] Slow down upgraders while there are structures to build.
 
 
 Room Planner:
@@ -125,17 +125,17 @@ MEMORY:
 
 Lab Manager:
 
-    [] Module
+    [x] Module
     
-    [] Tracks compounds needed from most basic to most advanced.
+    [x] Tracks compounds needed from most basic to most advanced.
 
     [] Seperate compound by body part type
 
-    [] Find central labs
+    [x] Find central labs
 
     [] Tracks available compounds for boosting
 
-    [] Sets up creep tasks for creeps to referance if they need work, to fill and unfill labs
+    [x] Sets up creep tasks for creeps to referance if they need work, to fill and unfill labs
 
 Manage Squads:
 

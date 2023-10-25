@@ -26,6 +26,7 @@ Version 0.1
         - Fixed bug where on memory reset more than max outposts could potentially be added.
         - Will not outpost in rooms that have structures. Instead a dismantle mission will be generated first.
         - Will not spawn remote miner for a source with a full container.
+        - Balanced remoteHauler spawning for a room's outposts
 
     ROLES:
 
@@ -137,3 +138,11 @@ Version 0.1
     TERMINALS:
 
         - Added basic terminal trading between my rooms.
+
+    LABS:
+
+        - Added lab module.
+        - Figures out what compounds to make in order to reach tier 3 compounds.
+        - Hauler loads and unloads resources.
+        - Filler loads energy.
+        - When a mission is complete, labs are emptied to storage.

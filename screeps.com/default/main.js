@@ -5,8 +5,9 @@ const { expansionManager } = require('expansionManager');
 const manageTowers = require('manageTowers');
 const manageLinks = require('manageLinks');
 const outpostManager = require('outpostManager');
-const manageRoomDefense = require('manageRoomDefense')
-const manageTerminals = require('manageTerminals')
+const manageRoomDefense = require('manageRoomDefense');
+const manageTerminals = require('manageTerminals');
+const manageLabs = require('manageLabs');
 let MEMORY = require('memory');
 require('prototypes');
 require('RoomVisual');
@@ -74,6 +75,7 @@ module.exports.loop = function () {
             break;
         }
         const room = Game.rooms[roomName];
+        
         const creeps = Object.values(Game.creeps).filter(c => c.memory.home === roomName);
 
         if (Game.time % 20 === 0 && room.controller.level < 2 || room.find(FIND_MY_SPAWNS).length === 0) {
@@ -159,13 +161,15 @@ module.exports.loop = function () {
         manageSpawns(room, creeps);
         //console.log('manageSpawns',Game.cpu.getUsed()-cpuStart)
         //cpuStart = Game.cpu.getUsed()
+        manageLabs(room)
+
         manageCreeps(room, creeps);
         //console.log('manageCreeps',Game.cpu.getUsed()-cpuStart)
 
     }
 
     if (Game.cpu.bucket >= 10000) {
-        Game.cpu.generatePixel();
+        //Game.cpu.generatePixel();
     }
 }
 
