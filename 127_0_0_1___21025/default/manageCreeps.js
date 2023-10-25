@@ -1441,7 +1441,11 @@ const getRoleTasks = {
     hauler: function (room, creep, creeps) {
 
         let tasks = [];
+        tasks.push(...getTasks.lab(room, creep))
 
+        if (tasks.length > 0) {
+            return tasks;
+        }
         if (creep.store.getFreeCapacity() > 0) {
             tasks.push(...getTasks.haul(room, creep))
         }
@@ -1449,6 +1453,11 @@ const getRoleTasks = {
         if (creep.store.getUsedCapacity() > 0) {
             tasks.push(...getTasks.deliver(room, creep, creeps))
         }
+        if (tasks.length === 0) {
+
+        }
+
+
 
         return tasks;
 
@@ -1909,7 +1918,18 @@ const getRoleTasks = {
                     }
 
                 }
+
+                const tombstones = outpostRoom.find(FIND_TOMBSTONES)
+
+                for (let t of tombstones) {
+                    const forecast = t.forecast(RESOURCE_ENERGY)
+                    if (forecast > maxWithdrawQty) {
+                        withdrawTarget = t
+                        maxWithdrawQty = forecast
+                    }
+                }
             }
+
 
             if (pickUpTarget && withdrawTarget) {
                 if (maxWithdrawQty > maxPickupQty) {
@@ -2510,6 +2530,27 @@ const getTasks = {
             }
         }
 
+        if (tasks.length === 0) {
+            let labs = room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_LAB)
+            for (let lab of labs) {
+                const freeCapacity = lab.store.getFreeCapacity(RESOURCE_ENERGY)
+                if (freeCapacity > 0) {
+                    tasks.push(new TransferTask(lab.id, RESOURCE_ENERGY, Math.min(heldEnergy, freeCapacity)))
+                }
+            }
+
+        }
+
+
+        if (tasks.length === 0) {
+            let creeps = creep.room.find(FIND_MY_CREEPS).filter(c => (c.memory.role === 'upgrader' || c.memory.role === 'builder') && !MEMORY.rooms[c.memory.home].creeps[c.name].moving)
+            if (creeps.length) {
+                let target = _.max(creeps, c => c.store.getFreeCapacity());
+                tasks.push(new TransferTask(target.id, RESOURCE_ENERGY, heldEnergy));
+            }
+
+        }
+
         return tasks;
         /*const structures = room.find(FIND_STRUCTURES);
         const heldEnergy = creep.store[RESOURCE_ENERGY];
@@ -2644,6 +2685,128 @@ const getTasks = {
 
 
         return tasks;
+
+    },
+
+    /**
+     * 
+     * @param {Room} room 
+     * @param {Creep} creep 
+     */
+    lab: function (room, creep) {
+
+        if (!room.storage) {
+            return []
+        }
+        if (!MEMORY.rooms[room.name].labs) {
+            return [];
+        }
+        let reaction = MEMORY.rooms[room.name].labs.reaction
+        if (!reaction || reaction.complete) {
+            return [];
+        }
+        let lab1 = Game.getObjectById(reaction.lab1)
+        let lab2 = Game.getObjectById(reaction.lab2)
+        let reagent1 = reaction.reagent1;
+        let reagent2 = reaction.reagent2;
+
+        if (!reaction.emptied) {
+
+            if (creep.store.getFreeCapacity() === 0) {
+                return []
+            }
+            let labs = room.find(FIND_MY_STRUCTURES).filter(s => s.structureType === STRUCTURE_LAB)
+            for (let lab of labs) {
+                let resource = lab.mineralType
+                if (!resource) {
+                    continue;
+                }
+                if (lab.id === lab1.id && resource === reagent1) {
+                    continue;
+                } else if (lab.id === lab2.id && resource === reagent2) {
+                    continue;
+                }
+
+                if (resource) {
+                    if (Object.keys(creep.store).some(r => r !== resource)) {
+                        for (let r of Object.keys(creep.store)) {
+                            return [new TransferTask(room.storage.id, r, creep.store[r])]
+                        }
+                    }
+                    return [new WithdrawTask(lab.id, resource, Math.min(creep.store.getFreeCapacity(), lab.store[resource]))]
+                }
+            }
+        }
+
+        if (!reaction.loaded) {
+
+            if (lab1.store[reagent1] < 3000) {
+
+                if (creep.store.getUsedCapacity() > 0) {
+
+                    if (Object.keys(creep.store).some(r => r !== reagent1)) {
+                        for (let r of Object.keys(creep.store)) {
+                            if (r !== reagent1) {
+                                return [new TransferTask(room.storage.id, r, creep.store[r])]
+                            }
+                        }
+                    }
+                    return [new TransferTask(lab1.id, reagent1, Math.min(3000 - lab1.store[reagent1], creep.store[reagent1]))]
+
+                } else {
+                    return [new WithdrawTask(room.storage.id, reagent1, Math.min(3000 - lab1.store[reagent1], creep.store.getFreeCapacity()))]
+                }
+
+            }
+            if (lab2.store[reagent2] < 3000) {
+
+                if (creep.store.getUsedCapacity() > 0) {
+
+                    if (Object.keys(creep.store).some(r => r !== reagent2)) {
+                        for (let r of Object.keys(creep.store)) {
+                            if (r !== reagent2) {
+                                return [new TransferTask(room.storage.id, r, creep.store[r])]
+                            }
+                        }
+                    }
+                    return [new TransferTask(lab2.id, reagent2, Math.min(3000 - lab2.store[reagent2], creep.store[reagent2]))]
+
+                } else {
+                    return [new WithdrawTask(room.storage.id, reagent2, Math.min(3000 - lab2.store[reagent1], creep.store.getFreeCapacity()))]
+                }
+
+            }
+
+            /*
+            
+
+            if (creep.store[reagent1] > 0) {
+                if (lab1.store[reagent1] < 3000) {
+                    return [new TransferTask(lab1.id, reagent1, Math.min(3000 - lab1.store[reagent1], creep.store[reagent1]))]
+                } else {
+                    for (let r of Object.keys(creep.store)) {
+                        return [new TransferTask(room.storage.id, r, creep.store[r])]
+                    }
+                }
+            } else if (creep.store[reagent2] > 0) {
+                if (lab2.store[reagent2] < 3000) {
+                    return [new TransferTask(lab2.id, reagent2, Math.min(3000 - lab2.store[reagent2], creep.store[reagent2]))]
+                } else {
+                    for (let r of Object.keys(creep.store)) {
+                        return [new TransferTask(room.storage.id, r, creep.store[r])]
+                    }
+                }
+            }
+
+            if (lab1.store[reagent1] < 3000) {
+                return [new WithdrawTask(room.storage.id, reagent1, Math.min(3000 - lab1.store[reagent1], creep.store.getFreeCapacity()))]
+            } else if (lab2.store[reagent2] < 3000) {
+                return [new WithdrawTask(room.storage.id, reagent2, Math.min(3000 - lab2.store[reagent2], creep.store.getFreeCapacity()))]
+            }
+*/
+        }
+
+        return []
 
     },
 

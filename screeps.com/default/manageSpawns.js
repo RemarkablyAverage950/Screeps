@@ -711,7 +711,7 @@ const getBody = {
             cost = 210
         }
 
-        while (cost + 330 <= budget && attackParts < enemyAttackParts + 1 && attackParts + moveParts + toughParts < 47) {
+        while (cost + 330 <= budget && attackParts < enemyAttackParts + 1 &&4+ attackParts + moveParts +rangedAttackParts+ toughParts + healParts<=50) {
             attackParts++;
             moveParts++;
             moveParts++
