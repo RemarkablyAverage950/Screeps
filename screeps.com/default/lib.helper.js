@@ -32,6 +32,15 @@ let helper = {
         if (role === 'miner' || role === 'remoteMiner' || role === 'claimer' || role === 'reserver' || role === 'hub') { // role === 'fastFiller
             return false
         }
+        if(creep.fatigue){
+            
+            let timeToMove = Math.ceil(creep.fatigue/(2*creep.getActiveBodyparts(MOVE)))
+            if(timeToMove > 1){
+               
+                return false;
+            }
+
+        }
 
         const bfArea = [
             [0, -1],

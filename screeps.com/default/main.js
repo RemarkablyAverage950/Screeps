@@ -27,12 +27,12 @@ module.exports.loop = function () {
     }*/
 
     if (!start) {
-        
+
         if (Game.cpu.bucket > 499) {
 
             start = true;
         } else {
-            console.log('Initializing bucket:',Game.cpu.bucket,'/500')
+            console.log('Initializing bucket:', Game.cpu.bucket, '/500')
             return;
         }
     }
@@ -67,7 +67,7 @@ module.exports.loop = function () {
     //cpuStart = Game.cpu.getUsed()
     expansionManager(myRooms);
     //console.log('Expansion Manager',Game.cpu.getUsed()-cpuStart)
-   
+
     for (const roomName of myRooms) {
         //console.log('Room',roomName)
         if (Game.cpu.bucket < 100) {
@@ -75,7 +75,7 @@ module.exports.loop = function () {
             break;
         }
         const room = Game.rooms[roomName];
-        
+
         const creeps = Object.values(Game.creeps).filter(c => c.memory.home === roomName);
 
         if (Game.time % 20 === 0 && room.controller.level < 2 || room.find(FIND_MY_SPAWNS).length === 0) {
@@ -169,7 +169,7 @@ module.exports.loop = function () {
     }
 
     if (Game.cpu.bucket >= 10000) {
-        //Game.cpu.generatePixel();
+        Game.cpu.generatePixel();
     }
 }
 

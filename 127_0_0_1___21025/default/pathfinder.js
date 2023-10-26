@@ -210,6 +210,16 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
                     MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving = true;
                 }
 
+            } else if (lookCreep.fatigue) {
+                
+                let timeToMove = Math.ceil(lookCreep.fatigue / (2 * lookCreep.getActiveBodyparts(MOVE)))
+            
+                if (timeToMove > 1) {
+
+                    path = getPath(creep, creep.pos, destination, range, maxRooms, false, true, allowedRooms);
+
+                }
+
             }
         } catch (e) { }
     }

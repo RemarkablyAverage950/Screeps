@@ -339,7 +339,9 @@ function assignTask(room, creep, creeps) {
     } else if (role === 'upgrader') {
 
         availableTasks = getRoleTasks.upgrader(room, creep);
-
+        if (availableTasks.length === 1) {
+            task = availableTasks[0]
+        }
         // Best task is closest
 
         let minDistance = Infinity;
@@ -1565,7 +1567,7 @@ const getRoleTasks = {
                     let sa = storage.store[r];
                     let ta = terminal.store[r];
 
-                    if (ta < terminalTarget && sa >= ta + creep.store[r]) {
+                    if (ta < terminalTarget && sa >= storageTarget) {
                         return new TransferTask(terminal.id, r, creep.store[r])
                     } else {
                         return new TransferTask(storage.id, r, creep.store[r])
@@ -1585,12 +1587,12 @@ const getRoleTasks = {
                 let sa = storage.store[r];
 
                 // If terminal overfilled
-                if (ta > terminalTarget && storageCapacity > creepCapacity) {
+                if (sa < storageTarget && ta > 0) {
+                    return new WithdrawTask(terminal.id, r, Math.min(creepCapacity, ta, storageTarget - sa))
+                } else if (ta > terminalTarget && storageCapacity > creepCapacity) {
                     return new WithdrawTask(terminal.id, r, Math.min(creepCapacity, ta - terminalTarget))
-                } else if (sa < ta && storageCapacity > creepCapacity) {
-                    return new WithdrawTask(terminal.id, r, Math.min(creepCapacity, ta - sa))
-                } else if (ta < terminalTarget && sa - creepCapacity > 10000 + creepCapacity && sa > 0) {
-                    console.log(creep.name, 'withdrawing', r, 'from storage')
+                } else if (ta < terminalTarget && sa - creepCapacity > storageTarget + creepCapacity && sa > 0) {
+                 
                     return new WithdrawTask(storage.id, r, Math.min(creepCapacity, terminalTarget - ta, sa - ta))
                 }
 
@@ -2262,6 +2264,42 @@ const getRoleTasks = {
                     tasks.push(...getTasks.harvest(room));
                 };
             } else {
+                if (controllerLink.pos.getRangeTo(creep) > 1) {
+                    // Find open position near link and move to it
+                    let _x = controllerLink.pos.x
+                    let _y = controllerLink.pos.y
+
+                    for (let x = _x - 1; x <= _x + 1; x++) {
+                        for (let y = _y - 1; y <= _y + 1; y++) {
+                            if (x === 0 || x === 49 || y === 0 || y === 49) {
+                                continue
+                            }
+                            let pos = new RoomPosition(x, y, creep.room.name)
+                            let valid = true;
+                            let look = pos.look()
+                            for (let lo of look) {
+                                if (lo.creep && lo.creep.name !== creep.name) {
+                                    valid = false;
+                                    break;
+                                }
+                                if (lo.structure && (lo.structure.structureType !== STRUCTURE_RAMPART && lo.structure.structureType !== STRUCTURE_ROAD)) {
+                                    valid = false;
+                                    break;
+                                }
+                                if (lo.terrain && lo.terrain === 'wall') {
+                                    valid = false;
+                                    break;
+                                }
+                            }
+
+                            if (valid) {
+                             
+                                return [new MoveTask(pos)]
+                            }
+
+                        }
+                    }
+                }
 
                 tasks.push(new WithdrawTask(controllerLink.id, RESOURCE_ENERGY, Math.min(creep.store.getFreeCapacity(), controllerLink.store[RESOURCE_ENERGY])))
             }
@@ -2543,7 +2581,7 @@ const getTasks = {
 
 
         if (tasks.length === 0) {
-            let creeps = creep.room.find(FIND_MY_CREEPS).filter(c => (c.memory.role === 'upgrader' || c.memory.role === 'builder') && !MEMORY.rooms[c.memory.home].creeps[c.name].moving)
+            let creeps = creep.room.find(FIND_MY_CREEPS).filter(c => (c.memory.role === 'upgrader' || c.memory.role === 'builder') && !MEMORY.rooms[c.memory.home].creeps[c.name].moving && c.store.getUsedCapacity() < .85 * c.store.getCapacity())
             if (creeps.length) {
                 let target = _.max(creeps, c => c.store.getFreeCapacity());
                 tasks.push(new TransferTask(target.id, RESOURCE_ENERGY, heldEnergy));
@@ -2740,7 +2778,7 @@ const getTasks = {
 
         if (!reaction.loaded) {
 
-            if (lab1.store[reagent1] < 3000) {
+            if (lab1.store[reagent1] < reaction.qty) {
 
                 if (creep.store.getUsedCapacity() > 0) {
 
@@ -2751,14 +2789,14 @@ const getTasks = {
                             }
                         }
                     }
-                    return [new TransferTask(lab1.id, reagent1, Math.min(3000 - lab1.store[reagent1], creep.store[reagent1]))]
+                    return [new TransferTask(lab1.id, reagent1, Math.min(reaction.qty - lab1.store[reagent1], creep.store[reagent1]))]
 
                 } else {
-                    return [new WithdrawTask(room.storage.id, reagent1, Math.min(3000 - lab1.store[reagent1], creep.store.getFreeCapacity()))]
+                    return [new WithdrawTask(room.storage.id, reagent1, Math.min(reaction.qty - lab1.store[reagent1], creep.store.getFreeCapacity()))]
                 }
 
             }
-            if (lab2.store[reagent2] < 3000) {
+            if (lab2.store[reagent2] < reaction.qty) {
 
                 if (creep.store.getUsedCapacity() > 0) {
 
@@ -2769,41 +2807,15 @@ const getTasks = {
                             }
                         }
                     }
-                    return [new TransferTask(lab2.id, reagent2, Math.min(3000 - lab2.store[reagent2], creep.store[reagent2]))]
+                    return [new TransferTask(lab2.id, reagent2, Math.min(reaction.qty - lab2.store[reagent2], creep.store[reagent2]))]
 
                 } else {
-                    return [new WithdrawTask(room.storage.id, reagent2, Math.min(3000 - lab2.store[reagent1], creep.store.getFreeCapacity()))]
+                    return [new WithdrawTask(room.storage.id, reagent2, Math.min(reaction.qty - lab2.store[reagent1], creep.store.getFreeCapacity()))]
                 }
 
             }
 
-            /*
-            
 
-            if (creep.store[reagent1] > 0) {
-                if (lab1.store[reagent1] < 3000) {
-                    return [new TransferTask(lab1.id, reagent1, Math.min(3000 - lab1.store[reagent1], creep.store[reagent1]))]
-                } else {
-                    for (let r of Object.keys(creep.store)) {
-                        return [new TransferTask(room.storage.id, r, creep.store[r])]
-                    }
-                }
-            } else if (creep.store[reagent2] > 0) {
-                if (lab2.store[reagent2] < 3000) {
-                    return [new TransferTask(lab2.id, reagent2, Math.min(3000 - lab2.store[reagent2], creep.store[reagent2]))]
-                } else {
-                    for (let r of Object.keys(creep.store)) {
-                        return [new TransferTask(room.storage.id, r, creep.store[r])]
-                    }
-                }
-            }
-
-            if (lab1.store[reagent1] < 3000) {
-                return [new WithdrawTask(room.storage.id, reagent1, Math.min(3000 - lab1.store[reagent1], creep.store.getFreeCapacity()))]
-            } else if (lab2.store[reagent2] < 3000) {
-                return [new WithdrawTask(room.storage.id, reagent2, Math.min(3000 - lab2.store[reagent2], creep.store.getFreeCapacity()))]
-            }
-*/
         }
 
         return []
@@ -3236,7 +3248,7 @@ function validateTask(room, creep) {
 
         case 'REPAIR':
             if (!target) {
-                return false;
+                return false
             };
             if (target.hits === target.hitsMax || creep.store[RESOURCE_ENERGY] === 0) {
                 return false;

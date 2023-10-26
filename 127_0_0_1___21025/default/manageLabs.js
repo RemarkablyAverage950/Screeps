@@ -77,12 +77,12 @@ function manageLabs(room) {
         }
 
         // Get reaction
-
+        let hauler = room.find(FIND_MY_CREEPS).filter(c => c.role === 'hauler')[0]
         for (let resource of REACTION_PRIORITY) {
             if (storage.store[resource] < TARGET_T3_QTY) {
                 // Find highest reaction we can make for this resource.
 
-                let product = findReaction(room, resource)
+                let product = findReaction(room, resource, labs, hauler)
                 if (product) {
                     let productLabs = []
 
@@ -93,8 +93,27 @@ function manageLabs(room) {
                     }
                     let reagents = MEMORY.reagentTable[product]
 
-                    console.log(room.name, 'created reaction mission for:', product)
-                    MEMORY.rooms[room.name].labs.reaction = new Reaction(centerLabs[0], centerLabs[1], reagents[0], reagents[1], product, TARGET_QTY - storage.store[resource], productLabs)
+
+                    let qty = TARGET_QTY
+                    let actualQty = storage.store[product]
+                    if (hauler) {
+                        actualQty += hauler.store[product]
+                    }
+                    for (let lab of labs) {
+                        actualQty += lab.store[product]
+                    }
+                    if (product === resource) { qty = TARGET_T3_QTY }
+                    MEMORY.rooms[room.name].labs.reaction = new Reaction(
+                        centerLabs[0],
+                        centerLabs[1],
+                        reagents[0],
+                        reagents[1],
+                        product,
+                        Math.min(qty - actualQty, 3000),
+                        productLabs
+                    )
+
+                    console.log(room.name, 'created reaction mission for', Math.min(qty - actualQty, 3000), product)
                     break;
                 }
 
@@ -106,7 +125,7 @@ function manageLabs(room) {
 
     if (MEMORY.rooms[room.name].labs.reaction && !MEMORY.rooms[room.name].labs.reaction.complete) {
         let reaction = MEMORY.rooms[room.name].labs.reaction
-        console.log(room.name, JSON.stringify(reaction))
+        //console.log(room.name, JSON.stringify(reaction))
         if (reaction.finished) {
             for (let lab of labs) {
                 if (lab.mineralType) {
@@ -175,8 +194,12 @@ function manageLabs(room) {
             let ret = lab.runReaction(lab1, lab2)
             if (ret !== 0 && ret !== -11) {
 
-                console.log(room.name, 'reaction failed', JSON.stringify(reaction), 'with code', ret)
-                reaction.complete = true;
+                //console.log(room.name, 'reaction failed', JSON.stringify(reaction), 'with code', ret)
+                reaction.finished = true;
+                reaction.reagent1 = undefined
+                reaction.reagent2 = undefined
+                reaction.emptied = false;
+                break;
 
             }
 
@@ -190,11 +213,13 @@ function manageLabs(room) {
 
 /**
  * 
- * @param {Storage}
+ * @param {Room} room
  * @param {MineralConstant | MineralCompoundConstant} resource 
- * @returns {Reaction}
+ * @param {StructureLab[]} labs
+ * @param {Creep} hauler
+ * @returns {MineralConstant | MineralCompoundConstant}
  */
-function findReaction(room, resource) {
+function findReaction(room, resource, labs, hauler) {
     if (!MEMORY.reagentTable[resource]) {
         return undefined;
     }
@@ -204,13 +229,21 @@ function findReaction(room, resource) {
     let available = true;
 
     for (let r of MEMORY.reagentTable[resource]) {
-        if (storage.store[r] < 3000) {
+        let qty = storage.store[r]
+        if (hauler) {
+            qty += hauler.store[r]
+        }
+        for (let lab of labs) {
+            qty += lab.store[r]
+        }
+
+        if (qty < 3000) {
             available = false;
-            product = findReaction(room, r)
+            product = findReaction(room, r, labs, hauler)
             if (product) {
                 return product;
 
-            }
+            } else { available = false }
         }
     }
     if (available) {

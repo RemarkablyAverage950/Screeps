@@ -146,9 +146,7 @@ function outpostManager(homeRoom, creeps) {
         let haulerCountRequired = Math.min(Math.ceil(haulerCapacityReq / maxCapacity), 10);
         let capacityRequiredPerHauler = Math.min(maxCapacity,Math.ceil(haulerCapacityReq / haulerCountRequired))
         let spawnTime = Math.ceil(1.5 * capacityRequiredPerHauler / 50) * 3
-        if(homeRoom.name === 'W5N1'){
-            console.log('capacityRequiredPerHauler',capacityRequiredPerHauler)
-        }
+      
         // Find out how many haulers we have;
         let haulerCount = 0;
         for (let c of creeps) {
