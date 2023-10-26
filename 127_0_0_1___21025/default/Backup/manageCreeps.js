@@ -188,8 +188,8 @@ class WithdrawTask extends Task {
 
 const BUILD_PRIORITY = [
     STRUCTURE_SPAWN,
-    STRUCTURE_EXTENSION,
     STRUCTURE_ROAD,
+    STRUCTURE_EXTENSION,
     STRUCTURE_CONTAINER,
     STRUCTURE_STORAGE,
     STRUCTURE_TOWER,
@@ -1592,7 +1592,7 @@ const getRoleTasks = {
                 } else if (ta > terminalTarget && storageCapacity > creepCapacity) {
                     return new WithdrawTask(terminal.id, r, Math.min(creepCapacity, ta - terminalTarget))
                 } else if (ta < terminalTarget && sa - creepCapacity > storageTarget + creepCapacity && sa > 0) {
-
+                 
                     return new WithdrawTask(storage.id, r, Math.min(creepCapacity, terminalTarget - ta, sa - ta))
                 }
 
@@ -1856,17 +1856,12 @@ const getRoleTasks = {
         const capacity = creep.store.getFreeCapacity()
 
         if (creep.store[RESOURCE_ENERGY] > 0) {
+            // We are in homeRoom
+
 
             tasks.push(...getTasks.deliver(room, creep, creeps))
 
-            if (creep.room.name === homeRoomName) {
-                if (tasks.length > 0) {
-                    task = _.min(tasks, t => Game.getObjectById(t.id).pos.getRangeTo(creep))
-                    return task;
-                } else {
-                    return helper.parkTask(room, creep)
-                }
-            }
+
         }
 
         if (capacity > 0) {
@@ -2298,7 +2293,7 @@ const getRoleTasks = {
                             }
 
                             if (valid) {
-
+                             
                                 return [new MoveTask(pos)]
                             }
 
@@ -2500,13 +2495,6 @@ const getTasks = {
                 }
             }
 
-            let structures = room.find(FIND_STRUCTURES).filter(s => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0)
-            for (let s of structures) {
-                if (s.forecast(RESOURCE_ENERGY) < s.store.getCapacity(RESOURCE_ENERGY)) {
-                    tasks.push(new TransferTask(s.id, RESOURCE_ENERGY, Math.min(creep.store[RESOURCE_ENERGY], s.store.getFreeCapacity(RESOURCE_ENERGY))))
-                    break;
-                }
-            }
 
         }
 

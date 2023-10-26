@@ -1,7 +1,0 @@
-Spawn container near controller
-
-Build roads
-
-Forecast store quantities when creeps get assigned a withdraw task
-
-implement better pathfinding

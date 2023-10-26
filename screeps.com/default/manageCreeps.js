@@ -1592,7 +1592,7 @@ const getRoleTasks = {
                 } else if (ta > terminalTarget && storageCapacity > creepCapacity) {
                     return new WithdrawTask(terminal.id, r, Math.min(creepCapacity, ta - terminalTarget))
                 } else if (ta < terminalTarget && sa - creepCapacity > storageTarget + creepCapacity && sa > 0) {
-                 
+
                     return new WithdrawTask(storage.id, r, Math.min(creepCapacity, terminalTarget - ta, sa - ta))
                 }
 
@@ -2293,7 +2293,7 @@ const getRoleTasks = {
                             }
 
                             if (valid) {
-                             
+
                                 return [new MoveTask(pos)]
                             }
 
@@ -2810,7 +2810,7 @@ const getTasks = {
                     return [new TransferTask(lab2.id, reagent2, Math.min(reaction.qty - lab2.store[reagent2], creep.store[reagent2]))]
 
                 } else {
-                    return [new WithdrawTask(room.storage.id, reagent2, Math.min(reaction.qty - lab2.store[reagent1], creep.store.getFreeCapacity()))]
+                    return [new WithdrawTask(room.storage.id, reagent2, Math.min(reaction.qty - lab2.store[reagent2], creep.store.getFreeCapacity()))]
                 }
 
             }
