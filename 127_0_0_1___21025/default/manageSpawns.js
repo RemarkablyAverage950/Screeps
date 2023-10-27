@@ -344,6 +344,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
     if (onlyEssential) return spawnQueue;
 
     const outpostRooms = room.memory.outposts;
+    
 
     let upgraderCount = creepsCount['upgrader'] || 0;
     let builderCount = creepsCount['builder'] || 0;
@@ -512,7 +513,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
                 assignedRoom: undefined,
             },
         };
-        spawnQueue.push(new SpawnOrder('remoteBuilder', 5, body, options));
+        spawnQueue.push(new SpawnOrder('remoteBuilder', 4, body, options));
         remoteBuilderCount++;
     }
 
@@ -1841,10 +1842,10 @@ const getTargetCount = {
         let count = 0;
         for (let outpostName of outpostRooms) {
 
-
+         
             if (MEMORY.rooms[room.name].outposts[outpostName] && MEMORY.rooms[room.name].outposts[outpostName].constructionComplete === false) {
 
-                return count++;
+                count++;
             }
         }
 

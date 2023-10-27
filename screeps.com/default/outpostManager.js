@@ -269,7 +269,7 @@ function outpostManager(homeRoom, creeps) {
                     reserverCount++;
                 }
 
-                continue;
+                
             }
 
             /* Update source data
@@ -379,8 +379,8 @@ function outpostManager(homeRoom, creeps) {
                 }
 
             }
-
-            const sites = outpostRoom.find(FIND_MY_CONSTRUCTION_SITES)
+           
+            const sites = outpostRoom.find(FIND_CONSTRUCTION_SITES)
             if (sites.length > 0) {
                 heap.constructionComplete = false;
                 heap.constructionPositions = sites.map(s => s.pos)
@@ -388,7 +388,8 @@ function outpostManager(homeRoom, creeps) {
                 heap.constructionComplete = true;
 
             }
-
+           
+            MEMORY.rooms[homeRoom.name].outposts[outpostName] = heap;
             if (!heap.haulerCapacityReq) {
 
 

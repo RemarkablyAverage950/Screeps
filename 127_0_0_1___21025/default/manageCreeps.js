@@ -1815,8 +1815,9 @@ const getRoleTasks = {
                 let pos = new RoomPosition(creep.pos.x, 48, assignedRoom)
                 return new MoveTask(pos)
             }
-
-            let availableTasks = getRoleTasks.filler(creep.room, creep, creeps)
+            let availableTasks = [];
+            if (room.controller && room.controller.my)
+                availableTasks = getRoleTasks.filler(creep.room, creep, creeps)
             if (availableTasks.length === 0) {
                 availableTasks = getRoleTasks.builder(creep.room, creep)
             }
@@ -2195,7 +2196,7 @@ const getRoleTasks = {
                 let closest = undefined;
                 let min = Infinity;
                 for (let h of hostiles) {
-                    if(h.structureType && h.structureType === STRUCTURE_CONTROLLER){
+                    if (h.structureType && h.structureType === STRUCTURE_CONTROLLER) {
                         continue;
                     }
                     let range = h.pos.getRangeTo(creep)
