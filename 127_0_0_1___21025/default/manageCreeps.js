@@ -1486,7 +1486,7 @@ const getRoleTasks = {
         let creepCapacity = creep.store.getFreeCapacity()
         const hubLink = Game.getObjectById(MEMORY.rooms[room.name].links.hub)
         let hubEnergyNeeded = 800 - hubLink.store[RESOURCE_ENERGY];
-        if (hubEnergyNeeded > 0) {
+        if (hubEnergyNeeded > 0 && (storage.store[RESOURCE_ENERGY] > 0 || (terminal && terminal.store[RESOURCE_ENERGY] > 0))) {
 
             if (creep.store.getUsedCapacity() > 0) {
                 for (let r of Object.keys(creep.store)) {
@@ -2083,7 +2083,7 @@ const getRoleTasks = {
                 let closest = _.min(hostileSites, s => s.pos.getRangeTo(creep))
                 if (!getPath(creep, creep.pos, closest.pos, 0, 1, true)) {
 
-                    console.log(creep.name, 'stomping enemy site at', JSON.stringify(closest.pos))
+                    //console.log(creep.name, 'stomping enemy site at', JSON.stringify(closest.pos))
                     return new MoveTask(closest.pos)
                 }
             }
@@ -2180,7 +2180,7 @@ const getRoleTasks = {
             if (creep.room.controller && creep.room.controller.my) {
                 hostiles = creep.room.find(FIND_HOSTILE_CREEPS)
             } else {
-                hostiles = creep.room.find(FIND_HOSTILE_CREEPS).concat(creep.room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_RAMPART))
+                hostiles = creep.room.find(FIND_HOSTILE_CREEPS).concat(creep.room.find(FIND_HOSTILE_STRUCTURES))
             }
 
             let invaderCore = creep.room.find(FIND_HOSTILE_STRUCTURES).find(h => h.structureType === STRUCTURE_INVADER_CORE)
@@ -2195,7 +2195,9 @@ const getRoleTasks = {
                 let closest = undefined;
                 let min = Infinity;
                 for (let h of hostiles) {
-
+                    if(h.structureType && h.structureType === STRUCTURE_CONTROLLER){
+                        continue;
+                    }
                     let range = h.pos.getRangeTo(creep)
                     if (range < min && range <= searchRange) {
                         min = range,
@@ -2493,7 +2495,7 @@ const getTasks = {
             for (let c of creeps) {
 
 
-                if (c.pos.roomName === room.name && (c.memory.role === 'upgrader' || c.memory.role === 'worker' || c.memory.role === 'builder') && !MEMORY.rooms[room.name].creeps[c.name].moving && c.forecast(RESOURCE_ENERGY) < .8 * c.store.getCapacity()) {
+                if (c.pos.roomName === room.name && (c.memory.role === 'upgrader' || c.memory.role === 'worker' || c.memory.role === 'builder') && !MEMORY.rooms[room.name].creeps[c.name].moving && c.store[RESOURCE_ENERGY] < .8 * c.store.getCapacity()) {
 
                     tasks.push(new TransferTask(c.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY]))
 
@@ -2749,10 +2751,21 @@ const getTasks = {
             return []
         }
         if (!MEMORY.rooms[room.name].labs) {
+
             return [];
         }
         let reaction = MEMORY.rooms[room.name].labs.reaction
         if (!reaction || reaction.complete) {
+            for (let lab of room.find(FIND_MY_STRUCTURES).filter(s => s.structureType === STRUCTURE_LAB)) {
+                let resource = lab.mineralType
+                if (!resource) {
+                    continue;
+                }
+                if (lab.store[resource] > 0) {
+                    return [new WithdrawTask(lab.id, resource, Math.min(creep.store.getFreeCapacity(), lab.store[resource]))]
+                }
+            }
+
             return [];
         }
         let lab1 = Game.getObjectById(reaction.lab1)
@@ -3288,9 +3301,9 @@ function validateTask(room, creep) {
             if (target.store.getFreeCapacity(task.resourceType) === 0 || creep.store[task.resourceType] === 0) {
                 return false;
             }
-            if (target.body && MEMORY.rooms[target.memory.home].creeps[target.name].moving) {
+            /*if (target.body && MEMORY.rooms[target.memory.home].creeps[target.name].moving) {
                 return false;
-            }
+            }*/
 
             break;
 

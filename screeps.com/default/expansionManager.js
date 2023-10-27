@@ -585,7 +585,7 @@ function expansionManager(myRooms) {
                         }
 
 
-                        if (roomName === r.homeRoom && r.distance === i && r.controller_id && !r.occupied && !r.my && r.structureCount < 2 && !room.memory.outposts.some(o => o === r.roomName)) {
+                        if (!r.ownedBy && roomName === r.homeRoom && r.distance === i && r.controller_id && !r.occupied && !r.my && r.structureCount < 2 && !room.memory.outposts.some(o => o === r.roomName)) {
 
                             if (i === 2) {
                                 let pathHome = Game.map.findRoute(roomName, r.roomName)
@@ -1144,7 +1144,7 @@ function executeMissions(myRooms) {
                 } else if (mission.type === 'INVADER_CORE') {
 
                     if (room) {
-                        if (room.find(FIND_HOSTILE_STRUCTURES).filter(s => s.structureType === STRUCTURE_INVADER_CORE).length === 0) {
+                        if (room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_INVADER_CORE).length === 0) {
                             mission.complete = true;
                         }
                     }
@@ -1519,6 +1519,9 @@ function getMission(myRooms) {
             let data = monitoredRooms[r]
             let myOutpost = false;
             for (let myRoomName of myRooms) {
+                if (!Memory.rooms[myRoomName] || !Memory.rooms[myRoomName].outposts) {
+                    continue;
+                }
                 if (Memory.rooms[myRoomName].outposts.includes(data.roomName)) {
                     myOutpost = true;
                     break;
@@ -1555,16 +1558,17 @@ function getMission(myRooms) {
     ];
 
     // Claim Mission Count
-    let claimMissionCount = 0;
+    let claimMissionExists = false;
     for (let homeRoomName of myRooms) {
 
 
         if (MEMORY.rooms[homeRoomName] && MEMORY.rooms[homeRoomName].missions && MEMORY.rooms[homeRoomName].missions.some(m => m.type === 'CLAIM')) {
-            claimMissionCount++
+            claimMissionExists = true;
+            break;
         }
     }
 
-    if (myRooms.length + claimMissionCount < Game.gcl.level) {
+    if (!claimMissionExists && myRooms.length < Game.gcl.level) {
         // We can generate a claim mission.
 
 
@@ -1612,7 +1616,7 @@ function getMission(myRooms) {
                     let closestRoomName = _.min(availableRooms, roomName => Game.map.findRoute(r.roomName, roomName).length)
                     // If we do not have any missions comming out of this room:
                     if (!MEMORY.rooms[closestRoomName].missions.length) {
-                        console.log('Creating power bank mission for',closestRoomName,'at',r.roomName)
+                        console.log('Creating power bank mission for', closestRoomName, 'at', r.roomName)
                         MEMORY.rooms[closestRoomName].missions.push(new PowerBankMission(r.roomName, r.powerBankPos))
 
                     }
@@ -1624,7 +1628,7 @@ function getMission(myRooms) {
             let next = false;
 
             for (let myRoom of myRooms) {
-                if (Game.rooms[myRoom].memory.outposts && Game.rooms[myRoom].memory.outposts.some(o => o === r.roomName) || MEMORY.rooms[myRoom].missions.some(m => m.type === 'CLAIM' && m.roomName === r.roomName)) {
+                if (Game.rooms[myRoom].memory.outposts.length && Game.rooms[myRoom].memory.outposts.some(o => o === r.roomName) || MEMORY.rooms[myRoom].missions.some(m => m.type === 'CLAIM' && m.roomName === r.roomName)) {
                     next = true;
                     break;
                 }
@@ -1673,7 +1677,7 @@ function getMission(myRooms) {
 
             let mission = new ClaimMission(bestTarget.roomName)
 
-            let closestRoom = _.min(myRooms.filter(mr => Game.rooms[mr].storage), myRoom => Game.map.findRoute(myRoom, bestTarget.roomName).length)
+            let closestRoom = _.min(myRooms.filter(mr => Game.rooms[mr].controller.level > 4 && Game.rooms[mr].storage), myRoom => Game.map.findRoute(myRoom, bestTarget.roomName).length)
             if (closestRoom !== Infinity) {
                 console.log(closestRoom, 'Generating ClaimMission for', bestTarget.roomName)
                 MEMORY.rooms[closestRoom].missions.push(mission)

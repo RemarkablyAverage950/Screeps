@@ -512,7 +512,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
                 assignedRoom: undefined,
             },
         };
-        spawnQueue.push(new SpawnOrder('remoteBuilder', 6, body, options));
+        spawnQueue.push(new SpawnOrder('remoteBuilder', 5, body, options));
         remoteBuilderCount++;
     }
 
@@ -612,9 +612,9 @@ const getBody = {
                             workNeeded += 1000
                         }
                         let distance = 0;
-                        if (room.controller) {
+                        if (room.storage) {
 
-                            distance = room.controller.pos.getRangeTo(site);
+                            distance = room.storage.pos.getRangeTo(site);
 
                         } else {
                             for (let source of sources) {

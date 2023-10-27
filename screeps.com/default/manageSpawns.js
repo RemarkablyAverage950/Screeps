@@ -612,9 +612,9 @@ const getBody = {
                             workNeeded += 1000
                         }
                         let distance = 0;
-                        if (room.controller) {
+                        if (room.storage) {
 
-                            distance = room.controller.pos.getRangeTo(site);
+                            distance = room.storage.pos.getRangeTo(site);
 
                         } else {
                             for (let source of sources) {
