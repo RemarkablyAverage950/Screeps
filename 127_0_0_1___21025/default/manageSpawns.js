@@ -1838,18 +1838,18 @@ const getTargetCount = {
 
     remoteBuilder: function (room, outpostRooms) {
 
-
+        let count = 0;
         for (let outpostName of outpostRooms) {
 
 
             if (MEMORY.rooms[room.name].outposts[outpostName] && MEMORY.rooms[room.name].outposts[outpostName].constructionComplete === false) {
 
-                return 1;
+                return count++;
             }
         }
 
 
-        return 0;
+        return count;
     },
 
     remoteMiner: function (room, outposts) {
