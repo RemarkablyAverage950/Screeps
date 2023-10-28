@@ -537,6 +537,9 @@ function assignTask(room, creep, creeps) {
                     min = lastMaintained;
                 }
             }
+            if(!targetRoom){
+                return
+            }
             creep.memory.assignedRoom = targetRoom
 
             MEMORY.rooms[room.name].outposts[targetRoom].lastMaintained = Game.time;
@@ -974,7 +977,7 @@ const getRoleTasks = {
 
         if (creep.store[RESOURCE_ENERGY] > 0) {
 
-            tasks.push(...getTasks.build(room));
+            tasks.push(...getTasks.build(room, creep));
 
             if (tasks.length === 0) {
                 if (creep.room.controller.my) {
@@ -1347,6 +1350,7 @@ const getRoleTasks = {
 
             return new MoveTask(pos)
         } else {
+            MEMORY.rooms[room.name].creeps[creep.name].moving = false;
             let capacity = creep.store.getCapacity()
             const structures = room.find(FIND_STRUCTURES).filter(s => s.pos.isNearTo(creep) && s.structureType !== STRUCTURE_ROAD)
             let containers = []
@@ -1563,7 +1567,9 @@ const getRoleTasks = {
             // Dump creep capacity
             if (creep.store.getUsedCapacity() > 0) {
                 for (let r of Object.keys(creep.store)) {
-
+                    if (r === RESOURCE_ENERGY) {
+                        continue;
+                    }
                     let sa = storage.store[r];
                     let ta = terminal.store[r];
 
@@ -1778,16 +1784,17 @@ const getRoleTasks = {
     mineralMiner: function (room, creep) {
         const mineral = room.find(FIND_MINERALS)[0]
         const structures = room.find(FIND_STRUCTURES)
-        let targetPos
+        let mineralContainer = undefined;
         for (let s of structures) {
             if (s.structureType === STRUCTURE_CONTAINER && s.pos.isNearTo(mineral)) {
-                targetPos = s.pos;
+
+                mineralContainer = s
                 break;
             }
         }
-        if (creep.pos.x !== targetPos.x || creep.pos.y !== targetPos.y) {
-            return new MoveTask(targetPos)
-        } else {
+        if (creep.pos.x !== mineralContainer.pos.x || creep.pos.y !== mineralContainer.pos.y) {
+            return new MoveTask(mineralContainer.pos)
+        } else if (mineralContainer.store.getFreeCapacity() > 50) {
             return new HarvestTask(mineral.id)
         }
 
@@ -2406,7 +2413,7 @@ const getRoleTasks = {
 const getTasks = {
 
 
-    build: function (room) {
+    build: function (room, creep) {
 
         const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
         const structures = room.find(FIND_STRUCTURES);
@@ -2420,29 +2427,34 @@ const getTasks = {
 
         let targets = [];
         for (let type of BUILD_PRIORITY) {
-            if (targets.length > 0) {
-                /*if (targets[0].structureType === STRUCTURE_ROAD) {
-                    for (let t of targets) {
-                        tasks.push(new BuildTask(t.id))
-                    }
- 
-                    return tasks;
-                }*/
 
-                let maxProgress = _.max(targets, t => t.progress).progress
-                for (let t of targets) {
-                    if (t.progress === maxProgress) {
-                        tasks.push(new BuildTask(t.id))
-                    }
-                }
-
-                return tasks;
-            }
             for (let site of sites) {
                 if (site.structureType === type) {
                     targets.push(site)
                 }
             }
+
+            if (targets.length > 0) {
+                if (type === STRUCTURE_ROAD) {
+                    let closest = _.min(targets, t => t.pos.getRangeTo(creep))
+
+                    if (closest) {
+                        return [new BuildTask(closest.id)]
+                    }
+
+                } else {
+
+                    let maxProgress = _.max(targets, t => t.progress).progress
+                    for (let t of targets) {
+                        if (t.progress === maxProgress) {
+                            tasks.push(new BuildTask(t.id))
+                        }
+                    }
+                }
+
+                return tasks;
+            }
+
         };
         return tasks
     },
@@ -2679,16 +2691,46 @@ const getTasks = {
         const structures = room.find(FIND_STRUCTURES);
         const capacity = creep.store.getFreeCapacity();
         const mineral = room.find(FIND_MINERALS)[0];
+        const tombstones = room.find(FIND_TOMBSTONES);
 
         let tasks = [];
 
+        for (let t of tombstones) {
+
+
+            for (let r of Object.keys(t.store)) {
+                let forecast = t.forecast(r)
+                if (forecast > 0) {
+                    tasks.push(new WithdrawTask(t.id, r, Math.min(forecast, capacity)))
+                }
+            }
+
+        }
+        if (tasks.length > 0) {
+            return tasks;
+        }
         for (let s of structures) {
 
             if (s.structureType === STRUCTURE_CONTAINER) {
 
+                if (s.pos.isNearTo(mineral)) {
+
+                    if (s.store.getUsedCapacity() > capacity) {
+
+                        for (let r of Object.keys(s.store)) {
+
+                            return [new WithdrawTask(s.id, r, Math.min(capacity, s.store[r]))];
+                        }
+
+                    }
+
+                    continue;
+                }
+
+
                 for (let source of sources) {
 
-                    if ((s.pos.isNearTo(source) || s.pos.isNearTo(mineral)) && s.store.getUsedCapacity() > 0) {
+                    if (s.pos.isNearTo(source) && s.store.getUsedCapacity() > 0) {
 
                         for (let r of Object.keys(s.store)) {
                             if (s.forecast(r) >= capacity)
@@ -2706,7 +2748,7 @@ const getTasks = {
         }
 
         const dropped = room.find(FIND_DROPPED_RESOURCES);
-        const tombstones = room.find(FIND_TOMBSTONES);
+
         const ruins = room.find(FIND_RUINS);
 
         for (let r of dropped) {
@@ -2717,16 +2759,7 @@ const getTasks = {
             }
         }
 
-        for (let t of tombstones) {
 
-
-            for (let r of Object.keys(t.store)) {
-                let forecast = t.forecast(r)
-                if (forecast > 0) {
-                    tasks.push(new WithdrawTask(t.id, r, Math.min(forecast, capacity)))
-                }
-            }
-        }
         for (let ruin of ruins) {
             for (let r of Object.keys(ruin.store)) {
                 let forecast = ruin.forecast(r)

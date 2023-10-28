@@ -63,7 +63,7 @@ const BUILD_PRIORITY = [
  */
 function roomPlanner(room) {
 
-    //room.memory.plans = undefined;
+   //room.memory.plans = undefined;
     if (room.name === 'W7N7') {
         //room.memory.plans = undefined;
     }
@@ -84,7 +84,7 @@ function roomPlanner(room) {
 
 
 
-    if (Game.time % 500 === 0 && room.memory.outposts.length > 0 && Game.cpu.bucket > 100 && plans) {
+    if (Game.time % 5 === 0 && room.memory.outposts.length > 0 && Game.cpu.bucket > 100 && plans) {
         outpostPlanner(room, plans)
     }
 
@@ -224,7 +224,7 @@ function outpostPlanner(homeRoom) {
         let outpostPlans = homeRoom.memory.plans[outpostName]
 
 
-        if (!outpostPlans || outpostPlans.length === 0) {
+        if ((!outpostPlans || outpostPlans.length === 0) && MEMORY.rooms[homeRoom.name].outposts[outpostName].sources) {
             getOutpostPlans(outpostRoom, homeRoom);
         }
 
@@ -240,7 +240,10 @@ function outpostPlanner(homeRoom) {
  */
 function getOutpostPlans(outpostRoom, homeRoom) {
     //console.log('Entering getOutpostPlans', outpostRoom.name)
-    const sources = outpostRoom.find(FIND_SOURCES);
+    const source_ids = Object.keys(MEMORY.rooms[homeRoom.name].outposts[outpostRoom.name].sources)
+
+    const sources = source_ids.map(s => Game.getObjectById(s));
+
     const storageTile = homeRoom.memory.plans[homeRoom.name].find(bo => bo.structure === STRUCTURE_STORAGE);
     const route = Game.map.findRoute(outpostRoom.name, homeRoom.name).map(r => r.room);
     const destination = new RoomPosition(storageTile.x, storageTile.y, homeRoom.name)

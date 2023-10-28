@@ -26,7 +26,7 @@ class ResourceSurplus {
 }
 
 const TARGET_ENERGY_AMOUNT = 250000;
-const TARGET_RESOURCE_AMOUNT = 12000;
+const TARGET_RESOURCE_AMOUNT = 10000;
 
 /**
  * Determines what resources each room needs and transfers between terminals.

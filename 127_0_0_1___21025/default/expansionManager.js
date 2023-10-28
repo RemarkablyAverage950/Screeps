@@ -221,7 +221,7 @@ class ScanData {
         this.reserved = (controller && controller.reservation) ? true : false;
         this.reservedBy = this.reserved ? controller.reservation.username : null;
         this.sources = sources.length ? sources.map(s => s.id) : null;
-
+        this.sourcePositions = sources.length ? sources.map(s => s.pos) : null;
 
 
         let rating = null;
@@ -545,6 +545,7 @@ function expansionManager(myRooms) {
         }
 
         if (Game.time % 50 === 0) {
+         
             // Expand outposts here
             const room = Game.rooms[roomName]
             if (!room) {
@@ -584,8 +585,8 @@ function expansionManager(myRooms) {
                             continue;
                         }
 
-
-                        if (!r.ownedBy && roomName === r.homeRoom && r.distance === i && r.controller_id && !r.occupied && !r.my && r.structureCount < 2 && !room.memory.outposts.some(o => o === r.roomName)) {
+                        // 
+                        if (!r.ownedBy && roomName === r.homeRoom && r.distance === i && r.controller_id && r.structureCount < 2 && !r.occupied && !r.my && !room.memory.outposts.some(o => o === r.roomName)) {
 
                             if (i === 2) {
                                 let pathHome = Game.map.findRoute(roomName, r.roomName)
@@ -600,11 +601,31 @@ function expansionManager(myRooms) {
                                     continue;
                                 }
                             }
+                            const homeRoom = Game.rooms[r.homeRoom]
+                            let valid = false;
+                            for (let pos of r.sourcePositions) {
+                                let length;
+                                if (homeRoom.storage) {
+                                    length = getPath(undefined, homeRoom.storage.pos, pos, 1, 16).length
 
+                                } else {
+                                    let spawn = homeRoom.find(FIND_MY_SPAWNS)[0]
+                                    if (spawn) {
+                                        length = getPath(undefined, spawn.pos, pos, 1, 16).length
+                                    }
+                                }
+                          
+                                if (length && length < 250) {
+                                    valid = true;
+                                    break;
+                                }
 
-                            room.memory.outposts.push(r.roomName)
-                            console.log(r.roomName, 'is now an outpost for', roomName)
-                            return;
+                            }
+                            if (valid) {
+                                room.memory.outposts.push(r.roomName)
+                                console.log(r.roomName, 'is now an outpost for', roomName)
+                                return;
+                            }
                         }
                     }
                 }
@@ -1615,7 +1636,7 @@ function getMission(myRooms) {
                 if (availableRooms) {
                     let closestRoomName = _.min(availableRooms, roomName => Game.map.findRoute(r.roomName, roomName).length)
                     // If we do not have any missions comming out of this room:
-                    if (!MEMORY.rooms[closestRoomName].missions.length) {
+                    if (MEMORY.rooms[closestRoomName] && !MEMORY.rooms[closestRoomName].missions.length) {
                         console.log('Creating power bank mission for', closestRoomName, 'at', r.roomName)
                         MEMORY.rooms[closestRoomName].missions.push(new PowerBankMission(r.roomName, r.powerBankPos))
 
@@ -1714,7 +1735,7 @@ function getMission(myRooms) {
 
         for (let monitoredRoomName of mr) {
             let r = monitoredRooms[monitoredRoomName]
-            if (r.controller_id && !r.safeMode && r.ownedBy && !r.my && !r.towers && r.distance < 5 && r.level < room.controller.level) {
+            if (r.controller_id && !r.safeMode && r.ownedBy && !r.my && !r.towers && r.strucHits && r.distance < 5 && r.level < room.controller.level) {
                 console.log(roomName, 'creating Assault Mission for', r.roomName)
                 MEMORY.rooms[roomName].missions.push(new AssaultMission(r.roomName, Game.time))
             }

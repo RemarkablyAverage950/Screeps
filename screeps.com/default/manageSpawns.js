@@ -501,6 +501,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
 
 
+
     body = [];
     while (remoteBuilderCount < targetRemoteBuilderCount) {
         body = getBody.remoteBuilder(energyBudget, room, conserveEnergy)

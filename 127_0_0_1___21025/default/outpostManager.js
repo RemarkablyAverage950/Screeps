@@ -1,5 +1,6 @@
 let MEMORY = require('memory')
 let { getBody, SpawnOrder } = require('manageSpawns');
+let { getPath } = require('pathfinder')
 
 class SO {
     constructor(id, sourcePos, containerPos, distance, assignedMiner) {
@@ -83,7 +84,7 @@ function outpostManager(homeRoom, creeps) {
 
 
         if (occupied) {
-      
+
             // defend room.
             const defenderCountRequired = 1
             let defenderCount = 0;
@@ -135,18 +136,18 @@ function outpostManager(homeRoom, creeps) {
         let maxCapacity = Math.min(Math.floor(energyCapacityAvailable / 150) * 100, 1600);
         let haulerCapacityReq = 0
         for (let outpostName of outposts) {
- 
+
 
             if (MEMORY.rooms[homeRoom.name].outposts[outpostName] && MEMORY.rooms[homeRoom.name].outposts[outpostName].haulerCapacityReq) {
-                
+
                 haulerCapacityReq += MEMORY.rooms[homeRoom.name].outposts[outpostName].haulerCapacityReq
             }
         }
 
         let haulerCountRequired = Math.min(Math.ceil(haulerCapacityReq / maxCapacity), 10);
-        let capacityRequiredPerHauler = Math.min(maxCapacity,Math.ceil(haulerCapacityReq / haulerCountRequired))
+        let capacityRequiredPerHauler = Math.min(maxCapacity, Math.ceil(haulerCapacityReq / haulerCountRequired))
         let spawnTime = Math.ceil(1.5 * capacityRequiredPerHauler / 50) * 3
-    
+
         // Find out how many haulers we have;
         let haulerCount = 0;
         for (let c of creeps) {
@@ -165,7 +166,7 @@ function outpostManager(homeRoom, creeps) {
         let body = [];
         while (haulerCount < haulerCountRequired) {
             if (body.length === 0) {
-                
+
                 body = getBody.remoteHauler(homeRoom.energyCapacityAvailable, capacityRequiredPerHauler)
             }
             options = {
@@ -269,7 +270,7 @@ function outpostManager(homeRoom, creeps) {
                     reserverCount++;
                 }
 
-                
+
             }
 
             /* Update source data
@@ -290,6 +291,24 @@ function outpostManager(homeRoom, creeps) {
                 const containers = outpostRoom.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_CONTAINER);
 
                 for (let s of sources) {
+
+                    
+                    let length;
+                    if (homeRoom.storage) {
+                        length = getPath(undefined, homeRoom.storage.pos, s.pos, 1, 16).length
+
+                    } else {
+                        let spawn = homeRoom.find(FIND_MY_SPAWNS)[0]
+                        if (spawn) {
+                            length = getPath(undefined, spawn.pos, s.pos, 1, 16).length
+                        }
+                    }
+                  
+                    if (length && length > 250) {
+                        continue;
+                    }
+
+
 
                     let containerPos = undefined;
                     let path = undefined;
@@ -332,7 +351,7 @@ function outpostManager(homeRoom, creeps) {
                         creepNeeded = true;
                     }
                 }
-                
+
 
 
 
@@ -364,7 +383,7 @@ function outpostManager(homeRoom, creeps) {
 
                 if (creepNeeded) {
                     heap.sources[s.id].assignedMiner = undefined;
- 
+
                     // add miner to spawnQueue;
                     let body = getBody.remoteMiner(homeRoom.energyCapacityAvailable)
                     options = {
@@ -379,7 +398,7 @@ function outpostManager(homeRoom, creeps) {
                 }
 
             }
-           
+
             const sites = outpostRoom.find(FIND_CONSTRUCTION_SITES)
             if (sites.length > 0) {
                 heap.constructionComplete = false;
@@ -388,7 +407,7 @@ function outpostManager(homeRoom, creeps) {
                 heap.constructionComplete = true;
 
             }
-           
+
             MEMORY.rooms[homeRoom.name].outposts[outpostName] = heap;
             if (!heap.haulerCapacityReq) {
 
