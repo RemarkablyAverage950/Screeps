@@ -545,7 +545,7 @@ function expansionManager(myRooms) {
         }
 
         if (Game.time % 50 === 0) {
-         
+
             // Expand outposts here
             const room = Game.rooms[roomName]
             if (!room) {
@@ -614,7 +614,7 @@ function expansionManager(myRooms) {
                                         length = getPath(undefined, spawn.pos, pos, 1, 16).length
                                     }
                                 }
-                          
+
                                 if (length && length < 250) {
                                     valid = true;
                                     break;
@@ -657,7 +657,7 @@ function executeMissions(myRooms) {
         let missions = MEMORY.rooms[homeRoomName].missions
 
         let spawnQueue = MEMORY.rooms[homeRoomName].spawnQueue
-        if (!missions.length) {
+        if (!missions || !missions.length) {
             continue;
         }
         for (let mission of missions) {
@@ -865,11 +865,13 @@ function executeMissions(myRooms) {
                 } else if (mission.type === 'CLAIM') {
                     if (room && (room.controller.owner || room.controller.reservedBy)) {
                         mission.complete = true;
+                        console.log('Claim mission complete.')
                         continue;
                     }
 
 
-                    if (!data.pathToController) {
+                    if (data.pathToController === false) {
+
                         let targetDismantlerCount = 4;
 
 
@@ -943,7 +945,8 @@ function executeMissions(myRooms) {
                                         assignedRoom: mission.roomName,
                                     },
                                 };
-                                MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('claimer', 6, body, options));
+
+                                MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('claimer', 4, body, options));
                                 claimerCount++;
                             }
                         }
@@ -1727,7 +1730,7 @@ function getMission(myRooms) {
 
 
     for (let roomName of myRooms) {
-        if (MEMORY.rooms[roomName] && MEMORY.rooms[roomName].missions.some(m => m.type === 'ASSAULT')) {
+        if (MEMORY.rooms[roomName] && MEMORY.rooms[roomName].missions && MEMORY.rooms[roomName].missions.some(m => m.type === 'ASSAULT')) {
             continue;
         }
         let room = Game.rooms[roomName]

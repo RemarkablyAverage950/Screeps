@@ -63,7 +63,7 @@ const BUILD_PRIORITY = [
  */
 function roomPlanner(room) {
 
-   //room.memory.plans = undefined;
+    //room.memory.plans = undefined;
     if (room.name === 'W7N7') {
         //room.memory.plans = undefined;
     }
@@ -84,7 +84,7 @@ function roomPlanner(room) {
 
 
 
-    if (Game.time % 5 === 0 && room.memory.outposts.length > 0 && Game.cpu.bucket > 100 && plans) {
+    if (Game.time % 500 === 0 && room.memory.outposts && room.memory.outposts.length > 0 && Game.cpu.bucket > 100 && plans) {
         outpostPlanner(room, plans)
     }
 
@@ -1959,8 +1959,9 @@ function placeSites(homeRoom, plans) {
     //console.log('Placing construction sites for',homeRoom.name)
     let roomPlaced = false;
     for (let roomName of rooms) {
+        let count = 0;
         if (roomPlaced) {
-            return;
+            //return;
         }
         let room = Game.rooms[roomName]
         if (!room) {
@@ -1973,13 +1974,20 @@ function placeSites(homeRoom, plans) {
         }
         //console.log('Placing construction sites for',homeRoom.name)
         for (let structureType of BUILD_PRIORITY) {
+            if(count === 20){
+                break;
+            }
             for (let order of roomPlans) {
+                if(count === 20){
+                    break;
+                }
                 if (order.structure === structureType) {
                     updatePlacedStatus(order, room)
 
                     if (order.level <= RCL && !order.placed) {
                         let ret = room.createConstructionSite(order.x, order.y, order.structure)
                         if (ret === 0) {
+                            count++
                             roomPlaced = true;
                         } else if (ret === -8) {
                             return;
