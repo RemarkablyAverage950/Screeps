@@ -537,7 +537,7 @@ function assignTask(room, creep, creeps) {
                     min = lastMaintained;
                 }
             }
-            if(!targetRoom){
+            if (!targetRoom) {
                 return
             }
             creep.memory.assignedRoom = targetRoom
@@ -1477,6 +1477,7 @@ const getRoleTasks = {
      */
     hub: function (room, creep) {
         let storage = room.storage;
+        let terminal = room.terminal;
 
         if (!storage) {
             return undefined;
@@ -1502,13 +1503,15 @@ const getRoleTasks = {
 
             if (creep.store[RESOURCE_ENERGY] > 0) {
                 return new TransferTask(hubLink.id, RESOURCE_ENERGY, Math.min(hubEnergyNeeded, creep.store[RESOURCE_ENERGY]))
+            } else if (terminal && creep.store.getFreeCapacity() > 0 && terminal.store[RESOURCE_ENERGY] > storage.store[RESOURCE_ENERGY]) {
+                return new WithdrawTask(terminal.id, RESOURCE_ENERGY, Math.min(creep.store.getFreeCapacity(), storage.store[RESOURCE_ENERGY], hubEnergyNeeded))
             } else if (creep.store.getFreeCapacity() > 0 && storage.store[RESOURCE_ENERGY] > 0) {
                 return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(creep.store.getFreeCapacity(), storage.store[RESOURCE_ENERGY], hubEnergyNeeded))
             }
 
 
         }
-        let terminal = room.terminal
+
 
         // Terminal managment
         // Goal, up to 100k energy, no more energy than storage has.
@@ -1530,9 +1533,17 @@ const getRoleTasks = {
                     return new WithdrawTask(terminal.id, RESOURCE_ENERGY, Math.min(terminal.store[RESOURCE_ENERGY], creepCapacity))
                 }
 
+            } else if (storage.store[RESOURCE_ENERGY] < 200000 && terminal.store[RESOURCE_ENERGY] > 10000) {
+
+                if(creep.store[RESOURCE_ENERGY] > 0){
+                    return new TransferTask(storage.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY])
+                }else{
+                    return new WithdrawTask(terminal.id, RESOURCE_ENERGY, Math.min(creepCapacity, terminal.store[RESOURCE_ENERGY] - 10000))
+                }
+
             } else if (terminal.store[RESOURCE_ENERGY] < 10000) {
                 // Storage > 30k and free capacity, withdraw
-                if (storage.store[RESOURCE_ENERGY] > 30000 && creepCapacity > 0) {
+                if (storage.store[RESOURCE_ENERGY] > 30000 && creep.store[RESOURCE_ENERGY] === 0) {
                     return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(creepCapacity, 10000 - terminal.store[RESOURCE_ENERGY]))
                     // Storage > 20k && creep has energy, transfer to terminal
                 } else if (storage.store[RESOURCE_ENERGY] > 25000 && creep.store[RESOURCE_ENERGY] > 0) {
@@ -1540,12 +1551,6 @@ const getRoleTasks = {
                     // Storage < 20k && creep has energy, transfer to storage
                 }
 
-            } else if (storage.store[RESOURCE_ENERGY] < 200000) {
-                if (creep.store[RESOURCE_ENERGY] > 0) {
-                    return new TransferTask(storage.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY])
-                } else if (terminal.store[RESOURCE_ENERGY] > 10000) {
-                    return new WithdrawTask(terminal.id, RESOURCE_ENERGY, Math.min(creepCapacity, terminal.store[RESOURCE_ENERGY] - 10000))
-                }
             }
             // Storage > 200k
             else if (storage.store[RESOURCE_ENERGY] > 210000 + creepCapacity && terminal.store[RESOURCE_ENERGY] + creepCapacity < 100000) {

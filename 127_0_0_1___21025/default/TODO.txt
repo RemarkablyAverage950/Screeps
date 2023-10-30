@@ -1,4 +1,5 @@
-storage.db['rooms.objects'].update({ _id: 'ff7a07728e60965' },{ $set: { level: 7 }})
+storage.db['rooms.objects'].update({ _id: '9d370775041376a' },{ $set: { level: 5 }})
+storage.db['users'].update({"username": "RemarkablyAverage"}, {$set: {gcl: 80000000}})
 
 Spawning:
 

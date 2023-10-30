@@ -217,7 +217,7 @@ function outpostManager(homeRoom, creeps) {
                 let body = [];
                 while (defenderCount < defenderCountRequired) {
                     if (body.length === 0) {
-                        body = getBody.defender(homeRoom.energyCapacityAvailable, hostiles)
+                        body = getBody.defender(homeRoom.energyCapacityAvailable, undefined)
                     }
                     options = {
                         memory: {

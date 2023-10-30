@@ -1959,7 +1959,7 @@ function placeSites(homeRoom, plans) {
     //console.log('Placing construction sites for',homeRoom.name)
     let roomPlaced = false;
     for (let roomName of rooms) {
-        let count = 0;
+
         if (roomPlaced) {
             //return;
         }
@@ -1974,20 +1974,16 @@ function placeSites(homeRoom, plans) {
         }
         //console.log('Placing construction sites for',homeRoom.name)
         for (let structureType of BUILD_PRIORITY) {
-            if(count === 20){
-                break;
-            }
+          
             for (let order of roomPlans) {
-                if(count === 20){
-                    break;
-                }
+               
                 if (order.structure === structureType) {
                     updatePlacedStatus(order, room)
 
                     if (order.level <= RCL && !order.placed) {
                         let ret = room.createConstructionSite(order.x, order.y, order.structure)
                         if (ret === 0) {
-                            count++
+                            placed = true;
                             roomPlaced = true;
                         } else if (ret === -8) {
                             return;
