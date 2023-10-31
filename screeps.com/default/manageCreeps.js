@@ -1377,23 +1377,24 @@ const getRoleTasks = {
                 }
             }
 
+            if (creep.store.getFreeCapacity() > 0) {
+
+                if (spawnLink && spawnLink.forecast(RESOURCE_ENERGY) >= 0) {
+
+                    return new WithdrawTask(spawnLink.id, RESOURCE_ENERGY, capacity)
+                }
+            }
+
             for (let c of containers) {
 
                 if (c.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
 
-                    if (creep.store[RESOURCE_ENERGY] === 0) {
+                    return new TransferTask(c.id, RESOURCE_ENERGY, Math.min(c.store.getFreeCapacity(RESOURCE_ENERGY), creep.store[RESOURCE_ENERGY]))
 
-                        if (spawnLink && spawnLink.forecast(RESOURCE_ENERGY) >= 0) {
-
-                            return new WithdrawTask(spawnLink.id, RESOURCE_ENERGY, capacity)
-                        }
-                    } else {
-
-                        return new TransferTask(c.id, RESOURCE_ENERGY, Math.min(c.store.getFreeCapacity(RESOURCE_ENERGY), creep.store[RESOURCE_ENERGY]))
-                    }
                 }
-
             }
+
+
             return undefined;
 
         }
@@ -1535,9 +1536,9 @@ const getRoleTasks = {
 
             } else if (storage.store[RESOURCE_ENERGY] < 200000 && terminal.store[RESOURCE_ENERGY] > 10000) {
 
-                if(creep.store[RESOURCE_ENERGY] > 0){
+                if (creep.store[RESOURCE_ENERGY] > 0) {
                     return new TransferTask(storage.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY])
-                }else{
+                } else {
                     return new WithdrawTask(terminal.id, RESOURCE_ENERGY, Math.min(creepCapacity, terminal.store[RESOURCE_ENERGY] - 10000))
                 }
 
@@ -2042,6 +2043,19 @@ const getRoleTasks = {
 
             Memory.rooms[creep.memory.home].plans[creep.room.name].some(p => p.x === container.pos.x && p.y === container.pos.y)) {
             return new RepairTask(container.id)
+        }
+
+        if (container.store.getFreeCapacity() > 0) {
+            let dropped = creep.room.find(FIND_DROPPED_RESOURCES).filter(d => d.pos.getRangeTo(creep) < 2 && d.resourceType === RESOURCE_ENERGY)
+
+            if (dropped.length) {
+                if (creep.store.getFreeCapacity()) {
+                    return new PickupTask(dropped[0].id, Math.min(creep.store.getFreeCapacity(), dropped[0].amount))
+                } else {
+                    return new TransferTask(container.id, RESOURCE_ENERGY, Math.min(creep.store[RESOURCE_ENERGY], container.store.getFreeCapacity()))
+                }
+
+            }
         }
 
         return new HarvestTask(assignedSource.id)
@@ -3340,9 +3354,9 @@ function validateTask(room, creep) {
             if (target.store.getFreeCapacity(task.resourceType) === 0 || creep.store[task.resourceType] === 0) {
                 return false;
             }
-            /*if (target.body && MEMORY.rooms[target.memory.home].creeps[target.name].moving) {
+            if (target.body && MEMORY.rooms[target.memory.home].creeps[target.name].moving) {
                 return false;
-            }*/
+            }
 
             break;
 
