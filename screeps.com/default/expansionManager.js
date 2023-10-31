@@ -984,7 +984,7 @@ function executeMissions(myRooms) {
                     }
 
                 } else if (mission.type === 'DISMANTLE') {
-                   
+
                     if (room) {
                         let structures = room.find(FIND_STRUCTURES).filter(s => s.structureType !== STRUCTURE_CONTROLLER)
                         if (structures.length === 0 || (room.controller && room.controller.my)) {
@@ -993,7 +993,7 @@ function executeMissions(myRooms) {
                             continue;
                         }
                     }
-                    if(homeRoom.storage[RESOURCE_ENERGY] < 100000){
+                    if (homeRoom.storage.store[RESOURCE_ENERGY] < 100000) {
                         continue;
                     }
                     if (room
