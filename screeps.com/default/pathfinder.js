@@ -26,7 +26,8 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
         ignoreCreeps: true,
         maxOps: 50000,
         roomCallback: function (roomName) {
-            
+            if (Game.map.getRoomStatus(roomName).status !== 'normal') return false;
+
             if (allowedRooms.length && !allowedRooms.includes(roomName) && roomName !== destination.roomName) {
 
                 let scanData = MEMORY.monitoredRooms[roomName]
@@ -180,6 +181,17 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
     };
 
     let lookCreeps = []
+    if (path && path.length && path[0].roomName === creep.room.name) {
+        let lookStructs = path[0].lookFor(LOOK_STRUCTURES)
+        if (lookStructs.length) {
+            for (let s of lookStructs) {
+                if (s.structureType !== STRUCTURE_ROAD && (s.structureType !== STRUCTURE_RAMPART && s.my)) {
+                    path = getPath(creep, creep.pos, destination, range, maxRooms, false, true, allowedRooms)
+                    break;
+                }
+            }
+        }
+    }
 
     try {
         lookCreeps = path[0].lookFor(LOOK_CREEPS);
@@ -278,6 +290,7 @@ function moveCreepToRoom(creep, targetRoomName, targetPos = undefined, hostileRo
 
         route = Game.map.findRoute(from.roomName, to.roomName, {
             routeCallback(roomName) {
+                if (Game.map.getRoomStatus(roomName).status !== 'normal') return 0xff;
 
                 let isMyRoom = Game.rooms[roomName] &&
                     Game.rooms[roomName].controller &&

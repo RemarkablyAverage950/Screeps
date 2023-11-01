@@ -586,7 +586,14 @@ function expansionManager(myRooms) {
                         }
 
                         // 
-                        if (!r.ownedBy && roomName === r.homeRoom && r.distance === i && r.controller_id && r.structureCount < 2 && !r.occupied && !r.my && !room.memory.outposts.some(o => o === r.roomName)) {
+                        if (!r.ownedBy 
+                            && roomName === r.homeRoom 
+                            && r.distance === i 
+                            && r.controller_id 
+                            && r.structureCount < 2 
+                            && !r.occupied 
+                            && !r.my 
+                            && !room.memory.outposts.some(o => o === r.roomName)) {
 
                             if (i === 2) {
                                 let pathHome = Game.map.findRoute(roomName, r.roomName)
@@ -615,7 +622,7 @@ function expansionManager(myRooms) {
                                     }
                                 }
 
-                                if (length && length < 250) {
+                                if (length && length < 150) {
                                     valid = true;
                                     break;
                                 }
@@ -1563,7 +1570,8 @@ function getMission(myRooms) {
                     homeRoomName = nearbyRooms.pop()
                     let idx = availableRooms.findIndex(r => r === homeRoomName)
                     availableRooms.splice(idx, 1)
-
+                    console.log('A')
+                    console.log(JSON.stringify(data))
                     console.log(homeRoomName, 'creating dismantle mission for', data.roomName)
                     MEMORY.rooms[homeRoomName].missions.push(new DismantleMission(data.roomName))
                 }

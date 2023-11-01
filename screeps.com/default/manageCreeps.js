@@ -1362,12 +1362,12 @@ const getRoleTasks = {
                 if ((s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
 
                     if (creep.store[RESOURCE_ENERGY] === 0) {
-                        if (spawnLink && spawnLink.forecast(RESOURCE_ENERGY) >= 0) {
+                        if (spawnLink && spawnLink.store[RESOURCE_ENERGY] > 0 && spawnLink.forecast(RESOURCE_ENERGY) > 0) {
                             return new WithdrawTask(spawnLink.id, RESOURCE_ENERGY, capacity)
                         }
 
                         for (let _s of structures) {
-                            if ((_s.structureType === STRUCTURE_CONTAINER) && _s.forecast(RESOURCE_ENERGY) >= 0) {
+                            if ((_s.structureType === STRUCTURE_CONTAINER) && _s.store[RESOURCE_ENERGY] > 0 && _s.forecast(RESOURCE_ENERGY) > 0) {
                                 return new WithdrawTask(_s.id, RESOURCE_ENERGY, capacity)
                             }
                         }
@@ -1379,18 +1379,20 @@ const getRoleTasks = {
 
             if (creep.store.getFreeCapacity() > 0) {
 
-                if (spawnLink && spawnLink.forecast(RESOURCE_ENERGY) >= 0) {
+                if (spawnLink && spawnLink.store[RESOURCE_ENERGY] > 0 && spawnLink.forecast(RESOURCE_ENERGY) > 0) {
 
                     return new WithdrawTask(spawnLink.id, RESOURCE_ENERGY, capacity)
                 }
             }
 
-            for (let c of containers) {
+            if (creep.store[RESOURCE_ENERGY] > 0) {
+                for (let c of containers) {
 
-                if (c.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+                    if (c.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
 
-                    return new TransferTask(c.id, RESOURCE_ENERGY, Math.min(c.store.getFreeCapacity(RESOURCE_ENERGY), creep.store[RESOURCE_ENERGY]))
+                        return new TransferTask(c.id, RESOURCE_ENERGY, Math.min(c.store.getFreeCapacity(RESOURCE_ENERGY), creep.store[RESOURCE_ENERGY]))
 
+                    }
                 }
             }
 
@@ -2045,7 +2047,7 @@ const getRoleTasks = {
             return new RepairTask(container.id)
         }
 
-        if (container.store.getFreeCapacity() > 0) {
+        if (container && container.store.getFreeCapacity() > 0) {
             let dropped = creep.room.find(FIND_DROPPED_RESOURCES).filter(d => d.pos.getRangeTo(creep) < 2 && d.resourceType === RESOURCE_ENERGY)
 
             if (dropped.length) {
@@ -2807,19 +2809,27 @@ const getTasks = {
 
             return [];
         }
+        let tasks = []
         let reaction = MEMORY.rooms[room.name].labs.reaction
-        if (!reaction || reaction.complete) {
-            for (let lab of room.find(FIND_MY_STRUCTURES).filter(s => s.structureType === STRUCTURE_LAB)) {
-                let resource = lab.mineralType
-                if (!resource) {
-                    continue;
+        if ((!reaction || reaction.complete)) {
+            if (creep.store.getUsedCapacity() > 0) {
+                for (let r of Object.keys(creep.store)) {
+                    tasks.push(new TransferTask(room.storage.id, r, creep.store[r]))
                 }
-                if (lab.store[resource] > 0) {
-                    return [new WithdrawTask(lab.id, resource, Math.min(creep.store.getFreeCapacity(), lab.store[resource]))]
+            }
+            if (creep.store.getFreeCapacity() > 0) {
+                for (let lab of room.find(FIND_MY_STRUCTURES).filter(s => s.structureType === STRUCTURE_LAB)) {
+                    let resource = lab.mineralType
+                    if (!resource) {
+                        continue;
+                    }
+                    if (lab.store[resource] > 0) {
+                        tasks.push(new WithdrawTask(lab.id, resource, Math.min(creep.store.getFreeCapacity(), lab.store[resource])))
+                    }
                 }
             }
 
-            return [];
+            return tasks;
         }
         let lab1 = Game.getObjectById(reaction.lab1)
         let lab2 = Game.getObjectById(reaction.lab2)

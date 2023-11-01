@@ -304,7 +304,7 @@ function outpostManager(homeRoom, creeps) {
                         }
                     }
                   
-                    if (length && length > 250) {
+                    if (length && length > 150) {
                         continue;
                     }
 
