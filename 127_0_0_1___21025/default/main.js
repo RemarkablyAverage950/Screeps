@@ -9,6 +9,7 @@ const manageRoomDefense = require('manageRoomDefense');
 const manageTerminals = require('manageTerminals');
 const manageLabs = require('manageLabs');
 let MEMORY = require('memory');
+const manageObserver = require('manageObserver');
 require('prototypes');
 require('RoomVisual');
 
@@ -165,6 +166,10 @@ module.exports.loop = function () {
 
         manageCreeps(room, creeps);
         //console.log('manageCreeps',Game.cpu.getUsed()-cpuStart)
+
+        if (room.controller.level === 8) {
+            manageObserver(room)
+        }
 
     }
 

@@ -1440,7 +1440,7 @@ return body;
      */
     upgrader: function (budget, room, conserveEnergy) {
 
-        if (room.find(FIND_MY_CONSTRUCTION_SITES).length > 0 || (!room.storage && conserveEnergy) || (room.storage && room.storage.store[RESOURCE_ENERGY] < 10000)) {
+        if ((room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] < 300000) || room.find(FIND_MY_CONSTRUCTION_SITES).length > 0 || (!room.storage && conserveEnergy) || (room.storage && room.storage.store[RESOURCE_ENERGY] < 10000)) {
             return [WORK, CARRY, MOVE]
         }
 
@@ -1521,7 +1521,7 @@ return body;
             };
         };
 
-        if (conserveEnergy) {
+        if (conserveEnergy || (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] < 300000)) {
             bestBody[0] = Math.max(Math.floor(bestBody[0] / 2), 1)
             bestBody[1] = Math.max(Math.floor(bestBody[1] / 2), 1)
             bestBody[2] = Math.max(Math.floor(bestBody[2] / 2), 1)
@@ -1917,7 +1917,15 @@ const getTargetCount = {
      */
     upgrader: function (room, conserveEnergy) {
 
-        if (room.controller.level > 7 || conserveEnergy || room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
+        if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] > 460000) {
+            if (room.storage.store[RESOURCE_ENERGY] > 500000) {
+                return 3;
+            } else {
+                return 2
+            }
+        }
+
+        if (room.controller.level === 8 || conserveEnergy || room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
             return 1;
         }
 

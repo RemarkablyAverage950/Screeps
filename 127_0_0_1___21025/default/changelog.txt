@@ -48,6 +48,7 @@ Version 0.1
         Hub: 
 
             - Unit now loads and unloads all resources to and from terminal.
+            - Unit now fills nuker and power spawn.
 
         LongHauler:
 
@@ -77,6 +78,10 @@ Version 0.1
 
             - Creep now uses ranged attack or heal when no healthy attack parts
             - Now attacks hostile structures.
+        
+        Upgrader:
+
+            - Different spawn/body parameters for RCL 8 to promote higher energy accumulation in storage.
 
     MANAGE CREEPS:
 
@@ -146,3 +151,7 @@ Version 0.1
         - Hauler loads and unloads resources.
         - Filler loads energy.
         - When a mission is complete, labs are emptied to storage.
+
+    OBSERVER:
+
+        - Added observer module.

@@ -181,7 +181,7 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
     };
 
     let lookCreeps = []
-    if (path && path.length && path[0].roomName === creep.room.name) {
+    /*if (path && path.length && path[0].roomName === creep.room.name) {
         let lookStructs = path[0].lookFor(LOOK_STRUCTURES)
         if (lookStructs.length) {
             for (let s of lookStructs) {
@@ -191,7 +191,7 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
                 }
             }
         }
-    }
+    }*/
 
     try {
         lookCreeps = path[0].lookFor(LOOK_CREEPS);

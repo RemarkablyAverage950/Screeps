@@ -1616,8 +1616,94 @@ const getRoleTasks = {
 
         }
 
+        if (room.controller.level === 8) {
+            let structures = room.find(FIND_MY_STRUCTURES)
+            let ps = undefined;
+            let nuker = undefined;
+
+            for (let s of structures) {
+                if (s.structureType === STRUCTURE_NUKER) {
+                    nuker = s;
+                } else if (s.structureType === STRUCTURE_POWER_SPAWN) {
+                    ps = s;
+                }
+            }
+
+            if (ps) {
+                if (ps.store[RESOURCE_ENERGY] < 5000 && storage.store[RESOURCE_ENERGY] > 300000) {
+                    if (creep.store[RESOURCE_ENERGY] === 0) {
+                        if (creep.store.getUsedCapacity() > 0) {
+                            for (let r of Object.keys(creep.store)) {
+                                if (r !== RESOURCE_ENERGY) {
+                                    return new TransferTask(storage.id, r, creep.store[r]);
+                                }
+                            }
+                        }
+
+                        return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(capacity, ps.store.getFreeCapacity(RESOURCE_ENERGY)))
+
+                    } else if (creep.store[RESOURCE_ENERGY] > 0) {
+                        return new TransferTask(ps.id, RESOURCE_ENERGY, Math.min(creep.store[RESOURCE_ENERGY], ps.store.getFreeCapacity(RESOURCE_ENERGY)))
+                    }
+                }
+                if (ps.store[RESOURCE_POWER] < 100 && storage.store[RESOURCE_POWER] > 0) {
+                    if (creep.store[RESOURCE_POWER] === 0) {
+                        if (creep.store.getUsedCapacity() > 0) {
+                            for (let r of Object.keys(creep.store)) {
+                                if (r !== RESOURCE_POWER) {
+                                    return new TransferTask(storage.id, r, creep.store[r]);
+                                }
+                            }
+                        }
+
+                        return new WithdrawTask(storage.id, RESOURCE_POWER, Math.min(storage.store[RESOURCE_POWER], capacity, ps.store.getFreeCapacity(RESOURCE_POWER)))
+
+                    } else if (creep.store[RESOURCE_POWER] > 0) {
+                        return new TransferTask(ps.id, RESOURCE_POWER, Math.min(creep.store[RESOURCE_POWER], ps.store.getFreeCapacity(RESOURCE_POWER)))
+                    }
+                }
+
+            }
 
 
+            if (nuker) {
+                if (nuker.store[RESOURCE_ENERGY] < 300000 && storage.store[RESOURCE_ENERGY] > 300000) {
+                    if (creep.store[RESOURCE_ENERGY] === 0) {
+                        if (creep.store.getUsedCapacity() > 0) {
+                            for (let r of Object.keys(creep.store)) {
+                                if (r !== RESOURCE_ENERGY) {
+                                    return new TransferTask(storage.id, r, creep.store[r]);
+                                }
+                            }
+                        }
+
+                        return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(capacity, nuker.store.getFreeCapacity(RESOURCE_ENERGY)))
+
+                    } else if (creep.store[RESOURCE_ENERGY] > 0) {
+                        return new TransferTask(nuker.id, RESOURCE_ENERGY, Math.min(creep.store[RESOURCE_ENERGY], nuker.store.getFreeCapacity(RESOURCE_ENERGY)))
+                    }
+                }
+                if (nuker.store[RESOURCE_GHODIUM] < 5000 && storage.store[RESOURCE_GHODIUM] > 0) {
+                    if (creep.store[RESOURCE_GHODIUM] === 0) {
+                        if (creep.store.getUsedCapacity() > 0) {
+                            for (let r of Object.keys(creep.store)) {
+                                if (r !== RESOURCE_GHODIUM) {
+                                    return new TransferTask(storage.id, r, creep.store[r]);
+                                }
+                            }
+                        }
+
+                        return new WithdrawTask(storage.id, RESOURCE_GHODIUM, Math.min(storage.store[RESOURCE_GHODIUM], capacity, nuker.store.getFreeCapacity(RESOURCE_GHODIUM)))
+
+                    } else if (creep.store[RESOURCE_GHODIUM] > 0) {
+                        return new TransferTask(nuker.id, RESOURCE_GHODIUM, Math.min(creep.store[RESOURCE_GHODIUM], nuker.store.getFreeCapacity(RESOURCE_GHODIUM)))
+                    }
+                }
+
+
+            }
+
+        }
         // Done at this point, return all resources to storage
         if (creep.store.getUsedCapacity() > 0) {
             for (let r of Object.keys(creep.store)) {
@@ -2642,40 +2728,40 @@ const getTasks = {
         const heldEnergy = creep.store[RESOURCE_ENERGY];
         let tasks = [];
         let towers = [];
-
+ 
         for (let s of structures) {
-
+ 
             if (s.structureType === STRUCTURE_TOWER) {
                 towers.push(s)
             }
-
+ 
             if (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION) {
-
+ 
                 const forecast = s.forecast(RESOURCE_ENERGY);
                 const capacity = s.store.getCapacity(RESOURCE_ENERGY);
-
+ 
                 if (forecast < capacity) {
-
+ 
                     tasks.push(new TransferTask(s.id, RESOURCE_ENERGY, heldEnergy));
-
+ 
                 };
-
+ 
             };
-
+ 
         };
-
+ 
         if (tasks.length === 0 && towers.length) {
-
+ 
             let target = _.min(towers, t => t.forecast(RESOURCE_ENERGY))
             const forecast = target.forecast(RESOURCE_ENERGY);
             const capacity = target.store.getCapacity(RESOURCE_ENERGY);
-
+ 
             if (forecast < capacity - 40) {
-
+ 
                 tasks.push(new TransferTask(target.id, RESOURCE_ENERGY, heldEnergy));
             }
-
-
+ 
+ 
         }
         return tasks;*/
 
