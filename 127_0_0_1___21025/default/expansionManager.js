@@ -313,7 +313,12 @@ class ScanData {
         this.deposit = undefined;
         if (deposits.length) {
 
-            this.deposit = { ...deposits[0] }
+            this.deposit = {
+                ...deposits[0],
+                lastCooldown: deposits[0].lastCooldown,
+                depositType: deposits[0].depositType,
+                ticksToDecay: deposits[0].ticksToDecay
+            }
 
         }
 
@@ -512,7 +517,12 @@ class ScanData {
         this.deposit = undefined;
         if (deposits.length) {
 
-            this.deposit = { ...deposits[0] }
+            this.deposit = {
+                ...deposits[0],
+                lastCooldown: deposits[0].lastCooldown,
+                depositType: deposits[0].depositType,
+                ticksToDecay: deposits[0].ticksToDecay
+            }
 
 
         }
@@ -1648,11 +1658,13 @@ function getMission(myRooms) {
 
             }
 
+    
+
             if (data.deposit && data.deposit.lastCooldown < 100 && data.distance < 6 && !data.hostileTarget) {
                 homeRoomName = data.homeRoom
 
 
-                if (!MEMORY.rooms[homeRoomName].missions.some(m => m.type === 'DEPOSIT')) {
+                if (!MEMORY.rooms[homeRoomName].missions.some(m => m.type === 'DEPOSIT') && Game.rooms[homeRoomName].storage) {
                     console.log(homeRoomName, 'Creating deposit mission for', data.roomName)
                     MEMORY.rooms[homeRoomName].missions.push(new DepositMission(data.roomName))
                 }

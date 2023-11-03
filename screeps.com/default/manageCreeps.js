@@ -733,6 +733,12 @@ function executeTask(room, creep) {
 
             }
 
+            if (target.lastCooldown >= 125) {
+                MEMORY.rooms[room.name].creeps[creep.name].renew = false;
+            } else {
+                MEMORY.rooms[room.name].creeps[creep.name].renew = true
+            }
+
             break;
 
         case 'HEAL':
@@ -1133,6 +1139,8 @@ const getRoleTasks = {
      */
     depositMiner: function (room, creep) {
 
+
+
         if (creep.ticksToLive > 250 && creep.store.getUsedCapacity() === 0) {
             if (room.name !== creep.memory.assignedRoom) {
                 return new MoveToRoomTask(creep.memory.assignedRoom)
@@ -1151,6 +1159,12 @@ const getRoleTasks = {
                 for (let resource in creep.store) {
                     return new TransferTask(homeRoom.storage.id, resource, creep.store[resource])
                 }
+            }
+
+            if (creep.ticksToLive <= 250 && MEMORY.rooms[creep.memory.home].creeps[creep.name].renew){
+                // Create a renew task and add it here
+            }else{
+                MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
             }
 
         }
@@ -1698,7 +1712,7 @@ const getRoleTasks = {
                             }
                         }
 
-                        return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(capacity, ps.store.getFreeCapacity(RESOURCE_ENERGY)))
+                        return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(creepCapacity, ps.store.getFreeCapacity(RESOURCE_ENERGY)))
 
                     } else if (creep.store[RESOURCE_ENERGY] > 0) {
                         return new TransferTask(ps.id, RESOURCE_ENERGY, Math.min(creep.store[RESOURCE_ENERGY], ps.store.getFreeCapacity(RESOURCE_ENERGY)))
@@ -1714,7 +1728,7 @@ const getRoleTasks = {
                             }
                         }
 
-                        return new WithdrawTask(storage.id, RESOURCE_POWER, Math.min(storage.store[RESOURCE_POWER], capacity, ps.store.getFreeCapacity(RESOURCE_POWER)))
+                        return new WithdrawTask(storage.id, RESOURCE_POWER, Math.min(storage.store[RESOURCE_POWER], creepCapacity, ps.store.getFreeCapacity(RESOURCE_POWER)))
 
                     } else if (creep.store[RESOURCE_POWER] > 0) {
                         return new TransferTask(ps.id, RESOURCE_POWER, Math.min(creep.store[RESOURCE_POWER], ps.store.getFreeCapacity(RESOURCE_POWER)))
@@ -1735,7 +1749,7 @@ const getRoleTasks = {
                             }
                         }
 
-                        return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(capacity, nuker.store.getFreeCapacity(RESOURCE_ENERGY)))
+                        return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(creepCapacity, nuker.store.getFreeCapacity(RESOURCE_ENERGY)))
 
                     } else if (creep.store[RESOURCE_ENERGY] > 0) {
                         return new TransferTask(nuker.id, RESOURCE_ENERGY, Math.min(creep.store[RESOURCE_ENERGY], nuker.store.getFreeCapacity(RESOURCE_ENERGY)))
@@ -1751,7 +1765,7 @@ const getRoleTasks = {
                             }
                         }
 
-                        return new WithdrawTask(storage.id, RESOURCE_GHODIUM, Math.min(storage.store[RESOURCE_GHODIUM], capacity, nuker.store.getFreeCapacity(RESOURCE_GHODIUM)))
+                        return new WithdrawTask(storage.id, RESOURCE_GHODIUM, Math.min(storage.store[RESOURCE_GHODIUM], creepCapacity, nuker.store.getFreeCapacity(RESOURCE_GHODIUM)))
 
                     } else if (creep.store[RESOURCE_GHODIUM] > 0) {
                         return new TransferTask(nuker.id, RESOURCE_GHODIUM, Math.min(creep.store[RESOURCE_GHODIUM], nuker.store.getFreeCapacity(RESOURCE_GHODIUM)))
