@@ -30,6 +30,10 @@ Version 0.1
 
     ROLES:
 
+        Deposit Miner:
+            
+            - Harvests deposits and delivers to storage.
+
         Dismantler:
 
             - Handles dismantle missions.
@@ -115,6 +119,7 @@ Version 0.1
         - Set up assault mission.
         - Added claim and dismantle mission generation from flags.
         - Automatically sets up dismantle, claim, assault, defend, and invader core missions
+        - Added deposit mining missions.
 
     ROOM PLANNER:
 

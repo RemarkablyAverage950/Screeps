@@ -172,9 +172,10 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
     if (!path || path.length === 0) {
         path = getPath(creep, creep.pos, destination, range, maxRooms, false, false, allowedRooms);
         if (!path) {
+           
+            //console.log('Failed to generate path for', creep.name, JSON.stringify(creep.pos), 'to', JSON.stringify(destination),'Tasks:',JSON.stringify(MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks));
             MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
             MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks = [];
-            //console.log('Failed to generate path for', creep.name, JSON.stringify(creep.pos), 'to', JSON.stringify(destination));
             return;
         }
 
@@ -256,7 +257,7 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
         8: '↖',
     }
 
-    //creep.say(directions[next])
+    creep.say(directions[next])
     const ret = creep.move(next)
     if (ret !== 0) {
         //MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
@@ -387,14 +388,14 @@ function getCostMatrix(room, avoidCreeps) {
             continue;
         };
 
-        if (structure.structureType === STRUCTURE_LINK && MEMORY.rooms[room.name].links && MEMORY.rooms[room.name].links.spawn && structure.id === MEMORY.rooms[room.name].links.spawn) {
+        /*if (structure.structureType === STRUCTURE_LINK && MEMORY.rooms[room.name].links && MEMORY.rooms[room.name].links.spawn && structure.id === MEMORY.rooms[room.name].links.spawn) {
             let pos = structure.pos;
 
             costMatrix.set(pos.x - 1, pos.y - 1, 10);
             costMatrix.set(pos.x + 1, pos.y - 1, 10);
             costMatrix.set(pos.x - 1, pos.y + 1, 10);
             costMatrix.set(pos.x + 1, pos.y + 1, 10);
-        }
+        }*/
         // Structure is impassable
         costMatrix.set(structure.pos.x, structure.pos.y, 0xff);
     }

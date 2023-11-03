@@ -69,6 +69,17 @@ class HarvestTask extends Task {
     };
 };
 
+class HarvestDepositTask extends Task {
+    /**
+ * @constructor
+ * @param {string} id 
+ */
+    constructor(id) {
+        super('HARVEST_DEPOSIT');
+        this.id = id;
+    };
+}
+
 class HealTask extends Task {
     constructor(id) {
         super('HEAL');
@@ -592,6 +603,8 @@ function assignTask(room, creep, creeps) {
         task = getRoleTasks.claimer(creep)
     } else if (role === 'longHauler') {
         task = getRoleTasks.longHauler(creep.room, creep)
+    } else if (role === 'depositMiner') {
+        task = getRoleTasks.depositMiner(creep.room, creep)
     }
 
 
@@ -706,6 +719,19 @@ function executeTask(room, creep) {
                 MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
 
             };
+
+            break;
+
+        case 'HARVEST_DEPOSIT':
+            if (creep.pos.getRangeTo(target) > 1) {
+                moveCreep(creep, target.pos, 1, 1);
+            } else if (!target.coolDown) {
+
+                creep.harvest(target)
+                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
+                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+
+            }
 
             break;
 
@@ -1096,6 +1122,38 @@ const getRoleTasks = {
 
         }
 
+
+    },
+
+    /**
+     * 
+     * @param {Room} room 
+     * @param {Creep} creep 
+     * @returns {Task}
+     */
+    depositMiner: function (room, creep) {
+
+        if (creep.ticksToLive > 250 && creep.store.getUsedCapacity() === 0) {
+            if (room.name !== creep.memory.assignedRoom) {
+                return new MoveToRoomTask(creep.memory.assignedRoom)
+            } else {
+                deposit = room.find(FIND_DEPOSITS)[0]
+
+                if (deposit) {
+                    return new HarvestDepositTask(deposit.id)
+                }
+
+            }
+        } else {
+            let homeRoom = Game.rooms[creep.memory.home]
+
+            if (homeRoom.storage) {
+                for (let resource in creep.store) {
+                    return new TransferTask(homeRoom.storage.id, resource, creep.store[resource])
+                }
+            }
+
+        }
 
     },
 
@@ -2257,11 +2315,60 @@ const getRoleTasks = {
                 nextTargets.push(neighborName)
             }
         }
-        if (nextTargets.length) {
+        while (nextTargets.length) {
             let idx = Math.floor(Math.random() * (nextTargets.length - .001))
 
             let nextRoom = nextTargets[idx];
-            if (nextRoom) {
+
+            let from = creep.pos;
+            let to = new RoomPosition(25, 25, nextRoom);
+
+            // Use `findRoute` to calculate a high-level plan for this path,
+            // prioritizing highways and owned rooms
+
+            route = Game.map.findRoute(from.roomName, to.roomName, {
+                routeCallback(roomName) {
+                    if (Game.map.getRoomStatus(roomName).status !== 'normal') return 0xff;
+
+                    let isMyRoom = Game.rooms[roomName] &&
+                        Game.rooms[roomName].controller &&
+                        Game.rooms[roomName].controller.my;
+                    let scanData = MEMORY.monitoredRooms[roomName]
+
+                    if (scanData && scanData.hostileTarget) {
+                        if (scanData.towers) {
+                            return 0xff;
+                        }
+                        return 10;
+                    }
+
+                    if (!scanData || scanData.hostileTarget === undefined || scanData.occupied) {
+                        return 3;
+                    }
+
+                    let parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+                    let isHighway = (parsed[1] % 10 === 0) ||
+                        (parsed[2] % 10 === 0);
+                    if (isHighway || isMyRoom) {
+                        return 1
+                    }
+
+                    return 2;
+                }
+
+
+            })
+
+
+            if (!route.length) {
+                nextTargets.splice(idx, 1);
+                continue;
+            }
+            let allowedRooms = [creep.room.name, ...route.map(r => r.room)]
+            //getPath(creep = undefined, origin, destination, range, maxRooms, incomplete = false, avoidCreeps = false, allowedRooms = false)
+            if (getPath(creep, creep.pos, new RoomPosition(25, 25, nextRoom), 16, 20, true, false, allowedRooms)) {
+                nextTargets.splice(idx, 1)
+            } else if (nextRoom) {
                 return new MoveToRoomTask(nextRoom)
             }
         }
@@ -2598,40 +2705,47 @@ const getTasks = {
                 };
             }
         } else {
-            const sources = room.find(FIND_SOURCES)
-            const mineral = room.find(FIND_MINERALS)[0]
-            let containers = room.find(FIND_STRUCTURES)
-                .filter(s => s.structureType === STRUCTURE_CONTAINER
-                    && !sources.some(source => s.pos.isNearTo(source))
-                    && !s.pos.isNearTo(mineral))
+            if (creep.store[RESOURCE_ENERGY] > 0) {
+                const sources = room.find(FIND_SOURCES)
+                const mineral = room.find(FIND_MINERALS)[0]
+                let containers = room.find(FIND_STRUCTURES)
+                    .filter(s => s.structureType === STRUCTURE_CONTAINER
+                        && !sources.some(source => s.pos.isNearTo(source))
+                        && !s.pos.isNearTo(mineral))
 
-            for (let s of containers) {
+                for (let s of containers) {
 
-                if (s.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && s.forecast(RESOURCE_ENERGY) < 2000) {
-                    tasks.push(new TransferTask(s.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY]))
+                    if (s.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && s.forecast(RESOURCE_ENERGY) < 2000) {
+                        tasks.push(new TransferTask(s.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY]))
+                    }
+                }
+
+                for (let c of creeps) {
+
+
+                    if (c.pos.roomName === room.name && (c.memory.role === 'upgrader' || c.memory.role === 'worker' || c.memory.role === 'builder') && !MEMORY.rooms[room.name].creeps[c.name].moving && c.store[RESOURCE_ENERGY] < .8 * c.store.getCapacity()) {
+
+                        tasks.push(new TransferTask(c.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY]))
+
+                    }
+                }
+
+                let structures = room.find(FIND_STRUCTURES).filter(s => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0)
+                for (let s of structures) {
+                    if (s.forecast(RESOURCE_ENERGY) < s.store.getCapacity(RESOURCE_ENERGY)) {
+                        tasks.push(new TransferTask(s.id, RESOURCE_ENERGY, Math.min(creep.store[RESOURCE_ENERGY], s.store.getFreeCapacity(RESOURCE_ENERGY))))
+                        break;
+                    }
+                }
+
+            }
+            else {
+                for (let r in creep.store) {
+                    creep.drop(r)
+                    return []
                 }
             }
-
-            for (let c of creeps) {
-
-
-                if (c.pos.roomName === room.name && (c.memory.role === 'upgrader' || c.memory.role === 'worker' || c.memory.role === 'builder') && !MEMORY.rooms[room.name].creeps[c.name].moving && c.store[RESOURCE_ENERGY] < .8 * c.store.getCapacity()) {
-
-                    tasks.push(new TransferTask(c.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY]))
-
-                }
-            }
-
-            let structures = room.find(FIND_STRUCTURES).filter(s => (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_SPAWN) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0)
-            for (let s of structures) {
-                if (s.forecast(RESOURCE_ENERGY) < s.store.getCapacity(RESOURCE_ENERGY)) {
-                    tasks.push(new TransferTask(s.id, RESOURCE_ENERGY, Math.min(creep.store[RESOURCE_ENERGY], s.store.getFreeCapacity(RESOURCE_ENERGY))))
-                    break;
-                }
-            }
-
         }
-
         return tasks;
     },
 
@@ -2806,27 +2920,46 @@ const getTasks = {
 
 
             for (let r of Object.keys(t.store)) {
+                if (!room.storage && r !== RESOURCE_ENERGY) {
+                    continue;
+                }
+
                 let forecast = t.forecast(r)
                 if (forecast > 0) {
+
                     tasks.push(new WithdrawTask(t.id, r, Math.min(forecast, capacity)))
                 }
             }
 
         }
+        const dropped = room.find(FIND_DROPPED_RESOURCES);
+
+        for (let r of dropped) {
+            if (!room.storage && r !== RESOURCE_ENERGY) {
+                continue;
+            }
+            let forecast = r.forecast()
+            if (forecast >= capacity) {
+
+                tasks.push(new PickupTask(r.id, Math.min(forecast, capacity)))
+            }
+        }
+
         if (tasks.length > 0) {
             return tasks;
         }
+
         for (let s of structures) {
 
             if (s.structureType === STRUCTURE_CONTAINER) {
 
                 if (s.pos.isNearTo(mineral)) {
 
-                    if (s.store.getUsedCapacity() > capacity) {
+                    if (s.store.getUsedCapacity() > 0) {
 
                         for (let r of Object.keys(s.store)) {
 
-                            return [new WithdrawTask(s.id, r, Math.min(capacity, s.store[r]))];
+                            tasks.push(new WithdrawTask(s.id, r, Math.min(capacity, s.store[r])));
                         }
 
                     }
@@ -2834,39 +2967,125 @@ const getTasks = {
                     continue;
                 }
 
-
+                let nearSource = false;
                 for (let source of sources) {
 
                     if (s.pos.isNearTo(source) && s.store.getUsedCapacity() > 0) {
+                        nearSource = true;
+                        for (let r of Object.keys(s.store)) {
 
+                            tasks.push(new WithdrawTask(s.id, r, Math.min(capacity, s.store[r])));
+                        };
+
+                    };
+                }
+
+                if (!nearSource) {
+                    for (let r in s.store) {
+                        if (r !== RESOURCE_ENERGY) {
+                            tasks.push(new WithdrawTask(s.id, r, Math.min(capacity, s.store[r])));
+                        }
+                    }
+                }
+
+            };
+        };
+
+        for (let r of dropped) {
+            if (!room.storage && r !== RESOURCE_ENERGY) {
+                continue;
+            }
+
+
+            tasks.push(new PickupTask(r.id, Math.min(r.amount, capacity)))
+
+        }
+
+
+        const ruins = room.find(FIND_RUINS);
+
+
+        for (let ruin of ruins) {
+            if (!room.storage && r !== RESOURCE_ENERGY) {
+                continue;
+            }
+            for (let r of Object.keys(ruin.store)) {
+
+                tasks.push(new WithdrawTask(ruin.id, r, Math.min(ruin.store[r], capacity)))
+
+            }
+        }
+
+        /*
+        for (let t of tombstones) {
+ 
+ 
+            for (let r of Object.keys(t.store)) {
+                let forecast = t.forecast(r)
+                if (forecast > 0) {
+                    tasks.push(new WithdrawTask(t.id, r, Math.min(forecast, capacity)))
+                }
+            }
+ 
+        }
+        if (tasks.length > 0) {
+            return tasks;
+        }
+ 
+ 
+ 
+        for (let s of structures) {
+ 
+            if (s.structureType === STRUCTURE_CONTAINER) {
+ 
+                if (s.pos.isNearTo(mineral)) {
+ 
+                    if (s.store.getUsedCapacity() > capacity) {
+ 
+                        for (let r of Object.keys(s.store)) {
+ 
+                            return [new WithdrawTask(s.id, r, Math.min(capacity, s.store[r]))];
+                        }
+ 
+                    }
+ 
+                    continue;
+                }
+ 
+ 
+                for (let source of sources) {
+ 
+                    if (s.pos.isNearTo(source) && s.store.getUsedCapacity() > 0) {
+ 
                         for (let r of Object.keys(s.store)) {
                             if (s.forecast(r) >= capacity)
                                 tasks.push(new WithdrawTask(s.id, r, Math.min(capacity, s.store[r])));
                         };
-
+ 
                     };
                 };
+                
             };
         };
-
+ 
         if (!room.storage) {
-
+ 
             return tasks;
         }
-
+ 
         const dropped = room.find(FIND_DROPPED_RESOURCES);
-
+ 
         const ruins = room.find(FIND_RUINS);
-
+ 
         for (let r of dropped) {
             let forecast = r.forecast()
             if (forecast > 0) {
-
+ 
                 tasks.push(new PickupTask(r.id, Math.min(forecast, capacity)))
             }
         }
-
-
+ 
+ 
         for (let ruin of ruins) {
             for (let r of Object.keys(ruin.store)) {
                 let forecast = ruin.forecast(r)
@@ -2874,8 +3093,25 @@ const getTasks = {
                     tasks.push(new WithdrawTask(ruin.id, r, Math.min(forecast, capacity)))
                 }
             }
-        }
+        }*/
+        let max = 0;
+        let returnTask = undefined;
+        for (let task of tasks) {
+            let forecast;
+            if (task.type === 'WITHDRAW') {
+                forecast = Game.getObjectById(task.id).forecast(task.resourceType)
+            } else {
+                forecast = Game.getObjectById(task.id).forecast(Game.getObjectById(task.id).resourceType)
+            }
+            if (forecast > max) {
+                returnTask = task
+                max = forecast
+            }
 
+        }
+        if (returnTask) {
+            return [returnTask]
+        }
 
         return tasks;
 
@@ -3355,6 +3591,21 @@ function validateTask(room, creep) {
             }
 
             break;
+
+        case 'HARVEST_DEPOSIT':
+
+            if (!target) {
+                return false;
+            }
+            if (creep.store.getFreeCapacity() === 0) {
+                return false;
+            }
+            if (creep.ticksToLive < 250) {
+                return false;
+            }
+
+            break;
+
         case 'HEAL':
             if (!target) return false;
             if (target.hits === target.hitsMax) return false;

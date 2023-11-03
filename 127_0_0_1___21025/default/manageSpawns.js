@@ -768,6 +768,39 @@ const getBody = {
     /**
      * 
      * @param {number} energyAvailable 
+     */
+    depositMiner: function (energyAvailable) {
+        let moveParts = 5;
+        let carryParts = 2;
+        let workParts = 3; // 100
+
+        let cost = 650;
+
+        while (cost + 650 <= energyAvailable && workParts + carryParts + moveParts + 10 <= 50) {
+            moveParts += 5;
+            carryParts += 2;
+            workParts += 3;
+            cost += 650;
+        }
+
+        let body = [];
+        for (let i = 0; i < workParts; i++) {
+            body.push(WORK)
+        }
+        for (let i = 0; i < carryParts; i++) {
+            body.push(CARRY)
+        }
+        for (let i = 0; i < moveParts; i++) {
+            body.push(MOVE)
+        }
+        
+        return body;
+
+    },
+
+    /**
+     * 
+     * @param {number} energyAvailable 
      * @param {number} structureHits 
      * @returns 
      */
