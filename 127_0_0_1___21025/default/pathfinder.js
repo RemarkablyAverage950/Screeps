@@ -172,7 +172,7 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
     if (!path || path.length === 0) {
         path = getPath(creep, creep.pos, destination, range, maxRooms, false, false, allowedRooms);
         if (!path) {
-           
+
             //console.log('Failed to generate path for', creep.name, JSON.stringify(creep.pos), 'to', JSON.stringify(destination),'Tasks:',JSON.stringify(MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks));
             MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
             MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks = [];
@@ -182,7 +182,7 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
     };
 
     let lookCreeps = []
-    /*if (path && path.length && path[0].roomName === creep.room.name) {
+    if (path && path.length && path[0].roomName === creep.room.name) {
         let lookStructs = path[0].lookFor(LOOK_STRUCTURES)
         if (lookStructs.length) {
             for (let s of lookStructs) {
@@ -192,7 +192,7 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
                 }
             }
         }
-    }*/
+    }
 
     try {
         lookCreeps = path[0].lookFor(LOOK_CREEPS);
@@ -205,7 +205,9 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
 
         const lookCreep = lookCreeps[0]
         try {
-            if (lookCreep.my && MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] && (!MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving || (MEMORY.rooms[creep.memory.home].creeps[creep.name].blockingCreep && MEMORY.rooms[creep.memory.home].creeps[creep.name].blockingCreep === lookCreep.name))) {
+            if (!lookCreep.my) {
+                MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks = [];
+            } else if (lookCreep.my && MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] && (!MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving || (MEMORY.rooms[creep.memory.home].creeps[creep.name].blockingCreep && MEMORY.rooms[creep.memory.home].creeps[creep.name].blockingCreep === lookCreep.name))) {
 
                 let moving = helper.pushCreep(lookCreep, creep);
 

@@ -843,7 +843,7 @@ function executeTask(room, creep) {
 
             if (creep.transfer(target, task.resourceType) != 0) {
 
-                moveCreep(creep, target.pos, 1, 16);
+                moveCreep(creep, target.pos, 1, 24);
 
             } else {
 
@@ -1139,35 +1139,57 @@ const getRoleTasks = {
      */
     depositMiner: function (room, creep) {
 
+        const homeRoomName = creep.memory.home
+        const homeRoom = Game.rooms[homeRoomName]
 
+        if (creep.room.name === homeRoomName) {
 
-        if (creep.ticksToLive > 250 && creep.store.getUsedCapacity() === 0) {
-            if (room.name !== creep.memory.assignedRoom) {
+            if (creep.store.getUsedCapacity() > 0) {
+
+                if (homeRoom.storage) {
+
+                    for (let resource in creep.store) {
+                        return new TransferTask(homeRoom.storage.id, resource, creep.store[resource])
+                    }
+                }
+            } else if (creep.ticksToLive > 250) {
+                return new MoveToRoomTask(creep.memory.assignedRoom)
+            } else {
+
+                if (creep.ticksToLive <= 250 && MEMORY.rooms[creep.memory.home].creeps[creep.name].renew) {
+                    // Create a renew task and add it here
+                } else {
+                    MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
+                }
+
+            }
+        } else {
+
+            if (creep.store.getFreeCapacity() === 0 || creep.ticksToLive <= 250) {
+                return new MoveToRoomTask(homeRoomName)
+
+            } else if (creep.ticksToLive > 250 && creep.room.name !== creep.memory.assignedRoom) {
                 return new MoveToRoomTask(creep.memory.assignedRoom)
             } else {
                 deposit = room.find(FIND_DEPOSITS)[0]
 
                 if (deposit) {
                     return new HarvestDepositTask(deposit.id)
+                } else {
+                    return new MoveToRoomTask(homeRoomName)
                 }
-
-            }
-        } else {
-            let homeRoom = Game.rooms[creep.memory.home]
-
-            if (homeRoom.storage) {
-                for (let resource in creep.store) {
-                    return new TransferTask(homeRoom.storage.id, resource, creep.store[resource])
-                }
-            }
-
-            if (creep.ticksToLive <= 250 && MEMORY.rooms[creep.memory.home].creeps[creep.name].renew){
-                // Create a renew task and add it here
-            }else{
-                MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
             }
 
         }
+
+
+        if (creep.ticksToLive <= 250 && MEMORY.rooms[creep.memory.home].creeps[creep.name].renew) {
+            // Create a renew task and add it here
+        } else {
+            MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
+        }
+
+
 
     },
 
@@ -1587,195 +1609,214 @@ const getRoleTasks = {
 
         }
 
+        let structures = room.find(FIND_MY_STRUCTURES)
+        let ps = undefined;
+        let nuker = undefined;
+
+        for (let s of structures) {
+            if (s.structureType === STRUCTURE_NUKER) {
+                nuker = s;
+            } else if (s.structureType === STRUCTURE_POWER_SPAWN) {
+                ps = s;
+            }
+        }
 
         // Terminal managment
         // Goal, up to 100k energy, no more energy than storage has.
         // 2k of every other thing.
+        if (terminal && storage) {
 
-        if (terminal && storage.store.getFreeCapacity() > creepCapacity && terminal.store.getFreeCapacity() > creepCapacity) {
 
-            let storageCapacity = storage.store.getFreeCapacity()
-            let terminalCapacity = terminal.store.getFreeCapacity()
-            // Energy
+            let terminalQtyNeeded = 0;
+            let storageQtyNeeded = 0;
+            let psQtyNeeded = 0;
+            let nukerQtyNeeded = 0;
 
-            // If terminal < 10k && storage > 30k, fill storage
-            // if storage < 20k, fill storage
-            if (storage.store[RESOURCE_ENERGY] < 20000) {
+            let storageQty = storage.store[RESOURCE_ENERGY]
+            let terminalQty = terminal.store[RESOURCE_ENERGY]
+            let psQty = 0;
+            let nukerQty = 0;
+            if (ps) {
+                psQty = ps.store[RESOURCE_ENERGY]
+            }
+            if (nuker) {
+                nukerQty = nuker.store[RESOURCE_ENERGY]
+            }
 
-                if (creep.store[RESOURCE_ENERGY] > 0) {
-                    return new TransferTask(storage.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY])
-                } else if (terminal.store[RESOURCE_ENERGY] > 0) {
-                    return new WithdrawTask(terminal.id, RESOURCE_ENERGY, Math.min(terminal.store[RESOURCE_ENERGY], creepCapacity))
-                }
+            const storageFreeSpace = storage.store.getFreeCapacity()
+            const terminalFreeSpace = terminal.store.getFreeCapacity()
 
-            } else if (storage.store[RESOURCE_ENERGY] < 200000 && terminal.store[RESOURCE_ENERGY] > 10000) {
 
-                if (creep.store[RESOURCE_ENERGY] > 0) {
-                    return new TransferTask(storage.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY])
-                } else {
-                    return new WithdrawTask(terminal.id, RESOURCE_ENERGY, Math.min(creepCapacity, terminal.store[RESOURCE_ENERGY] - 10000))
-                }
 
-            } else if (terminal.store[RESOURCE_ENERGY] < 10000) {
-                // Storage > 30k and free capacity, withdraw
-                if (storage.store[RESOURCE_ENERGY] > 30000 && creep.store[RESOURCE_ENERGY] === 0) {
-                    return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(creepCapacity, 10000 - terminal.store[RESOURCE_ENERGY]))
-                    // Storage > 20k && creep has energy, transfer to terminal
-                } else if (storage.store[RESOURCE_ENERGY] > 25000 && creep.store[RESOURCE_ENERGY] > 0) {
-                    return new TransferTask(terminal.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY])
-                    // Storage < 20k && creep has energy, transfer to storage
-                }
+            if (storageQty < 20000 && terminalQty > 0 && storageFreeSpace) { // se 5000 te 200
+
+                storageQtyNeeded = Math.min(20000 - storageQty, terminalQty, storageFreeSpace); // Min(20000-5000 = 15000,200)
+
+            } else if (storageQty < 200000 && terminalQty > 10000 && storageFreeSpace) { //se 50000 te 20000
+
+                storageQtyNeeded = Math.min(200000 - storageQty, terminalQty - 10000, storageFreeSpace);  // Min(200000-50000 = 150000, 10000)
+
+            } else if (storageQty > 20000 && terminalQty < 10000 && terminalFreeSpace) { // se 25000, te 2000
+
+                terminalQtyNeeded = Math.min(10000 - terminalQty, storageQty - 20000, terminalFreeSpace); // 
+
+            } else if (storageQty > 200000 && terminalQty < 100000 && terminalFreeSpace) {
+
+                terminalQtyNeeded = Math.min(100000 - terminalQty, storageQty - 200000, terminalFreeSpace)
+
+            } else if (terminalQty > 100000 && storageFreeSpace) {
+
+                storageQtyNeeded = Math.min(terminalQty - 100000, storageFreeSpace)
+
+            } else if (ps && psQty < 5000 && storageQty > 200000) {
+
+                psQtyNeeded = Math.min(5000 - psQty, storageQty - 200000)
+
+            } else if (nuker && nukerQty < 300000 && storageQty > 200000) {
+
+                nukerQtyNeeded = Math.min(300000 - nukerQty, storageQty - 200000)
 
             }
-            // Storage > 200k
-            else if (storage.store[RESOURCE_ENERGY] > 210000 + creepCapacity && terminal.store[RESOURCE_ENERGY] + creepCapacity < 100000) {
 
-                if (creep.store[RESOURCE_ENERGY] > 0) {
-                    return new TransferTask(terminal.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY])
-                } else if (creep.store.getFreeCapacity() > 0) {
-                    return new WithdrawTask(storage.id, RESOURCE_ENERGY,
-                        Math.min(creepCapacity, 100000 - terminal.store[RESOURCE_ENERGY]))
-                }
-            } else               // Put energy in storage at this point.
-                if (creep.store[RESOURCE_ENERGY] > 0) {
-                    return new TransferTask(storage.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY])
-                }
 
-            let terminalTarget = 2000
-            let storageTarget = 10000
 
-            // Dump creep capacity
-            if (creep.store.getUsedCapacity() > 0) {
-                for (let r of Object.keys(creep.store)) {
-                    if (r === RESOURCE_ENERGY) {
-                        continue;
+
+            if ((storageQtyNeeded || terminalQtyNeeded || psQtyNeeded || nukerQtyNeeded)) {
+
+                if (creep.store.getUsedCapacity() > 0) {
+                    for (let r in creep.store) {
+                        if (r !== RESOURCE_ENERGY)
+
+                            return new TransferTask(storage.id, r, creep.store[r]);
+
                     }
-                    let sa = storage.store[r];
-                    let ta = terminal.store[r];
+                }
 
-                    if (ta < terminalTarget && sa >= storageTarget) {
-                        return new TransferTask(terminal.id, r, creep.store[r])
+                if (storageQtyNeeded) {
+
+                    if (creep.store[RESOURCE_ENERGY]) {
+                        return new TransferTask(storage.id, RESOURCE_ENERGY, Math.min(storageQtyNeeded, creep.store[RESOURCE_ENERGY]));
                     } else {
-                        return new TransferTask(storage.id, r, creep.store[r])
+                        return new WithdrawTask(terminal.id, RESOURCE_ENERGY, Math.min(storageQtyNeeded, creepCapacity))
+                    }
+
+                } else if (terminalQtyNeeded) {
+
+                    if (creep.store[RESOURCE_ENERGY]) {
+                        return new TransferTask(terminal.id, RESOURCE_ENERGY, Math.min(terminalQtyNeeded, creep.store[RESOURCE_ENERGY]));
+                    } else {
+                        return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(terminalQtyNeeded, creepCapacity))
+                    }
+
+                } else if (psQtyNeeded) {
+
+                    if (creep.store[RESOURCE_ENERGY]) {
+                        return new TransferTask(ps.id, RESOURCE_ENERGY, Math.min(psQtyNeeded, creep.store[RESOURCE_ENERGY]));
+                    } else {
+                        return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(psQtyNeeded, creepCapacity))
+                    }
+
+                } else if (nukerQtyNeeded) {
+
+                    if (creep.store[RESOURCE_ENERGY]) {
+                        return new TransferTask(nuker.id, RESOURCE_ENERGY, Math.min(nukerQtyNeeded, creep.store[RESOURCE_ENERGY]));
+                    } else {
+                        return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(nukerQtyNeeded, creepCapacity))
                     }
 
                 }
+
             }
 
 
 
-            // Withdraw from storage or terminal
+            let TERMINAL_TARGET = 2000
+            let STORAGE_TARGET = 10000
+
+
+
             for (let r of RESOURCES_ALL) {
                 if (r === RESOURCE_ENERGY) {
                     continue;
+                } else if (ps && r === RESOURCE_POWER) {
+                    psQty = ps.store[r]
+                    psQtyNeeded = Math.min(100 - psQty, storage.store[r], creep.store[r])
+                    if (psQtyNeeded) {
+                        if (creep.store[r]) {
+                            return new TransferTask(ps.id, r, Math.min(psQtyNeeded, creep.store[r]));
+                        } else {
+                            return new WithdrawTask(storage.id, r, Math.min(psQtyNeeded, creepCapacity))
+                        }
+                    }
+
+                } else if (nuker && r === RESOURCE_GHODIUM) {
+                    nukerQty = ps.store[r]
+                    nukerQtyNeeded = Math.min(5000 - nukerQty, storage.store[r], creep.store[r])
+                    if (nukerQtyNeeded) {
+                        if (creep.store[r]) {
+                            return new TransferTask(nuker.id, r, Math.min(nukerQtyNeeded, creep.store[r]));
+                        } else {
+                            return new WithdrawTask(storage.id, r, Math.min(nukerQtyNeeded, creepCapacity))
+                        }
+                    }
                 }
-                let ta = terminal.store[r];
-                let sa = storage.store[r];
 
-                // If terminal overfilled
-                if (sa < storageTarget && ta > 0) {
-                    return new WithdrawTask(terminal.id, r, Math.min(creepCapacity, ta, storageTarget - sa))
-                } else if (ta > terminalTarget && storageCapacity > creepCapacity) {
-                    return new WithdrawTask(terminal.id, r, Math.min(creepCapacity, ta - terminalTarget))
-                } else if (ta < terminalTarget && sa - creepCapacity > storageTarget + creepCapacity && sa > 0) {
 
-                    return new WithdrawTask(storage.id, r, Math.min(creepCapacity, terminalTarget - ta, sa - ta))
+
+                storageQty = storage.store[r]
+                terminalQty = terminal.store[r]
+
+
+
+
+                if (storageQty < STORAGE_TARGET && terminalQty > 0 && storageFreeSpace) {
+
+                    storageQtyNeeded = Math.min(STORAGE_TARGET - storageQty, terminalQty, storageFreeSpace)
+
+                } else if (storageQty > STORAGE_TARGET && terminalQty < TERMINAL_TARGET && terminalFreeSpace) {
+
+                    terminalQtyNeeded = Math.min(TERMINAL_TARGET - terminalQty, storageQty - STORAGE_TARGET, terminalFreeSpace)
+
+                } else if (terminalQty > TERMINAL_TARGET && storageFreeSpace) {
+
+                    storageQtyNeeded = Math.min(terminalQty - TERMINAL_TARGET, storageFreeSpace)
                 }
 
+
+                if ((storageQtyNeeded || terminalQtyNeeded) && creep.store.getUsedCapacity() > 0) {
+
+                    for (let resource in creep.store) {
+                        if (resource !== r)
+
+                            return new TransferTask(storage.id, resource, creep.store[resource]);
+
+                    }
+
+                    if (storageQtyNeeded) {
+
+                        if (creep.store[r]) {
+                            return new TransferTask(storage.id, r, Math.min(storageQtyNeeded, creep.store[r]));
+                        } else {
+                            return new WithdrawTask(terminal.id, r, Math.min(storageQtyNeeded, creepCapacity))
+                        }
+
+                    } else if (terminalQtyNeeded) {
+
+                        if (creep.store[r]) {
+                            return new TransferTask(terminal.id, r, Math.min(terminalQtyNeeded, creep.store[r]));
+                        } else {
+                            return new WithdrawTask(storage.id, r, Math.min(terminalQtyNeeded, creepCapacity))
+                        }
+
+                    }
+
+                }
 
 
             }
-
         }
 
-        if (room.controller.level === 8) {
-            let structures = room.find(FIND_MY_STRUCTURES)
-            let ps = undefined;
-            let nuker = undefined;
 
-            for (let s of structures) {
-                if (s.structureType === STRUCTURE_NUKER) {
-                    nuker = s;
-                } else if (s.structureType === STRUCTURE_POWER_SPAWN) {
-                    ps = s;
-                }
-            }
-
-            if (ps) {
-                if (ps.store[RESOURCE_ENERGY] < 5000 && storage.store[RESOURCE_ENERGY] > 300000) {
-                    if (creep.store[RESOURCE_ENERGY] === 0) {
-                        if (creep.store.getUsedCapacity() > 0) {
-                            for (let r of Object.keys(creep.store)) {
-                                if (r !== RESOURCE_ENERGY) {
-                                    return new TransferTask(storage.id, r, creep.store[r]);
-                                }
-                            }
-                        }
-
-                        return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(creepCapacity, ps.store.getFreeCapacity(RESOURCE_ENERGY)))
-
-                    } else if (creep.store[RESOURCE_ENERGY] > 0) {
-                        return new TransferTask(ps.id, RESOURCE_ENERGY, Math.min(creep.store[RESOURCE_ENERGY], ps.store.getFreeCapacity(RESOURCE_ENERGY)))
-                    }
-                }
-                if (ps.store[RESOURCE_POWER] < 100 && storage.store[RESOURCE_POWER] > 0) {
-                    if (creep.store[RESOURCE_POWER] === 0) {
-                        if (creep.store.getUsedCapacity() > 0) {
-                            for (let r of Object.keys(creep.store)) {
-                                if (r !== RESOURCE_POWER) {
-                                    return new TransferTask(storage.id, r, creep.store[r]);
-                                }
-                            }
-                        }
-
-                        return new WithdrawTask(storage.id, RESOURCE_POWER, Math.min(storage.store[RESOURCE_POWER], creepCapacity, ps.store.getFreeCapacity(RESOURCE_POWER)))
-
-                    } else if (creep.store[RESOURCE_POWER] > 0) {
-                        return new TransferTask(ps.id, RESOURCE_POWER, Math.min(creep.store[RESOURCE_POWER], ps.store.getFreeCapacity(RESOURCE_POWER)))
-                    }
-                }
-
-            }
-
-
-            if (nuker) {
-                if (nuker.store[RESOURCE_ENERGY] < 300000 && storage.store[RESOURCE_ENERGY] > 300000) {
-                    if (creep.store[RESOURCE_ENERGY] === 0) {
-                        if (creep.store.getUsedCapacity() > 0) {
-                            for (let r of Object.keys(creep.store)) {
-                                if (r !== RESOURCE_ENERGY) {
-                                    return new TransferTask(storage.id, r, creep.store[r]);
-                                }
-                            }
-                        }
-
-                        return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(creepCapacity, nuker.store.getFreeCapacity(RESOURCE_ENERGY)))
-
-                    } else if (creep.store[RESOURCE_ENERGY] > 0) {
-                        return new TransferTask(nuker.id, RESOURCE_ENERGY, Math.min(creep.store[RESOURCE_ENERGY], nuker.store.getFreeCapacity(RESOURCE_ENERGY)))
-                    }
-                }
-                if (nuker.store[RESOURCE_GHODIUM] < 5000 && storage.store[RESOURCE_GHODIUM] > 0) {
-                    if (creep.store[RESOURCE_GHODIUM] === 0) {
-                        if (creep.store.getUsedCapacity() > 0) {
-                            for (let r of Object.keys(creep.store)) {
-                                if (r !== RESOURCE_GHODIUM) {
-                                    return new TransferTask(storage.id, r, creep.store[r]);
-                                }
-                            }
-                        }
-
-                        return new WithdrawTask(storage.id, RESOURCE_GHODIUM, Math.min(storage.store[RESOURCE_GHODIUM], creepCapacity, nuker.store.getFreeCapacity(RESOURCE_GHODIUM)))
-
-                    } else if (creep.store[RESOURCE_GHODIUM] > 0) {
-                        return new TransferTask(nuker.id, RESOURCE_GHODIUM, Math.min(creep.store[RESOURCE_GHODIUM], nuker.store.getFreeCapacity(RESOURCE_GHODIUM)))
-                    }
-                }
-
-
-            }
-
-        }
         // Done at this point, return all resources to storage
         if (creep.store.getUsedCapacity() > 0) {
             for (let r of Object.keys(creep.store)) {
@@ -2380,7 +2421,7 @@ const getRoleTasks = {
             }
             let allowedRooms = [creep.room.name, ...route.map(r => r.room)]
             //getPath(creep = undefined, origin, destination, range, maxRooms, incomplete = false, avoidCreeps = false, allowedRooms = false)
-            if (getPath(creep, creep.pos, new RoomPosition(25, 25, nextRoom), 16, 20, true, false, allowedRooms)) {
+            if (getPath(creep, creep.pos, new RoomPosition(25, 25, nextRoom), 22, 16, true, false, allowedRooms)) {
                 nextTargets.splice(idx, 1)
             } else if (nextRoom) {
                 return new MoveToRoomTask(nextRoom)

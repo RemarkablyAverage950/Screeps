@@ -1,6 +1,24 @@
 storage.db['rooms.objects'].update({ _id: '0f430773646b814' },{ $set: { level: 8 }})
 storage.db['users'].update({"username": "RemarkablyAverage"}, {$set: {gcl: 80000000}})
 
+
+BUG FIXES 11-3-23:
+
+    [] Scout walking into corner wall blocked by terrain wall + rampart
+        [] Integrate multi-room pathfinding function in to moveCreep, if target is in another room.
+
+    [] Deposit miner not finding path home sometimes.
+        [] Task is canceling pretty quickly. Currently bandaid fix move to room in place.
+
+    [] Filler causes traffic jam when stocking up parked creep.    
+        - Possible solutions:
+            - Park filler when filling creep.
+            - Have filler check if it cannot fill the creep anymore
+
+    [] Spikes in CPU usage. May be related to pathfinding.
+
+    [x] Hub unit not correctly filling nuker and powerspawn.
+
 Spawning:
 
 

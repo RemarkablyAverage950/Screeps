@@ -77,7 +77,7 @@ function manageLabs(room) {
         }
 
         // Get reaction
-        let hauler = room.find(FIND_MY_CREEPS).filter(c => c.role === 'hauler')[0]
+        let hauler = room.find(FIND_MY_CREEPS).filter(c => c.memory.role === 'hauler')[0]
         for (let resource of REACTION_PRIORITY) {
             if (storage.store[resource] < TARGET_T3_QTY) {
                 // Find highest reaction we can make for this resource.

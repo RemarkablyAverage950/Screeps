@@ -1377,7 +1377,7 @@ function executeMissions(myRooms) {
                 } else if (mission.type === 'DEPOSIT') {
                     if (room) {
                         let deposit = room.find(FIND_DEPOSITS)[0]
-                        if (!deposit || deposit.lastCooldown > 125 || data.hostileTarget) {
+                        if (homeRoom.storage.store[RESOURCE_ENERGY] < 200000 || !deposit || deposit.lastCooldown > 125 || data.hostileTarget) {
                             mission.complete = true;
                             continue;
                         }
@@ -1658,13 +1658,13 @@ function getMission(myRooms) {
 
             }
 
-    
+
 
             if (data.deposit && data.deposit.lastCooldown < 100 && data.distance < 6 && !data.hostileTarget) {
                 homeRoomName = data.homeRoom
 
 
-                if (!MEMORY.rooms[homeRoomName].missions.some(m => m.type === 'DEPOSIT') && Game.rooms[homeRoomName].storage) {
+                if (Game.rooms[homeRoomName].storage && Game.rooms[homeRoomName].storage.store[RESOURCE_ENERGY] > 200000 && !MEMORY.rooms[homeRoomName].missions.some(m => m.type === 'DEPOSIT')) {
                     console.log(homeRoomName, 'Creating deposit mission for', data.roomName)
                     MEMORY.rooms[homeRoomName].missions.push(new DepositMission(data.roomName))
                 }
