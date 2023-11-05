@@ -793,7 +793,7 @@ const getBody = {
         for (let i = 0; i < moveParts; i++) {
             body.push(MOVE)
         }
-        
+
         return body;
 
     },
@@ -1486,6 +1486,7 @@ return body;
         let controllerLink = MEMORY.rooms[room.name].links.controller;
         let spawn = room.find(FIND_MY_SPAWNS)[0];
         let maxCarryParts = 40
+        let maxWorkParts = room.controller.level === 8 ? 15 : 40;
 
         if (controllerLink) {
             averageDistance = spawn.pos.getRangeTo(Game.getObjectById(controllerLink))
@@ -1504,8 +1505,9 @@ return body;
 
         let bestBody = [];
         let max = 0;
+        let minCost = Infinity;
 
-        for (let workParts = 1; workParts < 40; workParts++) {
+        for (let workParts = 1; workParts <= maxWorkParts; workParts++) {
             for (let carryParts = 1; carryParts <= maxCarryParts; carryParts++) {
                 for (let moveParts = 1; moveParts < 40; moveParts++) {
 
@@ -1544,9 +1546,10 @@ return body;
                         workPerLife = tripsPerLife * workPerTrip;
                     }
 
-                    if (workPerLife > max) {
+                    if (workPerLife > max || (workPerLife === max && cost < minCost)) {
                         bestBody = [workParts, carryParts, moveParts];
                         max = workPerLife;
+                        minCost = cost;
                     };
 
 
@@ -1950,13 +1953,7 @@ const getTargetCount = {
      */
     upgrader: function (room, conserveEnergy) {
 
-        if (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] > 460000) {
-            if (room.storage.store[RESOURCE_ENERGY] > 500000) {
-                return 3;
-            } else {
-                return 2
-            }
-        }
+
 
         if (room.controller.level === 8 || conserveEnergy || room.find(FIND_MY_CONSTRUCTION_SITES).length > 0) {
             return 1;
@@ -2000,6 +1997,9 @@ const getTargetCount = {
 
         for (let s of structures) {
             if (s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART && s.hits < hitsTarget) {
+                if (room.controller.level === 8 && room.storage) {
+                    return Math.max(1, Math.floor(room.storage.store[RESOURCE_ENERGY] / 100000) - 2)
+                }
                 return 1;
             }
         }

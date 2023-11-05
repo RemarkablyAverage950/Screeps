@@ -816,7 +816,11 @@ function executeMissions(myRooms) {
 
                     }
                     if (data.structureHits > 0 && homeRoom.storage) {
+
                         let targetDismantlerCount = 1;
+                        if (Game.time % 100 === 0) {
+                            targetDismantlerCount = 4;
+                        }
 
 
 
@@ -839,8 +843,7 @@ function executeMissions(myRooms) {
                         while (dismantlerCount < targetDismantlerCount) {
 
                             if (body.length === 0) {
-
-                                ret = getBody.dismantler(Game.rooms[homeRoomName].energyCapacityAvailable, data.structureHits)[0]
+                                ret = getBody.dismantler(Game.rooms[homeRoomName].energyCapacityAvailable, data.structureHits)
                                 body = ret[0]
                                 targetDismantlerCount = Math.min(4, ret[1])
 
@@ -853,7 +856,6 @@ function executeMissions(myRooms) {
                                     assignedRoom: mission.roomName,
                                 },
                             };
-
                             MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('dismantler', 6, body, options));
                             dismantlerCount++;
                         }

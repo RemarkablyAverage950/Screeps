@@ -2451,13 +2451,21 @@ const getRoleTasks = {
         } else if (creep.pos.y === 49) {
             return new MoveTask(new RoomPosition(creep.pos.x, 48, creep.room.name))
         }
-        if (!controller || (controller && !controller.safeMode)) {
+        if ((creep.getActiveBodyparts(ATTACK) || creep.getActiveBodyparts(RANGED_ATTACK)) && (!controller || (controller && !controller.safeMode))) {
 
-            let hostiles;
-            if (creep.room.controller && creep.room.controller.my) {
-                hostiles = creep.room.find(FIND_HOSTILE_CREEPS)
-            } else {
-                hostiles = creep.room.find(FIND_HOSTILE_CREEPS).concat(creep.room.find(FIND_HOSTILE_STRUCTURES))
+            let hostileStructures = [];
+            let hostileCreeps = creep.room.find(FIND_HOSTILE_CREEPS)
+
+
+            if (hostileCreeps.length) {
+                hostileCreeps.sort((a, b) => b.pos.getRangeTo(creep) - a.pos.getRangeTo(creep))
+            }
+            //getPath(creep = undefined, origin, destination, range, maxRooms, incomplete = false, avoidCreeps = false, allowedRooms = false)
+            while (hostileCreeps.length) {
+                let targetCreep = hostileCreeps.pop()
+                if (!getPath(creep, creep.pos, targetCreep.pos, 0, 1, true)) {
+                    return new AttackTask(targetCreep.id)
+                }
             }
 
             let invaderCore = creep.room.find(FIND_HOSTILE_STRUCTURES).find(h => h.structureType === STRUCTURE_INVADER_CORE)
@@ -2467,29 +2475,55 @@ const getRoleTasks = {
 
 
 
+            if (creep.room.name === creep.memory.assignedRoom && (!creep.room.controller || (creep.room.controller && !creep.room.controller.my))) {
 
-            if (hostiles.length) {
-                let closest = undefined;
-                let min = Infinity;
-                for (let h of hostiles) {
-                    if (h.structureType && h.structureType === STRUCTURE_CONTROLLER) {
-                        continue;
-                    }
-                    let range = h.pos.getRangeTo(creep)
-                    if (range < min && range <= searchRange) {
-                        min = range,
-                            closest = h
-                    }
-                }
-                if (closest && closest.structureType) {
-                    console.log(creep.name, 'ranged attacking', closest.id)
-                    return new RangedAttackTask(closest.id)
-                }
-                if (closest) {
-                    console.log(creep.name, 'attacking', closest.id)
-                    return new AttackTask(closest.id)
+                hostileStructures = creep.room.find(FIND_HOSTILE_STRUCTURES).filter(s => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_TOWER)
+                if (hostileStructures.length) {
+                    hostileStructures = hostileStructures.sort((a, b) => b.pos.getRangeTo(creep) - a.pos.getRangeTo(creep))
 
+                    for (let s of hostileStructures) {
+                        let look = s.pos.lookFor(LOOK_STRUCTURES)
+                        for (let lo of look) {
+                            if (lo.structureType === STRUCTURE_RAMPART) {
+                                s = lo;
+                            }
+                        }
+                    }
+
+                    while (hostileStructures.length) {
+                        let targetStructure = hostileStructures.pop()
+
+                        if (!getPath(creep, creep.pos, targetStructure.pos, 1, 1, true)) {
+
+
+                            return new RangedAttackTask(targetStructure.id)
+                        }
+                    }
                 }
+
+                hostileStructures = creep.room.find(FIND_STRUCTURES).filter(s =>
+                    s.structureType !== STRUCTURE_ROAD
+                    && s.structureType !== STRUCTURE_CONTAINER
+                    && s.structureType !== STRUCTURE_CONTROLLER
+                    && s.structureType !== STRUCTURE_STORAGE
+                    && s.structureType !== STRUCTURE_TERMINAL
+                )
+                if (hostileStructures.length) {
+                    hostileStructures = hostileStructures.sort((a, b) => b.hits - a.hits)
+
+
+
+                    while (hostileStructures.length) {
+                        let targetStructure = hostileStructures.pop()
+                        if (targetStructure.store && (targetStructure.store[RESOURCE_ENERGY] > 0 || targetStructure.store.getUsedCapacity() > 0)) {
+                            continue;
+                        }
+                        if (!getPath(creep, creep.pos, targetStructure.pos, 1, 1, true)) {
+                            return new RangedAttackTask(targetStructure.id)
+                        }
+                    }
+                }
+
             }
         }
 
@@ -3719,10 +3753,12 @@ function validateTask(room, creep) {
 
         case 'RANGED_ATTACK':
             if (!target) return false;
-            if (target.pos.getRangeTo(creep) == 1) {
+
+            if (!creep.getActiveBodyparts(RANGED_ATTACK)) return false;
+
+            if (Game.time % 10 === 0 && target.structureType && creep.room.find(FIND_HOSTILE_CREEPS).filter(c => c.pos.getRangeTo(creep) < 10).length > 0) {
                 return false;
             }
-            if (!creep.getActiveBodyparts(RANGED_ATTACK)) return false;
 
             break;
 

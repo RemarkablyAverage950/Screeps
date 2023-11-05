@@ -287,20 +287,26 @@ function moveCreepToRoom(creep, targetRoomName, targetPos = undefined, hostileRo
 
         let from = creep.pos;
         let to = new RoomPosition(25, 25, targetRoomName);
-
+       
         // Use `findRoute` to calculate a high-level plan for this path,
         // prioritizing highways and owned rooms
 
         route = Game.map.findRoute(from.roomName, to.roomName, {
             routeCallback(roomName) {
-                if (Game.map.getRoomStatus(roomName).status !== 'normal') return 0xff;
+                //console.log('Getting room status,', roomName, creep.name)
+              
+                    if (Game.map.getRoomStatus(roomName).status !== 'normal') return 0xff;
+              
+                if(roomName === targetRoomName){
+                    return 1
+                }
 
                 let isMyRoom = Game.rooms[roomName] &&
                     Game.rooms[roomName].controller &&
                     Game.rooms[roomName].controller.my;
                 let scanData = MEMORY.monitoredRooms[roomName]
 
-                if (scanData && scanData.hostileTarget) {
+                if ( scanData && scanData.hostileTarget) {
                     if (scanData.towers) {
                         return 0xff;
                     }
