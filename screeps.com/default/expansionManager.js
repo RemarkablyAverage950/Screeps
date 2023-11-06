@@ -860,48 +860,51 @@ function executeMissions(myRooms) {
                             dismantlerCount++;
                         }
                     }
-                    if (homeRoomName === data.homeRoom) {
+                    if (homeRoomName === data.homeRoom 
+                        && data.pathToController 
+                        && Game.rooms[data.roomName] 
+                        && (!Game.rooms[mission.roomName].controller.upgradeBlocked || Game.rooms[mission.roomName].controller.upgradeBlocked < data.distance * 50)) {
 
 
-                        let reserverCount = 0;
-                        let targetReserverCount = 1;
+                        let unclaimerCount = 0;
+                        let targetUnclaimerCount = 1;
 
 
 
 
                         for (let creep of Object.values(Game.creeps)) {
-                            if (creep.memory.role === 'reserver' && creep.memory.assignedRoom === mission.roomName) {
-                                reserverCount++;
+                            if (creep.memory.role === 'unclaimer' && creep.memory.assignedRoom === mission.roomName) {
+                                unclaimerCount++;
                             }
                         }
                         for (let so of MEMORY.rooms[homeRoomName].spawnQueue) {
-                            if (so.role === 'reserver' && so.options.memory.assignedRoom === mission.roomName) {
-                                reserverCount++
+                            if (so.role === 'unclaimer' && so.options.memory.assignedRoom === mission.roomName) {
+                                unclaimerCount++
                             }
                         }
 
 
 
                         body = [];
-                        while (reserverCount < targetReserverCount) {
+                        while (unclaimerCount < targetUnclaimerCount) {
 
                             if (body.length === 0) {
 
-                                body = getBody.reserver(Game.rooms[homeRoomName].energyCapacityAvailable)
+                                body = getBody.unclaimer(Game.rooms[homeRoomName].energyCapacityAvailable)
 
 
                             }
 
                             options = {
                                 memory: {
-                                    role: 'reserver',
+                                    role: 'unclaimer',
                                     home: homeRoomName,
                                     assignedRoom: mission.roomName,
                                 },
                             };
 
-                            MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('reserver', 5, body, options));
-                            reserverCount++;
+                            MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('unclaimer', 5, body, options));
+                            unclaimerCount++;
                         }
 
 

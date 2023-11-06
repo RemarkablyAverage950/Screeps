@@ -1464,6 +1464,29 @@ return body;
         return body;
     },
 
+    unclaimer: function (budget) {
+        let body = [];
+
+        let claimParts = 1;
+        let moveParts = 1;
+        let cost = 650;
+
+        while (cost + 650 <= budget) {
+            claimParts++;
+            moveParts++;
+            cost += 650;
+        }
+
+        for (let i = 0; i < claimParts; i++) {
+            body.push(CLAIM)
+        }
+        for (let i = 0; i < moveParts; i++) {
+            body.push(MOVE)
+        }
+
+        return body;
+    },
+
     /**
      * 
      * @param {number} budget

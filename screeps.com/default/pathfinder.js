@@ -16,7 +16,7 @@ const MAX_PATH_LENGTH = 5;
  * @param {boolean} incomplete Return path incomplete of !incomplete.
  * @returns {RoomPosition[] | Boolean} The path results from PathFinder.search
  */
-function getPath(creep = undefined, origin, destination, range, maxRooms, incomplete = false, avoidCreeps = false, allowedRooms = false) {
+function getPath(creep = undefined, origin, destination, range, maxRooms, incomplete = false, avoidCreeps = false, allowedRooms = false, avoidAllCreeps = false) {
 
     let ret = PathFinder.search(
         origin, { pos: destination, range: range }, {
@@ -71,53 +71,64 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
                             m.set(creep.pos.x, creep.pos.y, 0xff)
                             continue;
                         }
-                        /*if (creep.memory.role === 'defender' || creep.memory.role === 'soldier') {
-                            m.set(creep.pos.x, creep.pos.y, 0xff)
-                            continue;
-                        }
- 
-                        if (MEMORY.rooms[creep.memory.home].creeps[creep.name]) {
-                            const moving = MEMORY.rooms[creep.memory.home].creeps[creep.name].moving;
- 
-                            if (moving === false) {
-                                let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0]
-                                if (task && task.type === 'HARVEST') {
-                                    m.set(creep.pos.x, creep.pos.y, 0xff);
-                                } else {
-                                    m.set(creep.pos.x, creep.pos.y, m.get(creep.pos.x, creep.pos.y) + 5)
-                                }
-                            } else {
-                                m.set(creep.pos.x, creep.pos.y, m.get(creep.pos.x, creep.pos.y) + 2)
-                            }
-                        }*/
                     }
+                    /*if (creep.memory.role === 'defender' || creep.memory.role === 'soldier') {
+                        m.set(creep.pos.x, creep.pos.y, 0xff)
+                        continue;
+                    }
+ 
+                    if (MEMORY.rooms[creep.memory.home].creeps[creep.name]) {
+                        const moving = MEMORY.rooms[creep.memory.home].creeps[creep.name].moving;
+ 
+                        if (moving === false) {
+                            let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0]
+                            if (task && task.type === 'HARVEST') {
+                                m.set(creep.pos.x, creep.pos.y, 0xff);
+                            } else {
+                                m.set(creep.pos.x, creep.pos.y, m.get(creep.pos.x, creep.pos.y) + 5)
+                            }
+                        } else {
+                            m.set(creep.pos.x, creep.pos.y, m.get(creep.pos.x, creep.pos.y) + 2)
+                        }
+                    }*/
+                }
 
 
 
-                    // Prefer distancing from hostile creeps
-                    let hostileCreeps = room.find(FIND_HOSTILE_CREEPS)
+                // Prefer distancing from hostile creeps
+                let hostileCreeps = room.find(FIND_HOSTILE_CREEPS)
 
-                    if (hostileCreeps.length > 0) {
-                        let terrain = new Room.Terrain(roomName)
-                        hostileCreeps.forEach(c => m.set(c.pos.x, c.pos.y, 0xff))
-                        hostileCreeps = hostileCreeps.filter(c => c.body.some(b => b.type === ATTACK) || c.body.some(b => b.type === RANGED_ATTACK))
+                if (hostileCreeps.length > 0) {
+                    let terrain = new Room.Terrain(roomName)
+                    hostileCreeps.forEach(c => m.set(c.pos.x, c.pos.y, 0xff))
+                    hostileCreeps = hostileCreeps.filter(c => c.body.some(b => b.type === ATTACK) || c.body.some(b => b.type === RANGED_ATTACK))
 
-                        for (let creep of hostileCreeps) {
+                    for (let creep of hostileCreeps) {
 
-                            for (let x = creep.pos.x - HOSTILE_BUFFER; x <= creep.pos.x + HOSTILE_BUFFER; x++) {
-                                for (let y = creep.pos.y - HOSTILE_BUFFER; y <= creep.pos.y + HOSTILE_BUFFER; y++) {
-                                    if (x > 49 || x < 0 || y > 49 || y < 0) {
-                                        continue;
-                                    }
+                        for (let x = creep.pos.x - HOSTILE_BUFFER; x <= creep.pos.x + HOSTILE_BUFFER; x++) {
+                            for (let y = creep.pos.y - HOSTILE_BUFFER; y <= creep.pos.y + HOSTILE_BUFFER; y++) {
+                                if (x > 49 || x < 0 || y > 49 || y < 0) {
+                                    continue;
+                                }
 
-                                    if (terrain.get(x, y) !== 1) {
-                                        m.set(x, y, m.get(x, y) + 20);
-                                    }
+                                if (terrain.get(x, y) !== 1) {
+                                    m.set(x, y, m.get(x, y) + 20);
                                 }
                             }
                         }
                     }
                 }
+
+                if (avoidAllCreeps) {
+                    let myCreeps = room.find(FIND_MY_CREEPS)
+                    for (let creep of myCreeps) {
+                        if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].creeps[creep.name] && !MEMORY.rooms[creep.memory.home].creeps[creep.name].moving) {
+                            m.set(creep.pos.x, creep.pos.y, 0xff)
+                            continue;
+                        }
+                    }
+                }
+
 
                 return m;
             } else {
@@ -287,17 +298,17 @@ function moveCreepToRoom(creep, targetRoomName, targetPos = undefined, hostileRo
 
         let from = creep.pos;
         let to = new RoomPosition(25, 25, targetRoomName);
-       
+
         // Use `findRoute` to calculate a high-level plan for this path,
         // prioritizing highways and owned rooms
 
         route = Game.map.findRoute(from.roomName, to.roomName, {
             routeCallback(roomName) {
                 //console.log('Getting room status,', roomName, creep.name)
-              
-                    if (Game.map.getRoomStatus(roomName).status !== 'normal') return 0xff;
-              
-                if(roomName === targetRoomName){
+
+                if (Game.map.getRoomStatus(roomName).status !== 'normal') return 0xff;
+
+                if (roomName === targetRoomName) {
                     return 1
                 }
 
@@ -306,7 +317,7 @@ function moveCreepToRoom(creep, targetRoomName, targetPos = undefined, hostileRo
                     Game.rooms[roomName].controller.my;
                 let scanData = MEMORY.monitoredRooms[roomName]
 
-                if ( scanData && scanData.hostileTarget) {
+                if (scanData && scanData.hostileTarget) {
                     if (scanData.towers) {
                         return 0xff;
                     }
