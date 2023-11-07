@@ -650,11 +650,21 @@ function executeTask(room, creep) {
                 } else if (creep.getActiveBodyparts(RANGED_ATTACK)) {
                     creep.rangedAttack(target)
 
+
                 }
-                creep.moveTo(target)
+                if (getPath(creep, creep.pos, target.pos, 1, 1, true, false, false, true)) {
+           
+                    MEMORY.rooms[room.name].creeps[creep.name].tasks[0].type = 'RANGED_ATTACK'
+                } else {
+                
+                    creep.moveTo(target)
+                    MEMORY.rooms[room.name].creeps[creep.name].moving = true;
+                }
             }
             if (range === 1 && creep.getActiveBodyparts(ATTACK)) {
                 creep.attack(target)
+                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
+                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
             }
 
             break;
@@ -1918,7 +1928,16 @@ const getRoleTasks = {
      * @param {Creep} creep 
      */
     longHauler: function (room, creep) {
-        const homeRoomName = creep.memory.home;
+        let myRooms = [];
+
+        for (const roomName of Object.keys(Game.rooms)) {
+            if (Game.rooms[roomName].controller && Game.rooms[roomName].controller.my && Game.rooms[roomName].storage) {
+
+                myRooms.push(roomName);
+            }
+        }
+
+        const homeRoomName = _.min(myRooms, r => Game.map.findRoute(creep.room.name, r).length)
         const assignedRoomName = creep.memory.assignedRoom;
 
         if (creep.room.name === homeRoomName) {
@@ -1937,6 +1956,8 @@ const getRoleTasks = {
 
         } else {
             if (creep.store.getFreeCapacity() === 0) {
+
+
                 let homeRoom = Game.rooms[homeRoomName]
 
                 if (homeRoom.storage) {
@@ -3727,8 +3748,9 @@ function validateTask(room, creep) {
             if (!creep.getActiveBodyparts(ATTACK)) {
                 return false;
             }
-            let hostiles = creep.room.find(FIND_HOSTILE_CREEPS)
-            if (target != _.min(hostiles, h => h.pos.getRangeTo(creep))) {
+            let hostiles = creep.room.find(FIND_HOSTILE_CREEPS).filter(c => c.pos.getRangeTo(creep) < 5)
+
+            if (hostiles.length && target != _.min(hostiles, h => h.pos.getRangeTo(creep))) {
                 return false;
             }
 

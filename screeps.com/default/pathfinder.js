@@ -66,9 +66,9 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
                 let m = matrix[0]
                 if (creep && avoidCreeps) {
                     let myCreeps = room.find(FIND_MY_CREEPS).filter(c => c.pos.getRangeTo(creep) < 5)
-                    for (let creep of myCreeps) {
-                        if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].creeps[creep.name] && !MEMORY.rooms[creep.memory.home].creeps[creep.name].moving) {
-                            m.set(creep.pos.x, creep.pos.y, 0xff)
+                    for (let c of myCreeps) {
+                        if (MEMORY.rooms[c.memory.home] && MEMORY.rooms[c.memory.home].creeps[c.name] && !MEMORY.rooms[c.memory.home].creeps[c.name].moving) {
+                            m.set(c.pos.x, c.pos.y, 0xff)
                             continue;
                         }
                     }
@@ -103,10 +103,10 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
                     hostileCreeps.forEach(c => m.set(c.pos.x, c.pos.y, 0xff))
                     hostileCreeps = hostileCreeps.filter(c => c.body.some(b => b.type === ATTACK) || c.body.some(b => b.type === RANGED_ATTACK))
 
-                    for (let creep of hostileCreeps) {
+                    for (let c of hostileCreeps) {
 
-                        for (let x = creep.pos.x - HOSTILE_BUFFER; x <= creep.pos.x + HOSTILE_BUFFER; x++) {
-                            for (let y = creep.pos.y - HOSTILE_BUFFER; y <= creep.pos.y + HOSTILE_BUFFER; y++) {
+                        for (let x = c.pos.x - HOSTILE_BUFFER; x <= c.pos.x + HOSTILE_BUFFER; x++) {
+                            for (let y = c.pos.y - HOSTILE_BUFFER; y <= c.pos.y + HOSTILE_BUFFER; y++) {
                                 if (x > 49 || x < 0 || y > 49 || y < 0) {
                                     continue;
                                 }
@@ -121,9 +121,9 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
 
                 if (avoidAllCreeps) {
                     let myCreeps = room.find(FIND_MY_CREEPS)
-                    for (let creep of myCreeps) {
-                        if (MEMORY.rooms[creep.memory.home] && MEMORY.rooms[creep.memory.home].creeps[creep.name] && !MEMORY.rooms[creep.memory.home].creeps[creep.name].moving) {
-                            m.set(creep.pos.x, creep.pos.y, 0xff)
+                    for (let c of myCreeps) {
+                        if (MEMORY.rooms[c.memory.home] && MEMORY.rooms[c.memory.home].creeps[c.name] && !MEMORY.rooms[c.memory.home].creeps[c.name].moving) {
+                            m.set(c.pos.x, c.pos.y, 0xff)
                             continue;
                         }
                     }
