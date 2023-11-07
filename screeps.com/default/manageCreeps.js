@@ -796,7 +796,7 @@ function executeTask(room, creep) {
             let raRet = creep.rangedAttack(target)
 
             if (raRet !== 0) {
-                moveCreep(creep, target.pos, 1, 1)
+                moveCreep(creep, target.pos, 3, 1)
             } else {
                 MEMORY.rooms[room.name].creeps[creep.name].moving = false;
             }
@@ -1216,6 +1216,70 @@ const getRoleTasks = {
             let path;
             let controller = creep.room.controller
 
+            let spawns = creep.room.find(FIND_HOSTILE_SPAWNS)
+
+            for (let spawn of spawns) {
+                if (getPath(creep, creep.pos, spawn.pos, 1, 1, true, false, false, true)) {
+                    ret = PathFinder.search(
+                        controller.pos, { pos: creep.pos, range: 1 },
+                        {
+                            // We need to set the defaults costs higher so that we
+                            // can set the road cost lower in `roomCallback`
+                            plainCost: 1,
+                            swampCost: 1,
+                            ignoreCreeps: true,
+
+                            roomCallback: function (roomName) {
+
+                                let room = Game.rooms[roomName];
+                                // In this example `room` will always exist, but since 
+                                // PathFinder supports searches which span multiple rooms 
+                                // you should be careful!
+                                if (!room) return;
+                                let costs = new PathFinder.CostMatrix;
+                                room.find(FIND_CREEPS).forEach(c => costs.set(c.pos.x, c.pos.y, 0xff))
+
+                                room.find(FIND_STRUCTURES).forEach(function (struct) {
+                                    if (struct.structureType === STRUCTURE_CONTROLLER) {
+                                        costs.set(struct.pos.x, struct.pos.y, 0xff)
+
+                                    } else if (struct.structureType !== STRUCTURE_CONTAINER &&
+                                        struct.structureType !== STRUCTURE_ROAD) {
+                                        // Can't walk through non-walkable buildings
+                                        if (struct.structureType === STRUCTURE_WALL) {
+                                            costs.set(struct.pos.x, struct.pos.y, 10)
+                                        } else {
+                                            costs.set(struct.pos.x, struct.pos.y, 5);
+                                        }
+                                    }
+                                });
+
+                                return costs;
+                            },
+                        }
+                    );
+
+                    if (!ret.incomplete) {
+
+                        path = ret.path;
+                        for (let i = 0; i < path.length; i++) {
+
+                            if (!getPath(creep, creep.pos, path[i], 1, 1, true, false, false, true)) {
+
+                                let targetPos = path[i];
+
+
+                                let target = creep.room.lookForAt(LOOK_STRUCTURES, targetPos)[0]
+                                if (target)
+
+                                    return new DismantleTask(target.id)
+                            }
+                        }
+
+                    }
+                }
+            }
+
             // getPath(creep = undefined, origin, destination, range, maxRooms, incomplete = false, avoidCreeps = false, allowedRooms = false, avoidAllCreeps = false)
 
             if (controller && getPath(creep, creep.pos, controller.pos, 1, 1, true, false, false, true)) {
@@ -1603,11 +1667,25 @@ const getRoleTasks = {
                 }
             }
 
+
             if (creep.store[RESOURCE_ENERGY] > 0) {
                 return new TransferTask(hubLink.id, RESOURCE_ENERGY, Math.min(hubEnergyNeeded, creep.store[RESOURCE_ENERGY]))
-            } else if (terminal && creep.store.getFreeCapacity() > 0 && terminal.store[RESOURCE_ENERGY] > storage.store[RESOURCE_ENERGY]) {
+            }
+            let withdrawFromTerminal = false;
+            if (terminal) {
+                let storageQty = storage.store[RESOURCE_ENERGY]
+                let terminalQty = terminal.store[RESOURCE_ENERGY]
+                if (storageQty < 20000 + creepCapacity && terminalQty > 0) {
+                    withdrawFromTerminal = true;
+                } else if (storageQty + creepCapacity < 200000 && terminalQty - creepCapacity > 10000) {
+                    withdrawFromTerminal = true;
+                }
+
+            }
+
+            if (withdrawFromTerminal && creep.store.getFreeCapacity() > 0) {
                 return new WithdrawTask(terminal.id, RESOURCE_ENERGY, Math.min(creep.store.getFreeCapacity(), storage.store[RESOURCE_ENERGY], hubEnergyNeeded))
-            } else if (creep.store.getFreeCapacity() > 0 && storage.store[RESOURCE_ENERGY] > 0) {
+            } else if (!withdrawFromTerminal && creep.store.getFreeCapacity() > 0 && storage.store[RESOURCE_ENERGY] > 0) {
                 return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(creep.store.getFreeCapacity(), storage.store[RESOURCE_ENERGY], hubEnergyNeeded))
             }
 
@@ -1652,34 +1730,36 @@ const getRoleTasks = {
             const terminalFreeSpace = terminal.store.getFreeCapacity()
 
 
+            // Storage < 20k, terminal > 0
+            if (storageQty < 20000 && terminalQty >= 0 && storageFreeSpace) { // se 5000 te 200
 
-            if (storageQty < 20000 && terminalQty > 0 && storageFreeSpace) { // se 5000 te 200
+                storageQtyNeeded = Math.min(20000 - storageQty, terminalQty + creep.store[RESOURCE_ENERGY], storageFreeSpace); // Min(20000-5000 = 15000,200)
+                // Storage < 200k, terminal > 10k
+            }
 
-                storageQtyNeeded = Math.min(20000 - storageQty, terminalQty, storageFreeSpace); // Min(20000-5000 = 15000,200)
+            if (storageQty < 200000 && terminalQty >= 10000 && storageFreeSpace) { //se 50000 te 20000
 
-            } else if (storageQty < 200000 && terminalQty > 10000 && storageFreeSpace) { //se 50000 te 20000
+                storageQtyNeeded = Math.min(200000 - storageQty, terminalQty - 10000 + creep.store[RESOURCE_ENERGY], storageFreeSpace);  // Min(200000-50000 = 150000, 10000)
+                // storage > 20k, terminal < 10k
+            } if (storageQty >= 20000 && terminalQty < 10000 && terminalFreeSpace) { // se 25000, te 2000
 
-                storageQtyNeeded = Math.min(200000 - storageQty, terminalQty - 10000, storageFreeSpace);  // Min(200000-50000 = 150000, 10000)
+                terminalQtyNeeded = Math.min(10000 - terminalQty, creep.store[RESOURCE_ENERGY] + storageQty - 20000, terminalFreeSpace); // 
+                // Storage > 200k, terminal < 100k
+            } if (storageQty >= 200000 && terminalQty < 100000 && terminalFreeSpace) {
 
-            } else if (storageQty > 20000 && terminalQty < 10000 && terminalFreeSpace) { // se 25000, te 2000
+                terminalQtyNeeded = Math.min(100000 - terminalQty, creep.store[RESOURCE_ENERGY] + storageQty - 200000, terminalFreeSpace)
 
-                terminalQtyNeeded = Math.min(10000 - terminalQty, storageQty - 20000, terminalFreeSpace); // 
+            } if (terminalQty >= 100000 && storageFreeSpace) {
 
-            } else if (storageQty > 200000 && terminalQty < 100000 && terminalFreeSpace) {
+                storageQtyNeeded = Math.min(terminalQty - 100000 + creep.store[RESOURCE_ENERGY], storageFreeSpace)
 
-                terminalQtyNeeded = Math.min(100000 - terminalQty, storageQty - 200000, terminalFreeSpace)
+            } if (ps && psQty < 5000 && storageQty >= 200000) {
 
-            } else if (terminalQty > 100000 && storageFreeSpace) {
+                psQtyNeeded = Math.min(5000 - psQty, storageQty - 220000 + creep.store[RESOURCE_ENERGY])
 
-                storageQtyNeeded = Math.min(terminalQty - 100000, storageFreeSpace)
+            } if (nuker && nukerQty < 300000 && storageQty >= 200000) {
 
-            } else if (ps && psQty < 5000 && storageQty > 200000) {
-
-                psQtyNeeded = Math.min(5000 - psQty, storageQty - 200000)
-
-            } else if (nuker && nukerQty < 300000 && storageQty > 200000) {
-
-                nukerQtyNeeded = Math.min(300000 - nukerQty, storageQty - 200000)
+                nukerQtyNeeded = Math.min(300000 - nukerQty, storageQty - 220000 + creep.store[RESOURCE_ENERGY])
 
             }
 
@@ -1755,7 +1835,7 @@ const getRoleTasks = {
                     }
 
                 } else if (nuker && r === RESOURCE_GHODIUM) {
-                    nukerQty = ps.store[r]
+                    nukerQty = nuker.store[r]
                     nukerQtyNeeded = Math.min(5000 - nukerQty, storage.store[r], creep.store[r])
                     if (nukerQtyNeeded) {
                         if (creep.store[r]) {
@@ -1774,27 +1854,28 @@ const getRoleTasks = {
 
 
 
-                if (storageQty < STORAGE_TARGET && terminalQty > 0 && storageFreeSpace) {
+                if (storageQty < STORAGE_TARGET && terminalQty >= 0 && storageFreeSpace) {
 
-                    storageQtyNeeded = Math.min(STORAGE_TARGET - storageQty, terminalQty, storageFreeSpace)
+                    storageQtyNeeded = Math.min(STORAGE_TARGET - storageQty, terminalQty + creep.store[r], storageFreeSpace)
 
-                } else if (storageQty > STORAGE_TARGET && terminalQty < TERMINAL_TARGET && terminalFreeSpace) {
+                } if (storageQty >= STORAGE_TARGET && terminalQty < TERMINAL_TARGET && terminalFreeSpace) {
 
-                    terminalQtyNeeded = Math.min(TERMINAL_TARGET - terminalQty, storageQty - STORAGE_TARGET, terminalFreeSpace)
+                    terminalQtyNeeded = Math.min(TERMINAL_TARGET - terminalQty, storageQty - STORAGE_TARGET + creep.store[r], terminalFreeSpace)
 
-                } else if (terminalQty > TERMINAL_TARGET && storageFreeSpace) {
+                } if (terminalQty > TERMINAL_TARGET && storageFreeSpace) {
 
-                    storageQtyNeeded = Math.min(terminalQty - TERMINAL_TARGET, storageFreeSpace)
+                    storageQtyNeeded = Math.min(terminalQty - TERMINAL_TARGET + creep.store[r], storageFreeSpace)
                 }
 
 
-                if ((storageQtyNeeded || terminalQtyNeeded) && creep.store.getUsedCapacity() > 0) {
+                if ((storageQtyNeeded || terminalQtyNeeded)) {
+                    if (creep.store.getUsedCapacity() > 0) {
+                        for (let resource in creep.store) {
+                            if (resource !== r)
 
-                    for (let resource in creep.store) {
-                        if (resource !== r)
+                                return new TransferTask(storage.id, resource, creep.store[resource]);
 
-                            return new TransferTask(storage.id, resource, creep.store[resource]);
-
+                        }
                     }
 
                     if (storageQtyNeeded) {
@@ -2468,7 +2549,7 @@ const getRoleTasks = {
             //getPath(creep = undefined, origin, destination, range, maxRooms, incomplete = false, avoidCreeps = false, allowedRooms = false)
             while (hostileCreeps.length) {
                 let targetCreep = hostileCreeps.pop()
-                if (!getPath(creep, creep.pos, targetCreep.pos, 0, 1, true, false, false, true)) {
+                if (!getPath(creep, creep.pos, targetCreep.pos, 1, 1, true, false, false, true)) {
                     return new AttackTask(targetCreep.id)
                 }
             }
@@ -2499,8 +2580,10 @@ const getRoleTasks = {
                         let targetStructure = hostileStructures.pop()
 
                         if (!getPath(creep, creep.pos, targetStructure.pos, 1, 1, true, false, false, true)) {
+                            return new AttackTask(targetStructure.id)
 
 
+                        } else if (!getPath(creep, creep.pos, targetStructure.pos, 3, 1, true, false, false, true)) {
                             return new RangedAttackTask(targetStructure.id)
                         }
                     }
@@ -2510,8 +2593,6 @@ const getRoleTasks = {
                     s.structureType !== STRUCTURE_ROAD
                     && s.structureType !== STRUCTURE_CONTAINER
                     && s.structureType !== STRUCTURE_CONTROLLER
-                    && s.structureType !== STRUCTURE_STORAGE
-                    && s.structureType !== STRUCTURE_TERMINAL
                 )
                 if (hostileStructures.length) {
                     hostileStructures = hostileStructures.sort((a, b) => b.hits - a.hits)
@@ -2524,6 +2605,8 @@ const getRoleTasks = {
                             continue;
                         }
                         if (!getPath(creep, creep.pos, targetStructure.pos, 1, 1, true, false, false, true)) {
+                            return new AttackTask(targetStructure.id)
+                        } else if (!getPath(creep, creep.pos, targetStructure.pos, 3, 1, true, false, false, true)) {
                             return new RangedAttackTask(targetStructure.id)
                         }
                     }

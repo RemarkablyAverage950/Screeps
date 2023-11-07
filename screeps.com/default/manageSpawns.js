@@ -1107,9 +1107,11 @@ return body;
 
         let cost = carryPerTrip * 2
 
-        let creepsNeeded = Math.ceil(cost / budget)
+        
 
-        let carryParts = Math.ceil((carryPerTrip / 50) / creepsNeeded)
+        let carryParts=  Math.min( 25, Math.ceil(budget/100))
+    
+    let creepsNeeded = Math.ceil((qty/(50*carryParts))/tripsPerLife)
 
         let body = []
         for (let i = 0; i < carryParts; i++) {

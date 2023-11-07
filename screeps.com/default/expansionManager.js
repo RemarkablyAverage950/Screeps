@@ -1084,7 +1084,7 @@ function executeMissions(myRooms) {
                                 },
                             };
 
-                            MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('reserver', 5, body, options));
+                            MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('reserver', 4, body, options));
                             reserverCount++;
                         }
 
