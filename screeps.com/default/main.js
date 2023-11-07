@@ -8,6 +8,7 @@ const outpostManager = require('outpostManager');
 const manageRoomDefense = require('manageRoomDefense');
 const manageTerminals = require('manageTerminals');
 const manageLabs = require('manageLabs');
+const managePowerSpawn = require('managePowerSpawn')
 let MEMORY = require('memory');
 const manageObserver = require('manageObserver');
 require('prototypes');
@@ -163,7 +164,7 @@ module.exports.loop = function () {
         //console.log('manageSpawns',Game.cpu.getUsed()-cpuStart)
         //cpuStart = Game.cpu.getUsed()
         manageLabs(room)
-
+        managePowerSpawn(room)
         manageCreeps(room, creeps);
         //console.log('manageCreeps',Game.cpu.getUsed()-cpuStart)
 

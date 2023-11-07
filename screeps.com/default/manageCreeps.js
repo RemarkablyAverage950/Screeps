@@ -653,10 +653,10 @@ function executeTask(room, creep) {
 
                 }
                 if (getPath(creep, creep.pos, target.pos, 1, 1, true, false, false, true)) {
-           
+
                     MEMORY.rooms[room.name].creeps[creep.name].tasks[0].type = 'RANGED_ATTACK'
                 } else {
-                
+
                     creep.moveTo(target)
                     MEMORY.rooms[room.name].creeps[creep.name].moving = true;
                 }
@@ -1226,12 +1226,12 @@ const getRoleTasks = {
             let path;
             let controller = creep.room.controller
 
-            let spawns = creep.room.find(FIND_HOSTILE_SPAWNS)
+            let spawn = creep.room.find(FIND_HOSTILE_SPAWNS)[0]
 
-            for (let spawn of spawns) {
+            if (spawn) {
                 if (getPath(creep, creep.pos, spawn.pos, 1, 1, true, false, false, true)) {
                     ret = PathFinder.search(
-                        controller.pos, { pos: creep.pos, range: 1 },
+                        spawn.pos, { pos: creep.pos, range: 1 },
                         {
                             // We need to set the defaults costs higher so that we
                             // can set the road cost lower in `roomCallback`
@@ -1763,7 +1763,7 @@ const getRoleTasks = {
 
                 storageQtyNeeded = Math.min(terminalQty - 100000 + creep.store[RESOURCE_ENERGY], storageFreeSpace)
 
-            } if (ps && psQty < 5000 && storageQty >= 200000) {
+            } if (ps && psQty < 2500 && storageQty >= 200000) {
 
                 psQtyNeeded = Math.min(5000 - psQty, storageQty - 220000 + creep.store[RESOURCE_ENERGY])
 
@@ -1833,8 +1833,9 @@ const getRoleTasks = {
             for (let r of RESOURCES_ALL) {
                 if (r === RESOURCE_ENERGY) {
                     continue;
-                } else if (ps && r === RESOURCE_POWER) {
+                } else if (ps && r === RESOURCE_POWER && ps.store[r] < 50) {
                     psQty = ps.store[r]
+
                     psQtyNeeded = Math.min(100 - psQty, storage.store[r], creep.store[r])
                     if (psQtyNeeded) {
                         if (creep.store[r]) {
@@ -1931,7 +1932,7 @@ const getRoleTasks = {
         let myRooms = [];
 
         for (const roomName of Object.keys(Game.rooms)) {
-            if (Game.rooms[roomName].controller && Game.rooms[roomName].controller.my && Game.rooms[roomName].storage) {
+            if (Game.rooms[roomName].controller && Game.rooms[roomName].controller.my && Game.rooms[roomName].storage && Game.rooms[roomName].storage.store.getFreeCapacity() >= 100000) {
 
                 myRooms.push(roomName);
             }
