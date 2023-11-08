@@ -125,12 +125,14 @@ class ScanData {
         if (controller && getPath(undefined, exit, controller.pos, 1, 1, true)) {
             pathToController = false;
         }
+        this.dismantleTarget = false;
         this.pathToController = pathToController;
-        const sources = room.find(FIND_SOURCES);
-        const mineral = room.find(FIND_MINERALS)[0];
+        const sources = room.find(FIND_SOURCES)
+        const mineral = room.find(FIND_MINERALS)[0]
         const hostileCreeps = room.find(FIND_HOSTILE_CREEPS);
         this.hostileCreeps = hostileCreeps.length
         const hostileStructures = room.find(FIND_HOSTILE_STRUCTURES);
+        const hostileSpawns = room.find(FIND_HOSTILE_SPAWNS)
         const structures = room.find(FIND_STRUCTURES)
         this.structureCount = structures.length
         let powerBank = false;
@@ -146,6 +148,9 @@ class ScanData {
         this.storeQty = 0
         this.powerBankPos = undefined;
         for (let s of structures) {
+            if (!this.dismantleTarget && hostileSpawns.length === 0 && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_INVADER_CORE) {
+                this.dismantleTarget = true;
+            }
             if (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_NUKER) {
                 strucHits += s.hits;
                 continue;
@@ -343,6 +348,7 @@ class ScanData {
         const hostileCreeps = room.find(FIND_HOSTILE_CREEPS);
         this.hostileCreeps = hostileCreeps.length
         const hostileStructures = room.find(FIND_HOSTILE_STRUCTURES);
+        const hostileSpawns = room.find(FIND_HOSTILE_SPAWNS)
         const structures = room.find(FIND_STRUCTURES)
         this.structureCount = structures.length
         let powerBank = false;
@@ -350,8 +356,12 @@ class ScanData {
         let strucHits = 0
         this.resources = {}
         this.storeQty = 0
+        this.dismantleTarget = false;
         this.powerBankPos = undefined;
         for (let s of structures) {
+            if (!this.dismantleTarget && hostileSpawns.length === 0 && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER&& s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_INVADER_CORE) {
+                this.dismantleTarget = true;
+            }
             if (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_NUKER) {
                 strucHits += s.hits;
                 continue;
@@ -768,14 +778,14 @@ function executeMissions(myRooms) {
 
                 // Check status.
                 if (mission.type === 'ASSAULT') {
-                    if ((data.ownedBy === undefined && data.reservedBy === undefined) || data.safeMode || Game.time - data.startTime > 10000) {
+                    if ((data.ownedBy === undefined && data.reservedBy === undefined) || data.safeMode || Game.time - data.startTime > 20000) {
                         mission.complete = true;
                     }
 
                     if (homeRoom.storage) {
                         if (room) {
                             if (room.find(FIND_HOSTILE_CREEPS).length === 0) {
-                                targetSoldierCount = 0;
+                                targetSoldierCount = 1
                             } else {
                                 targetSoldierCount = 2
                             }
@@ -819,7 +829,7 @@ function executeMissions(myRooms) {
 
                         let targetDismantlerCount = 1;
                         if (Game.time % 100 === 0) {
-                            targetDismantlerCount = 4;
+                            targetDismantlerCount = 2;
                         }
 
 
@@ -845,7 +855,7 @@ function executeMissions(myRooms) {
                             if (body.length === 0) {
                                 ret = getBody.dismantler(Game.rooms[homeRoomName].energyCapacityAvailable, data.structureHits)
                                 body = ret[0]
-                                targetDismantlerCount = Math.min(4, ret[1])
+                                targetDismantlerCount = Math.min(2, ret[1])
 
                             }
 
@@ -860,9 +870,9 @@ function executeMissions(myRooms) {
                             dismantlerCount++;
                         }
                     }
-                    if (homeRoomName === data.homeRoom 
-                        && data.pathToController 
-                        && Game.rooms[data.roomName] 
+                    if (homeRoomName === data.homeRoom
+                        && data.pathToController
+                        && Game.rooms[data.roomName]
                         && (!Game.rooms[mission.roomName].controller.upgradeBlocked || Game.rooms[mission.roomName].controller.upgradeBlocked < data.distance * 50)) {
 
 
@@ -1043,15 +1053,14 @@ function executeMissions(myRooms) {
                             continue;
                         }
                     }
-                    if (homeRoom.storage.store[RESOURCE_ENERGY] < 100000) {
-                        continue;
-                    }
+                   
                     if (room
                         && data.pathToController
                         && (!room.controller.reservation
                             || (room.controller.reservation
                                 && (room.controller.reservation.username !== MEMORY.username
-                                    || room.controller.reservation.ticksToEnd < 4000)))) {
+                                    || room.controller.reservation.ticksToEnd < 4000)))
+                        && data.homeRoom === homeRoomName) {
                         reserverCount = 0;
                         targetReserverCount = 1;
 
@@ -1089,7 +1098,9 @@ function executeMissions(myRooms) {
                         }
 
                     }
-
+                    if (homeRoom.storage.store[RESOURCE_ENERGY] < 100000) {
+                        continue;
+                    }
                     if (data.pathToStorage && data.storeQty > 0) {
 
                         longHaulerCount = 0;
@@ -1647,9 +1658,9 @@ function getMission(myRooms) {
                     break;
                 }
             }
-            if (!myOutpost && !data.ownedBy && (!data.reservedBy || data.reservedBy === MEMORY.username) && data.structureCount > 1 && data.controller_id) {
+            if (!myOutpost && data.ownedBy !== MEMORY.username && data.dismantleTarget && (!data.reservedBy || data.reservedBy === MEMORY.username) && data.structureCount > 1 && data.controller_id && data.distance < 6) {
 
-                let nearbyRooms = availableRooms.filter(hr => Game.map.findRoute(hr, data.roomName).length < 6)
+                let nearbyRooms = availableRooms.filter(hr => Game.map.findRoute(hr, data.roomName).length < 10)
 
                 while (nearbyRooms.length > 0) {
 

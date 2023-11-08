@@ -519,7 +519,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
     body = [];
     while (remoteMaintainerCount < targetRemoteMaintainerCount) {
-        body = getBody.remoteMaintainer()
+        body = getBody.remoteMaintainer(energyBudget, outpostRooms)
 
         options = {
             memory: {
@@ -814,10 +814,10 @@ const getBody = {
         let moveParts = 2;
         let workParts = 2;
         let cost = 300;
-        while (cost + 300 < energyAvailable && workParts + moveParts < 48) {
-            workParts += 2;
-            moveParts += 2;
-            cost += 300
+        while (cost + 150 < energyAvailable && workParts + moveParts + 2 < 51) {
+            workParts += 1;
+            moveParts += 1;
+            cost += 150
         }
         let body = []
         for (let i = 0; i < workParts; i++) {
@@ -1107,11 +1107,11 @@ return body;
 
         let cost = carryPerTrip * 2
 
-        
 
-        let carryParts=  Math.min( 25, Math.ceil(budget/100))
-    
-    let creepsNeeded = Math.ceil((qty/(50*carryParts))/tripsPerLife)
+
+        let carryParts = Math.min(25, Math.ceil(budget / 100))
+
+        let creepsNeeded = Math.ceil((qty / (50 * carryParts)) / tripsPerLife)
 
         let body = []
         for (let i = 0; i < carryParts; i++) {
@@ -1396,9 +1396,42 @@ return body;
         return body;
     },
 
-    remoteMaintainer: function () {
+    /**
+     * 
+     * @param {number} budget 
+     * @param {string[]} outpostRooms 
+     * @returns 
+     */
+    remoteMaintainer: function (budget, outpostRooms) {
 
-        const body = [WORK, CARRY, MOVE];
+        let workParts = 0;
+        let carryParts = 0;
+        let moveParts = 0;
+        let cost = 0;
+        for (let i = 0; i < Math.ceil(outpostRooms.length / 2); i++) {
+            workParts++;
+            carryParts++;
+            moveParts++;
+            cost += 200;
+            if (cost + 200 > budget) {
+                break;
+            }
+        }
+
+
+
+        const body = [];
+
+        for (let i = 0; i < workParts; i++) {
+            body.push(WORK);
+        }
+        for (let i = 0; i < carryParts; i++) {
+            body.push(CARRY);
+        }
+        for (let i = 0; i < moveParts; i++) {
+            body.push(MOVE);
+        }
+
         return body;
     },
 

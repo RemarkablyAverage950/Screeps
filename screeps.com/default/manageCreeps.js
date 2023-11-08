@@ -644,10 +644,11 @@ function executeTask(room, creep) {
 
             let range = creep.pos.getRangeTo(target)
             if (range > 1) {
-                creep.getActiveBodyparts()
+
                 if (creep.hits < creep.hitsMax && creep.getActiveBodyparts(HEAL)) {
                     creep.heal(creep)
-                } else if (creep.getActiveBodyparts(RANGED_ATTACK)) {
+                }
+                if (creep.getActiveBodyparts(RANGED_ATTACK)) {
                     creep.rangedAttack(target)
 
 
@@ -1074,17 +1075,7 @@ const getRoleTasks = {
             let hostiles = creep.room.find(FIND_HOSTILE_CREEPS)
             let hostileStructures = creep.room.find(FIND_HOSTILE_STRUCTURES)
 
-            if (!creep.getActiveBodyparts(ATTACK)) {
-                // No attack parts
-                if (creep.getActiveBodyparts(RANGED_ATTACK)) {
-                    if (hostiles.filter(c => c.pos.getRangeTo(creep) < 4).length) {
-                        let closest = _.min(hostiles, c => c.pos.getRangeTo(creep))
-                        return new RangedAttackTask(closest.id)
-                    }
-                } else {
-                    return new HealTask(creep.id)
-                }
-            }
+
             if (!hostiles.some(c => c.body.some(b => b.type === ATTACK || b.type === RANGED_ATTACK)) && creep.hits < creep.hitsMax) {
                 return new HealTask(creep.id)
             }
@@ -1468,6 +1459,13 @@ const getRoleTasks = {
                 }
             }
 
+            let dismantlers = creep.room.find(FIND_MY_CREEPS).filter(c => c.memory.role === 'dismantler')
+
+            let targetDismantler = _.min(dismantlers, c => c.ticksToLive)
+            if (targetDismantler) {
+
+                return MEMORY.rooms[targetDismantler.memory.home].creeps[targetDismantler.name].tasks[0]
+            }
             return helper.parkTask(creep.room, creep)
 
         }
@@ -1765,11 +1763,11 @@ const getRoleTasks = {
 
             } if (ps && psQty < 2500 && storageQty >= 200000) {
 
-                psQtyNeeded = Math.min(5000 - psQty, storageQty - 220000 + creep.store[RESOURCE_ENERGY])
+                psQtyNeeded = Math.min(5000 - psQty, storageQty - 200000 + creep.store[RESOURCE_ENERGY])
 
             } if (nuker && nukerQty < 300000 && storageQty >= 200000) {
 
-                nukerQtyNeeded = Math.min(300000 - nukerQty, storageQty - 220000 + creep.store[RESOURCE_ENERGY])
+                nukerQtyNeeded = Math.min(300000 - nukerQty, storageQty - 200000 + creep.store[RESOURCE_ENERGY])
 
             }
 
@@ -1795,14 +1793,6 @@ const getRoleTasks = {
                         return new WithdrawTask(terminal.id, RESOURCE_ENERGY, Math.min(storageQtyNeeded, creepCapacity))
                     }
 
-                } else if (terminalQtyNeeded) {
-
-                    if (creep.store[RESOURCE_ENERGY]) {
-                        return new TransferTask(terminal.id, RESOURCE_ENERGY, Math.min(terminalQtyNeeded, creep.store[RESOURCE_ENERGY]));
-                    } else {
-                        return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(terminalQtyNeeded, creepCapacity))
-                    }
-
                 } else if (psQtyNeeded) {
 
                     if (creep.store[RESOURCE_ENERGY]) {
@@ -1817,6 +1807,14 @@ const getRoleTasks = {
                         return new TransferTask(nuker.id, RESOURCE_ENERGY, Math.min(nukerQtyNeeded, creep.store[RESOURCE_ENERGY]));
                     } else {
                         return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(nukerQtyNeeded, creepCapacity))
+                    }
+
+                } else if (terminalQtyNeeded) {
+
+                    if (creep.store[RESOURCE_ENERGY]) {
+                        return new TransferTask(terminal.id, RESOURCE_ENERGY, Math.min(terminalQtyNeeded, creep.store[RESOURCE_ENERGY]));
+                    } else {
+                        return new WithdrawTask(storage.id, RESOURCE_ENERGY, Math.min(terminalQtyNeeded, creepCapacity))
                     }
 
                 }
@@ -1836,7 +1834,7 @@ const getRoleTasks = {
                 } else if (ps && r === RESOURCE_POWER && ps.store[r] < 50) {
                     psQty = ps.store[r]
 
-                    psQtyNeeded = Math.min(100 - psQty, storage.store[r], creep.store[r])
+                    psQtyNeeded = Math.min(100 - psQty, storage.store[r] + creep.store[r])
                     if (psQtyNeeded) {
                         if (creep.store[r]) {
                             return new TransferTask(ps.id, r, Math.min(psQtyNeeded, creep.store[r]));
@@ -1847,7 +1845,7 @@ const getRoleTasks = {
 
                 } else if (nuker && r === RESOURCE_GHODIUM) {
                     nukerQty = nuker.store[r]
-                    nukerQtyNeeded = Math.min(5000 - nukerQty, storage.store[r], creep.store[r])
+                    nukerQtyNeeded = Math.min(5000 - nukerQty, storage.store[r] + creep.store[r])
                     if (nukerQtyNeeded) {
                         if (creep.store[r]) {
                             return new TransferTask(nuker.id, r, Math.min(nukerQtyNeeded, creep.store[r]));
