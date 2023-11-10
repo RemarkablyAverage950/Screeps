@@ -1012,6 +1012,34 @@ const getBody = {
 
     },
 
+    /**
+     * 
+     * @param {number} energyBudget 
+     */
+    healer: function (energyBudget) {
+
+        let moveParts = 1; // 50
+        let healParts = 1; // 250
+        let cost = 300;
+
+        while (cost + 300 <= energyBudget && moveParts + healParts + 2 <= 50){
+            moveParts++
+            healParts++
+            cost+=300
+        }
+
+        let body = [];
+
+        for(let i = 0; i < moveParts; i++){
+            body.push(MOVE);
+        }
+        for(let i = 0; i < healParts;i++){
+            body.push(HEAL);
+        }
+
+        return body;
+
+    },
 
     hub: function (energyBudget, room) {
 

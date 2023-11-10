@@ -1,4 +1,4 @@
-    const { manageSpawns, getBody, SpawnOrder } = require('manageSpawns');
+ const { manageSpawns, getBody, SpawnOrder } = require('manageSpawns');
 const { manageCreeps } = require('manageCreeps');
 const roomPlanner = require('roomPlanner');
 const { expansionManager } = require('expansionManager');
@@ -9,6 +9,7 @@ const manageRoomDefense = require('manageRoomDefense');
 const manageTerminals = require('manageTerminals');
 const manageLabs = require('manageLabs');
 const managePowerSpawn = require('managePowerSpawn')
+const manageNukes = require('manageNukes');
 let MEMORY = require('memory');
 const manageObserver = require('manageObserver');
 require('prototypes');
@@ -69,6 +70,7 @@ module.exports.loop = function () {
     //cpuStart = Game.cpu.getUsed()
     expansionManager(myRooms);
     //console.log('Expansion Manager',Game.cpu.getUsed()-cpuStart)
+    manageNukes(myRooms)
 
     for (const roomName of myRooms) {
         //console.log('Room',roomName)
