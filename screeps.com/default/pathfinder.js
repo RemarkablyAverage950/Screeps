@@ -197,7 +197,8 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
         let lookStructs = path[0].lookFor(LOOK_STRUCTURES)
         if (lookStructs.length) {
             for (let s of lookStructs) {
-                if (s.structureType !== STRUCTURE_ROAD && (s.structureType !== STRUCTURE_RAMPART && s.my)) {
+                if (s.structureType !== STRUCTURE_ROAD && !(s.structureType === STRUCTURE_RAMPART && s.my)) {
+                    MEMORY.rooms[creep.memory.home].creeps[creep.name].path = [];
                     path = getPath(creep, creep.pos, destination, range, maxRooms, false, true, allowedRooms)
                     break;
                 }
@@ -270,7 +271,7 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
         8: '↖',
     }
 
-    creep.say(directions[next])
+    //creep.say(directions[next])
     const ret = creep.move(next)
     if (ret !== 0) {
         //MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;

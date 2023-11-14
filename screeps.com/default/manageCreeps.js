@@ -232,6 +232,14 @@ function manageCreeps(room, creeps) {
     for (const creep of creeps) {
         let startCpu = Game.cpu.getUsed()
 
+        if (creep.room.name === 'W48S29') {
+            console.log(creep.name, 'in room W48S29 with tasks')
+            if (MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks) {
+                console.log(JSON.stringify(MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks))
+            } else {
+                console.log('undefined')
+            }
+        }
 
         if (Game.cpu.bucket < 20) { return }
         if (creep.spawning) continue;
@@ -676,12 +684,16 @@ function executeTask(room, creep) {
             break;
 
         case 'ATTACK_CONTROLLER':
-            if (creep.attackController(target) !== 0) {
+
+
+            if (target.pos.getRangeTo(creep) > 1) {
                 moveCreep(creep, target.pos, 1, 1)
             } else {
+                creep.attackController(target)
                 MEMORY.rooms[room.name].creeps[creep.name].moving = false;
                 MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
             }
+
             break;
 
         case 'BUILD':
@@ -2543,7 +2555,9 @@ const getRoleTasks = {
             route = Game.map.findRoute(from.roomName, to.roomName, {
                 routeCallback(roomName) {
                     if (Game.map.getRoomStatus(roomName).status !== 'normal') return 0xff;
-
+                    if (roomName === to.roomName) {
+                        return 1;
+                    }
                     let isMyRoom = Game.rooms[roomName] &&
                         Game.rooms[roomName].controller &&
                         Game.rooms[roomName].controller.my;
@@ -2735,8 +2749,14 @@ const getRoleTasks = {
             return;
         }
         if (creep.room.controller.reservation && creep.room.controller.reservation.username !== MEMORY.username) {
+            if (creep.room.controller.upgradeBlocked) {
+                return helper.parkTask(creep.room, creep)
+            }
             return new AttackControllerTask(creep.room.controller.id)
         } else if (creep.room.controller.owner && creep.room.controller.owner.username !== MEMORY.username) {
+            if (creep.room.controller.upgradeBlocked) {
+                return helper.parkTask(creep.room, creep)
+            }
             return new AttackControllerTask(creep.room.controller.id)
         }
         return new ReserveTask(creep.room.controller.id)
@@ -3812,7 +3832,7 @@ function validateTask(room, creep) {
             if (!target) {
                 return false;
             }
-            if ((!target.reservation || target.reservation.username === MEMORY.username) && (!target.owner || target.owner.username === MEMORY.username)) {
+            if (target.upgradeBlocked || ((!target.reservation || target.reservation.username === MEMORY.username) && (!target.owner || target.owner.username === MEMORY.username))) {
                 return false;
             }
             break;
@@ -3937,7 +3957,7 @@ function validateTask(room, creep) {
 
             if (!creep.getActiveBodyparts(RANGED_ATTACK)) return false;
 
-            if (Game.time % 10 === 0 && target.structureType && creep.room.find(FIND_HOSTILE_CREEPS).filter(c => c.pos.getRangeTo(creep) < 10).length > 0) {
+            if (Game.time % 10 === 0) {
                 return false;
             }
 

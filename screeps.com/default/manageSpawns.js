@@ -1022,18 +1022,18 @@ const getBody = {
         let healParts = 1; // 250
         let cost = 300;
 
-        while (cost + 300 <= energyBudget && moveParts + healParts + 2 <= 50){
+        while (cost + 300 <= energyBudget && moveParts + healParts + 2 <= 50) {
             moveParts++
             healParts++
-            cost+=300
+            cost += 300
         }
 
         let body = [];
 
-        for(let i = 0; i < moveParts; i++){
+        for (let i = 0; i < moveParts; i++) {
             body.push(MOVE);
         }
-        for(let i = 0; i < healParts;i++){
+        for (let i = 0; i < healParts; i++) {
             body.push(HEAL);
         }
 
@@ -1275,22 +1275,20 @@ return body;
      */
     miner: function (budget) {
 
-        let cost = 150;
-        let workCount = 1;
+        let cost = 250;
+        let workCount = 2;
         let moveCount = 1;
         let body = [];
 
+        if (cost + 150 <= budget) {
+            workCount++;
+            moveCount++;
+            cost += 150;
+        }
         if (cost + 100 <= budget) {
             workCount++;
             cost += 100;
-        };
-
-        if (cost + 250 <= budget) {
-            workCount++;
-            workCount++;
-            moveCount++;
-            cost += 250;
-        };
+        }
         if (cost + 150 <= budget) {
             workCount++;
             moveCount++;
@@ -1299,10 +1297,10 @@ return body;
 
         for (let i = 0; i < workCount; i++) {
             body.push(WORK);
-        };
+        }
         for (let i = 0; i < moveCount; i++) {
             body.push(MOVE);
-        };
+        }
 
 
 
@@ -1360,32 +1358,26 @@ return body;
         return body;
     },
 
-    remoteBuilder: function (energyBudget, room, conserveEnergy) {
+    remoteBuilder: function (budget, room, conserveEnergy) {
 
         if (conserveEnergy) {
             return [WORK, CARRY, MOVE]
         }
 
         let workParts = 1;
-        let moveParts = 1;
+        let moveParts = 2;
         let carryParts = 1;
+        let cost = 250;
 
-        if (energyBudget >= 350) {
-            moveParts += 1 // 2
-            carryParts += 2 // 3
-
-        }
-
-        if (energyBudget >= 550) {
+        while (cost + 250 <= budget && workParts + moveParts + carryParts + 4 <= 50) {
             workParts++;
+            moveParts += 2;
             carryParts++;
-            moveParts++;
+            cost += 250;
         }
 
-        if (energyBudget >= 700) {
-            carryParts += 2;
-            moveParts++;
-        }
+
+
         let body = [];
         for (let i = 0; i < workParts; i++) {
             body.push(WORK);

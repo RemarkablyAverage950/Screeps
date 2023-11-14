@@ -1,5 +1,37 @@
 let MEMORY = require('memory');
 
+
+StructureController.prototype.maxCreeps = function () {
+    const x = this.pos.x;
+    const y = this.pos.y;
+    const roomName = this.pos.roomName;
+    const terrain = new Room.Terrain(roomName);
+    const structures = room.find(FIND_STRUCTURES);
+    let count = 9;
+    for (let i = x - 1; i <= x + 1; i++) {
+        for (let j = y - 1; j <= y + 1; j++) {
+            if (terrain.get(i, j) === TERRAIN_MASK_WALL) {
+                count--;
+                continue;
+            }
+
+            let _structures = structures.filter(_s => _s.pos.x === i && _s.pos.y === j)
+
+            if (_structures.length) {
+                for (const s of _structures) {
+                    if (s.structureType !== STRUCTURE_CONTAINER && (s.structureType !== STRUCTURE_RAMPART && s.my) && s.structureType !== STRUCTURE_ROAD) {
+
+                        count--;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return count;
+}
+
+
 /**
  * Returns true if there is space available to harvest.
  * @returns {boolean} 

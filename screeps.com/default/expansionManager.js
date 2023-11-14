@@ -120,6 +120,7 @@ class ScanData {
             safeMode = true;
         }
         this.safeMode = safeMode;
+        this.upgradeBlocked = controller ? controller.upgradeBlocked : 0;
         let pathToController = true;
         let exit = room.find(FIND_EXIT)[0]
         if (controller && getPath(undefined, exit, controller.pos, 1, 1, true)) {
@@ -148,7 +149,7 @@ class ScanData {
         this.storeQty = 0
         this.powerBankPos = undefined;
         for (let s of structures) {
-            if (!this.dismantleTarget && hostileSpawns.length === 0 && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_INVADER_CORE) {
+            if (!this.dismantleTarget && !hostileCreeps.length && hostileSpawns.length === 0 && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_INVADER_CORE) {
                 this.dismantleTarget = true;
             }
             if (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_NUKER) {
@@ -186,6 +187,10 @@ class ScanData {
             } else {
                 strucHits += s.hits
             }
+        }
+
+        if(this.dismantleTarget && this.distance > 2 && this.storeQty === 0){
+            this.dismantleTarget = false;
         }
 
         this.structureHits = strucHits;
@@ -359,7 +364,7 @@ class ScanData {
         this.dismantleTarget = false;
         this.powerBankPos = undefined;
         for (let s of structures) {
-            if (!this.dismantleTarget && hostileSpawns.length === 0 && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_INVADER_CORE) {
+            if (!this.dismantleTarget && !hostileCreeps.length && hostileSpawns.length === 0 && s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && s.structureType !== STRUCTURE_CONTROLLER && s.structureType !== STRUCTURE_INVADER_CORE) {
                 this.dismantleTarget = true;
             }
             if (s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_NUKER) {
@@ -399,6 +404,10 @@ class ScanData {
         }
 
         this.structureHits = strucHits;
+
+        if(this.dismantleTarget && this.distance > 2 && this.storeQty === 0){
+            this.dismantleTarget = false;
+        }
 
         const dropped = room.find(FIND_DROPPED_RESOURCES)
         for (let r of dropped) {
@@ -443,6 +452,7 @@ class ScanData {
         this.level = controller ? controller.level : null;
         this.owned = (controller && controller.owner) ? true : false;
         this.ownedBy = this.owned ? controller.owner.username : null;
+        this.upgradeBlocked = controller ? controller.upgradeBlocked : 0;
         this.my = this.ownedBy === MEMORY.username ? true : false;
         this.reserved = (controller && controller.reservation) ? true : false;
         this.reservedBy = this.reserved ? controller.reservation.username : null;
@@ -1137,11 +1147,21 @@ function executeMissions(myRooms) {
                             reserverCount++;
                         }
 
-                    } else if (room
+                    } else if ((room
                         && data.pathToController
                         && data.owned
                         && data.ownedBy !== MEMORY.username
-                        && (!Game.rooms[mission.roomName].controller.upgradeBlocked || Game.rooms[mission.roomName].controller.upgradeBlocked < data.distance * 50)) {
+                        && data.homeRoom === homeRoomName
+                        && (!Game.rooms[mission.roomName].controller.upgradeBlocked || Game.rooms[mission.roomName].controller.upgradeBlocked < data.distance * 50))
+                        || (!room
+                            && data.pathToController
+                            && data.owned
+                            && data.ownedBy !== MEMORY.username
+                            && data.homeRoom === homeRoomName
+                            && (!data.upgradeBlocked || data.upgradeBlocked - (Game.time - data.lastScan) < data.distance * 50))
+                    ) {
+
+
                         let unclaimerCount = 0;
                         let targetUnclaimerCount = 1;
 
