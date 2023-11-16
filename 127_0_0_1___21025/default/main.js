@@ -1,4 +1,4 @@
- const { manageSpawns, getBody, SpawnOrder } = require('manageSpawns');
+const { manageSpawns, getBody, SpawnOrder } = require('manageSpawns');
 const { manageCreeps } = require('manageCreeps');
 const roomPlanner = require('roomPlanner');
 const { expansionManager } = require('expansionManager');
@@ -8,8 +8,12 @@ const outpostManager = require('outpostManager');
 const manageRoomDefense = require('manageRoomDefense');
 const manageTerminals = require('manageTerminals');
 const manageLabs = require('manageLabs');
+const managePowerSpawn = require('managePowerSpawn')
+const manageNukes = require('manageNukes');
 let MEMORY = require('memory');
 const manageObserver = require('manageObserver');
+const sandbox = require('sandbox')
+const roomManager = require('roomManager')
 require('prototypes');
 require('RoomVisual');
 
@@ -63,15 +67,19 @@ module.exports.loop = function () {
     //console.log('Getting Rooms',Game.cpu.getUsed()-cpuStart)
     //cpuStart = Game.cpu.getUsed()
 
-    manageTerminals(myRooms);
+    //manageTerminals(myRooms);
     //console.log('Managing terminals',Game.cpu.getUsed()-cpuStart)
     //cpuStart = Game.cpu.getUsed()
-    expansionManager(myRooms);
+    //expansionManager(myRooms);
     //console.log('Expansion Manager',Game.cpu.getUsed()-cpuStart)
+    //manageNukes(myRooms)
 
     for (const roomName of myRooms) {
+
+        roomManager(roomName)
+
         //console.log('Room',roomName)
-        if (Game.cpu.bucket < 100) {
+        /*if (Game.cpu.bucket < 100) {
             console.log('Breaking out of main for CPU Bucket')
             break;
         }
@@ -96,7 +104,7 @@ module.exports.loop = function () {
 
                 body = [];
                 while (remoteBuilderCount < targetRemoteBuilderCount) {
-                    body = getBody.remoteBuilder(Game.rooms[closest].energyCapacityAvailable, Game.rooms[closest], 0)
+                    body = getBody.remoteBuilder(Game.rooms[closest].energyCapacityAvailable, Game.rooms[closest], 0) // budget, room, conserveEnergy
 
                     options = {
                         memory: {
@@ -138,7 +146,7 @@ module.exports.loop = function () {
         } else {
             MEMORY.rooms[roomName].needEnergy = false;
         }
-        */
+        
 
         //cpuStart = Game.cpu.getUsed()
         manageMemory(room, creeps);
@@ -163,13 +171,16 @@ module.exports.loop = function () {
         //console.log('manageSpawns',Game.cpu.getUsed()-cpuStart)
         //cpuStart = Game.cpu.getUsed()
         manageLabs(room)
-
+        managePowerSpawn(room)
         manageCreeps(room, creeps);
         //console.log('manageCreeps',Game.cpu.getUsed()-cpuStart)
-
+        
         if (room.controller.level === 8) {
             manageObserver(room)
         }
+        */
+
+        //sandbox()
 
     }
 

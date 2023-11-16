@@ -25,7 +25,7 @@ class ResourceSurplus {
     }
 }
 
-const TARGET_ENERGY_AMOUNT = 250000;
+const TARGET_ENERGY_AMOUNT = 200000;
 const TARGET_RESOURCE_AMOUNT = 10000;
 
 /**

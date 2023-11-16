@@ -1,4 +1,4 @@
-   const { manageSpawns, getBody, SpawnOrder } = require('manageSpawns');
+ const { manageSpawns, getBody, SpawnOrder } = require('manageSpawns');
 const { manageCreeps } = require('manageCreeps');
 const roomPlanner = require('roomPlanner');
 const { expansionManager } = require('expansionManager');

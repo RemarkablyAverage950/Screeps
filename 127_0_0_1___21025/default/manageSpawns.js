@@ -519,7 +519,7 @@ function getSpawnQueue(room, creeps, onlyEssential, existingSpawnQueue) {
 
     body = [];
     while (remoteMaintainerCount < targetRemoteMaintainerCount) {
-        body = getBody.remoteMaintainer()
+        body = getBody.remoteMaintainer(energyBudget, outpostRooms)
 
         options = {
             memory: {
@@ -814,10 +814,10 @@ const getBody = {
         let moveParts = 2;
         let workParts = 2;
         let cost = 300;
-        while (cost + 300 < energyAvailable && workParts + moveParts < 48) {
-            workParts += 2;
-            moveParts += 2;
-            cost += 300
+        while (cost + 150 < energyAvailable && workParts + moveParts + 2 < 51) {
+            workParts += 1;
+            moveParts += 1;
+            cost += 150
         }
         let body = []
         for (let i = 0; i < workParts; i++) {
@@ -1012,6 +1012,34 @@ const getBody = {
 
     },
 
+    /**
+     * 
+     * @param {number} energyBudget 
+     */
+    healer: function (energyBudget) {
+
+        let moveParts = 1; // 50
+        let healParts = 1; // 250
+        let cost = 300;
+
+        while (cost + 300 <= energyBudget && moveParts + healParts + 2 <= 50) {
+            moveParts++
+            healParts++
+            cost += 300
+        }
+
+        let body = [];
+
+        for (let i = 0; i < moveParts; i++) {
+            body.push(MOVE);
+        }
+        for (let i = 0; i < healParts; i++) {
+            body.push(HEAL);
+        }
+
+        return body;
+
+    },
 
     hub: function (energyBudget, room) {
 
@@ -1107,9 +1135,11 @@ return body;
 
         let cost = carryPerTrip * 2
 
-        let creepsNeeded = Math.ceil(cost / budget)
 
-        let carryParts = Math.ceil((carryPerTrip / 50) / creepsNeeded)
+
+        let carryParts = Math.min(25, Math.ceil(budget / 100))
+
+        let creepsNeeded = Math.ceil((qty / (50 * carryParts)) / tripsPerLife)
 
         let body = []
         for (let i = 0; i < carryParts; i++) {
@@ -1245,22 +1275,20 @@ return body;
      */
     miner: function (budget) {
 
-        let cost = 150;
-        let workCount = 1;
+        let cost = 250;
+        let workCount = 2;
         let moveCount = 1;
         let body = [];
 
+        if (cost + 150 <= budget) {
+            workCount++;
+            moveCount++;
+            cost += 150;
+        }
         if (cost + 100 <= budget) {
             workCount++;
             cost += 100;
-        };
-
-        if (cost + 250 <= budget) {
-            workCount++;
-            workCount++;
-            moveCount++;
-            cost += 250;
-        };
+        }
         if (cost + 150 <= budget) {
             workCount++;
             moveCount++;
@@ -1269,10 +1297,10 @@ return body;
 
         for (let i = 0; i < workCount; i++) {
             body.push(WORK);
-        };
+        }
         for (let i = 0; i < moveCount; i++) {
             body.push(MOVE);
-        };
+        }
 
 
 
@@ -1330,32 +1358,26 @@ return body;
         return body;
     },
 
-    remoteBuilder: function (energyBudget, room, conserveEnergy) {
+    remoteBuilder: function (budget, room, conserveEnergy) {
 
         if (conserveEnergy) {
             return [WORK, CARRY, MOVE]
         }
 
         let workParts = 1;
-        let moveParts = 1;
+        let moveParts = 2;
         let carryParts = 1;
+        let cost = 250;
 
-        if (energyBudget >= 350) {
-            moveParts += 1 // 2
-            carryParts += 2 // 3
-
-        }
-
-        if (energyBudget >= 550) {
+        while (cost + 250 <= budget && workParts + moveParts + carryParts + 4 <= 50) {
             workParts++;
+            moveParts += 2;
             carryParts++;
-            moveParts++;
+            cost += 250;
         }
 
-        if (energyBudget >= 700) {
-            carryParts += 2;
-            moveParts++;
-        }
+
+
         let body = [];
         for (let i = 0; i < workParts; i++) {
             body.push(WORK);
@@ -1394,9 +1416,42 @@ return body;
         return body;
     },
 
-    remoteMaintainer: function () {
+    /**
+     * 
+     * @param {number} budget 
+     * @param {string[]} outpostRooms 
+     * @returns 
+     */
+    remoteMaintainer: function (budget, outpostRooms) {
 
-        const body = [WORK, CARRY, MOVE];
+        let workParts = 0;
+        let carryParts = 0;
+        let moveParts = 0;
+        let cost = 0;
+        for (let i = 0; i < Math.ceil(outpostRooms.length / 2); i++) {
+            workParts++;
+            carryParts++;
+            moveParts++;
+            cost += 200;
+            if (cost + 200 > budget) {
+                break;
+            }
+        }
+
+
+
+        const body = [];
+
+        for (let i = 0; i < workParts; i++) {
+            body.push(WORK);
+        }
+        for (let i = 0; i < carryParts; i++) {
+            body.push(CARRY);
+        }
+        for (let i = 0; i < moveParts; i++) {
+            body.push(MOVE);
+        }
+
         return body;
     },
 
@@ -1452,6 +1507,29 @@ return body;
         if (budget >= 1300) {
             claimParts++;
             moveParts++;
+        }
+
+        for (let i = 0; i < claimParts; i++) {
+            body.push(CLAIM)
+        }
+        for (let i = 0; i < moveParts; i++) {
+            body.push(MOVE)
+        }
+
+        return body;
+    },
+
+    unclaimer: function (budget) {
+        let body = [];
+
+        let claimParts = 1;
+        let moveParts = 1;
+        let cost = 650;
+
+        while (cost + 650 <= budget) {
+            claimParts++;
+            moveParts++;
+            cost += 650;
         }
 
         for (let i = 0; i < claimParts; i++) {
@@ -1857,12 +1935,28 @@ const getTargetCount = {
 
     /**
      * Returns the target number of miners.
-     * @param {Room} room 
+     * @param {Object} roomHeap
      * @returns {number}
      */
-    miner: function (room) {
+    miner: function (roomHeap) {
 
-        return room.find(FIND_SOURCES).length;
+        let maxHarvesters = 0;
+        
+        for (const s in roomHeap.sources) {
+            maxHarvesters += s.maxCreeps;
+        }
+
+        // Largest size of harvester we can make.
+        let maxWorkParts = 2;
+        if (roomHeap.energyCapacityAvailable >= 650) {
+            maxWorkParts = 5;
+        } else if (roomHeap.energyCapacityAvailable >= 500) {
+            maxWorkParts = 4
+        } else if (roomHeap.energyCapacityAvailable >= 400) {
+            maxWorkParts = 3
+        }
+
+        return Math.min(maxHarvesters, Math.ceil(5 / maxWorkParts) * roomHeap.sources.length);
 
     },
 
@@ -2053,4 +2147,4 @@ function getWallHitsTarget(room) {
 };
 
 
-module.exports = { manageSpawns, getBody, SpawnOrder };
+module.exports = { manageSpawns, getBody, getTargetCount, SpawnOrder };
