@@ -77,7 +77,7 @@ function manageLabs(room) {
         }
 
         // Get reaction
-        let hauler = room.find(FIND_MY_CREEPS).filter(c => c.role === 'hauler')[0]
+        let hauler = room.find(FIND_MY_CREEPS).filter(c => c.memory.role === 'hauler')[0]
         for (let resource of REACTION_PRIORITY) {
             if (storage.store[resource] < TARGET_T3_QTY) {
                 // Find highest reaction we can make for this resource.
@@ -109,11 +109,11 @@ function manageLabs(room) {
                         reagents[0],
                         reagents[1],
                         product,
-                        Math.min(qty - actualQty, 3000),
+                        Math.max(5,Math.min(qty - actualQty, 3000)),
                         productLabs
                     )
 
-                    console.log(room.name, 'created reaction mission for', Math.min(qty - actualQty, 3000), product)
+                    console.log(room.name, 'created reaction mission for', Math.max(5,Math.min(qty - actualQty, 3000)), product)
                     break;
                 }
 
@@ -125,7 +125,7 @@ function manageLabs(room) {
 
     if (MEMORY.rooms[room.name].labs.reaction && !MEMORY.rooms[room.name].labs.reaction.complete) {
         let reaction = MEMORY.rooms[room.name].labs.reaction
-        //console.log(room.name, JSON.stringify(reaction))
+        
         if (reaction.finished) {
             for (let lab of labs) {
                 if (lab.mineralType) {
@@ -134,13 +134,13 @@ function manageLabs(room) {
             }
             reaction.complete = true;
         }
-        // Check if complete
+        // Check if target qty reached
         let productQty = 0
         for (let lab of labs) {
             productQty += lab.store[reaction.product]
         }
         if (productQty >= reaction.qty) {
-            reaction.finished = true;
+            reaction.finished = true; // finished reacting
             reaction.reagent1 = undefined
             reaction.reagent2 = undefined
             reaction.emptied = false;
@@ -149,7 +149,7 @@ function manageLabs(room) {
 
 
 
-        // Check if needs to be emptied
+        // Check if still needs to be emptied
 
         if (!reaction.emptied) {
             for (let lab of labs) {
@@ -224,32 +224,33 @@ function findReaction(room, resource, labs, hauler) {
         return undefined;
     }
 
-    let product = undefined;
-    let storage = room.storage;
     let available = true;
 
     for (let r of MEMORY.reagentTable[resource]) {
-        let qty = storage.store[r]
+        let qty = 0;
+
+        if (room.storage) {
+            qty += room.storage.store[r];
+        }
         if (hauler) {
-            qty += hauler.store[r]
+            qty += hauler.store[r];
         }
         for (let lab of labs) {
-            qty += lab.store[r]
+            qty += lab.store[r];
         }
 
         if (qty < 3000) {
             available = false;
-            product = findReaction(room, r, labs, hauler)
+            const product = findReaction(room, r, labs, hauler);
             if (product) {
                 return product;
-
-            } else { available = false }
+            }else{
+                //break;
+            }
         }
     }
-    if (available) {
-        return resource;
-    }
-    return undefined;
+
+    return available ? resource : undefined;
 
 
 }

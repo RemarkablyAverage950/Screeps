@@ -25,8 +25,8 @@ class ResourceSurplus {
     }
 }
 
-const TARGET_ENERGY_AMOUNT = 600000;
-const TARGET_RESOURCE_AMOUNT = 12000;
+const TARGET_ENERGY_AMOUNT = 200000;
+const TARGET_RESOURCE_AMOUNT = 10000;
 
 /**
  * Determines what resources each room needs and transfers between terminals.
@@ -34,7 +34,7 @@ const TARGET_RESOURCE_AMOUNT = 12000;
  * @param {string[]} myRooms 
  */
 function manageTerminals(myRooms) {
-    if (Game.time % 10 !== 0) { return; }
+    if (Game.time % 10 !== 5) { return; }
     let data = [];
     let requests = [];
     let surplus = [];
@@ -56,8 +56,8 @@ function manageTerminals(myRooms) {
             let energyStock = storage.store[RESOURCE_ENERGY] + terminal.store[RESOURCE_ENERGY]
             if (energyStock < TARGET_ENERGY_AMOUNT) {
                 requests.push(new ResourceRequest(terminal.id, RESOURCE_ENERGY, TARGET_ENERGY_AMOUNT - energyStock))
-            } else if (terminal.store[RESOURCE_ENERGY] > 0) {
-                surplus.push(new ResourceSurplus(terminal.id, RESOURCE_ENERGY, terminal.store[RESOURCE_ENERGY]))
+            } else if (terminal.store[RESOURCE_ENERGY] > 10000) {
+                surplus.push(new ResourceSurplus(terminal.id, RESOURCE_ENERGY, terminal.store[RESOURCE_ENERGY] - 10000))
             }
 
             // Remaining resources.
@@ -65,11 +65,12 @@ function manageTerminals(myRooms) {
                 if (r === RESOURCE_ENERGY) {
                     continue;
                 }
+
                 let resourceStock = terminal.store[r] + storage.store[r];
-              
+
                 if (resourceStock < TARGET_RESOURCE_AMOUNT) {
                     requests.push(new ResourceRequest(terminal.id, r, TARGET_RESOURCE_AMOUNT - resourceStock));
-                } else if (resourceStock > TARGET_RESOURCE_AMOUNT) {
+                } else if (resourceStock > TARGET_RESOURCE_AMOUNT && terminal.store[RESOURCE_ENERGY] >= 10000 && terminal.store[r] > 0) {
                     surplus.push(new ResourceSurplus(terminal.id, r, terminal.store[r]));
                 }
 
@@ -81,17 +82,22 @@ function manageTerminals(myRooms) {
     surplus.sort((a, b) => b.qty - a.qty);
     requests.sort((a, b) => b.qty - a.qty);
 
+
     for (let s of surplus) {
         for (let r of requests) {
             if (r.resourceType === s.resourceType) {
 
                 const sendTerminal = Game.getObjectById(s.id);
                 const recTerminal = Game.getObjectById(r.id);
-               
-                let ret = sendTerminal.send(r.resourceType, Math.min(s.qty, r.qty), recTerminal.pos.roomName, 'Sending ' + r.qty + ' ' + r.resourceType + ' from ' + sendTerminal.pos.roomName + ' to ' + recTerminal.pos.roomName);
-   
-                surplus = surplus.filter(_s => s.id !== _s.id && _s.id !== r.id);
-                requests = requests.filter(_s => s.id !== _s.id && _s.id !== r.id);
+                let qty = Math.min(s.qty, r.qty, 10000)
+                let str = 'Sending ' + qty + ' ' + r.resourceType + ' from ' + sendTerminal.pos.roomName + ' to ' + recTerminal.pos.roomName
+                let ret = sendTerminal.send(r.resourceType, qty, recTerminal.pos.roomName, str);
+
+                if (ret === 0) {
+                    surplus = surplus.filter(_s => s.id !== _s.id && _s.id !== r.id);
+                    requests = requests.filter(_s => s.id !== _s.id && _s.id !== r.id);
+                    break;
+                }
             }
         }
     }

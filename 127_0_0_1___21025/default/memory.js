@@ -1,7 +1,17 @@
 let MEMORY = {
     rooms: {},
-    username: getUserName()
-};
+    username: getUserName(),
+}
+
+function initializeMemory() {
+    console.log('initializing MEMORY')
+    const obj = {
+        rooms: {},
+        username: getUserName(),
+    }
+    return obj;
+
+}
 
 function getUserName() {
     for (const i in Game.rooms) {
@@ -14,4 +24,4 @@ function getUserName() {
 
 }
 
-module.exports = MEMORY;
+module.exports = { initializeMemory, MEMORY };

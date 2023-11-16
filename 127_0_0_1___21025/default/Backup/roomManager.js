@@ -1,30 +1,24 @@
-const { getTargetCount } = require('lib.spawn');
-let { MEMORY } = require('memory');
-const spawnManager = require('spawnManager');
+const { manageSpawns, getBody, getTargetCount, SpawnOrder } = require('manageSpawns');
+let MEMORY = require('memory');
 
-function roomManager(roomName) {
-
-    const room = Game.rooms[roomName]
+function roomManager(room) {
 
     if (!MEMORY.rooms[room.name] || Game.time % 10000 === 0) {
         initializeRoomMemory(room)
-        console.log('Initialized MEMORY for', roomName)
     }
 
     // Set up harvest directive
 
     let roomHeap = MEMORY.rooms[room.name];
 
-    updateRoomMemory(room, roomHeap);
-
-    spawnManager(room, roomHeap);
+    updateRoomMemory(room, roomHeap)
 
 
     // Set directives
 
 
     if (!roomHeap.directive) {
-        //roomHeap.directive = getDirective(room, roomHeap)
+        roomHeap.directive = getDirective(room, roomHeap)
     }
 
 
@@ -65,27 +59,28 @@ function initializeRoomMemory(room) {
     }
 
     MEMORY.rooms[room.name] = {
-        bodies: {},
         constructionSites: {},
         constructionSiteCount: 0,
         controller: controllerCache,
         creeps: {},
         creepsRequired: {},
         directives: {},
-        energyAvailable: room.energyAvailable,
         energyCapacityAvailable: room.energyCapacityAvailable,
         energyPerSource: 3000,
         hostileCreeps: [],
         interiorTiles: [],
         missions: [],
         outposts: {},
-        roomName: room.name,
         sources: sourceCache,
         spawnQueue: [],
-        spawnQueueTimer: Game.time,
+        spawnTimer: 0,
         structureCount: 0,
         structures: {},
     }
+
+
+
+
 
 }
 
@@ -102,7 +97,7 @@ function updateRoomMemory(room, roomHeap) {
 
         roomHeap.energyCapacityAvailable = room.energyCapacityAvailable;
 
-        roomHeap.creepsRequired.miner = getTargetCount.miner(roomHeap);
+        roomHeap.creepsRequired.miners = getTargetCount.miner(roomHeap);
 
         // Get interior tiles
 
@@ -193,7 +188,7 @@ function getCreepsCache(room) {
 }
 
 function getDirectives(room, roomHeap) {
-    if (Object.keys(roomHeap.constructionSites).length) {
+    if (Object.keys(roomHeap.constructionSites).length){
         //roomHeap.directives.build 
     }
 }
@@ -250,4 +245,3 @@ function getStructuresCache(structures) {
 
 }
 
-module.exports = roomManager;

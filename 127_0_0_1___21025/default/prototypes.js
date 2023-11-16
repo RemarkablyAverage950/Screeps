@@ -6,7 +6,7 @@ StructureController.prototype.maxCreeps = function () {
     const y = this.pos.y;
     const roomName = this.pos.roomName;
     const terrain = new Room.Terrain(roomName);
-    const structures = room.find(FIND_STRUCTURES);
+    const structures = this.room.find(FIND_STRUCTURES);
     let count = 9;
     for (let i = x - 1; i <= x + 1; i++) {
         for (let j = y - 1; j <= y + 1; j++) {

@@ -40,8 +40,8 @@ class Tile {
 
 const BUILD_PRIORITY = [
     STRUCTURE_SPAWN,
-    STRUCTURE_ROAD,
     STRUCTURE_EXTENSION,
+    STRUCTURE_ROAD,
     STRUCTURE_CONTAINER,
     STRUCTURE_STORAGE,
     STRUCTURE_TOWER,
@@ -84,7 +84,7 @@ function roomPlanner(room) {
 
 
 
-    if (Game.time % 500 === 0 && room.memory.outposts.length > 0 && Game.cpu.bucket > 100 && plans) {
+    if (Game.time % 500 === 0 && room.memory.outposts && room.memory.outposts.length > 0 && Game.cpu.bucket > 100 && plans) {
         outpostPlanner(room, plans)
     }
 
@@ -224,7 +224,7 @@ function outpostPlanner(homeRoom) {
         let outpostPlans = homeRoom.memory.plans[outpostName]
 
 
-        if (!outpostPlans || outpostPlans.length === 0) {
+        if ((!outpostPlans || outpostPlans.length === 0) && MEMORY.rooms[homeRoom.name].outposts[outpostName].sources) {
             getOutpostPlans(outpostRoom, homeRoom);
         }
 
@@ -240,7 +240,10 @@ function outpostPlanner(homeRoom) {
  */
 function getOutpostPlans(outpostRoom, homeRoom) {
     //console.log('Entering getOutpostPlans', outpostRoom.name)
-    const sources = outpostRoom.find(FIND_SOURCES);
+    const source_ids = Object.keys(MEMORY.rooms[homeRoom.name].outposts[outpostRoom.name].sources)
+
+    const sources = source_ids.map(s => Game.getObjectById(s));
+
     const storageTile = homeRoom.memory.plans[homeRoom.name].find(bo => bo.structure === STRUCTURE_STORAGE);
     const route = Game.map.findRoute(outpostRoom.name, homeRoom.name).map(r => r.room);
     const destination = new RoomPosition(storageTile.x, storageTile.y, homeRoom.name)
@@ -1956,8 +1959,9 @@ function placeSites(homeRoom, plans) {
     //console.log('Placing construction sites for',homeRoom.name)
     let roomPlaced = false;
     for (let roomName of rooms) {
+
         if (roomPlaced) {
-            return;
+            //return;
         }
         let room = Game.rooms[roomName]
         if (!room) {
@@ -1970,13 +1974,16 @@ function placeSites(homeRoom, plans) {
         }
         //console.log('Placing construction sites for',homeRoom.name)
         for (let structureType of BUILD_PRIORITY) {
+          
             for (let order of roomPlans) {
+               
                 if (order.structure === structureType) {
                     updatePlacedStatus(order, room)
 
                     if (order.level <= RCL && !order.placed) {
                         let ret = room.createConstructionSite(order.x, order.y, order.structure)
                         if (ret === 0) {
+                            placed = true;
                             roomPlaced = true;
                         } else if (ret === -8) {
                             return;

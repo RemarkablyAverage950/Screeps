@@ -1,4 +1,4 @@
-let MEMORY = require('memory');
+let { MEMORY } = require('memory');
 
 
 class SpawnOrder {
@@ -14,6 +14,7 @@ class SpawnOrder {
         this.priority = priority;
         this.body = body;
         this.options = options;
+        this.boosts = {};
     }
 }
 
@@ -1941,7 +1942,7 @@ const getTargetCount = {
     miner: function (roomHeap) {
 
         let maxHarvesters = 0;
-        
+
         for (const s in roomHeap.sources) {
             maxHarvesters += s.maxCreeps;
         }

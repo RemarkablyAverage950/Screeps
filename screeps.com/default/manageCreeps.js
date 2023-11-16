@@ -653,6 +653,9 @@ function executeTask(room, creep) {
 
         case 'ATTACK':
 
+            if(creep.room.name !== target.pos.roomName){
+                moveCreep(creep, target.pos, 1, 16);
+            }
             range = creep.pos.getRangeTo(target)
 
 
@@ -772,7 +775,9 @@ function executeTask(room, creep) {
             break;
 
         case 'HEAL':
-
+            if(creep.room.name !== target.pos.roomName){
+                moveCreep(creep, target.pos, 1, 16);
+            }
             range = creep.pos.getRangeTo(target);
 
             if (range < 2) {

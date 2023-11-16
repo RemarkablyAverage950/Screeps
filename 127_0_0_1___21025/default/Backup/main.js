@@ -8,7 +8,12 @@ const outpostManager = require('outpostManager');
 const manageRoomDefense = require('manageRoomDefense');
 const manageTerminals = require('manageTerminals');
 const manageLabs = require('manageLabs');
+const managePowerSpawn = require('managePowerSpawn')
+const manageNukes = require('manageNukes');
 let MEMORY = require('memory');
+const manageObserver = require('manageObserver');
+const sandbox = require('sandbox')
+const roomManager = require('roomManager')
 require('prototypes');
 require('RoomVisual');
 
@@ -27,12 +32,12 @@ module.exports.loop = function () {
     }*/
 
     if (!start) {
-        
+
         if (Game.cpu.bucket > 499) {
 
             start = true;
         } else {
-            console.log('Initializing bucket:',Game.cpu.bucket,'/500')
+            console.log('Initializing bucket:', Game.cpu.bucket, '/500')
             return;
         }
     }
@@ -62,20 +67,24 @@ module.exports.loop = function () {
     //console.log('Getting Rooms',Game.cpu.getUsed()-cpuStart)
     //cpuStart = Game.cpu.getUsed()
 
-    manageTerminals(myRooms);
+    //manageTerminals(myRooms);
     //console.log('Managing terminals',Game.cpu.getUsed()-cpuStart)
     //cpuStart = Game.cpu.getUsed()
-    expansionManager(myRooms);
+    //expansionManager(myRooms);
     //console.log('Expansion Manager',Game.cpu.getUsed()-cpuStart)
-   
+    //manageNukes(myRooms)
+
     for (const roomName of myRooms) {
+
+        roomManager(roomName)
+
         //console.log('Room',roomName)
-        if (Game.cpu.bucket < 100) {
+        /*if (Game.cpu.bucket < 100) {
             console.log('Breaking out of main for CPU Bucket')
             break;
         }
         const room = Game.rooms[roomName];
-        
+
         const creeps = Object.values(Game.creeps).filter(c => c.memory.home === roomName);
 
         if (Game.time % 20 === 0 && room.controller.level < 2 || room.find(FIND_MY_SPAWNS).length === 0) {
@@ -95,7 +104,7 @@ module.exports.loop = function () {
 
                 body = [];
                 while (remoteBuilderCount < targetRemoteBuilderCount) {
-                    body = getBody.remoteBuilder(Game.rooms[closest].energyCapacityAvailable, Game.rooms[closest], 0)
+                    body = getBody.remoteBuilder(Game.rooms[closest].energyCapacityAvailable, Game.rooms[closest], 0) // budget, room, conserveEnergy
 
                     options = {
                         memory: {
@@ -137,7 +146,7 @@ module.exports.loop = function () {
         } else {
             MEMORY.rooms[roomName].needEnergy = false;
         }
-        */
+        
 
         //cpuStart = Game.cpu.getUsed()
         manageMemory(room, creeps);
@@ -162,14 +171,21 @@ module.exports.loop = function () {
         //console.log('manageSpawns',Game.cpu.getUsed()-cpuStart)
         //cpuStart = Game.cpu.getUsed()
         manageLabs(room)
-
+        managePowerSpawn(room)
         manageCreeps(room, creeps);
         //console.log('manageCreeps',Game.cpu.getUsed()-cpuStart)
+        
+        if (room.controller.level === 8) {
+            manageObserver(room)
+        }
+        */
+
+        //sandbox()
 
     }
 
-    if (Game.cpu.bucket >= 10000) {
-        //Game.cpu.generatePixel();
+    if ('generatePixel' in Game.cpu && Game.cpu.bucket >= 10000) {
+        Game.cpu.generatePixel();
     }
 }
 
