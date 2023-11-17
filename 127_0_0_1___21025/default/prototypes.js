@@ -1,6 +1,9 @@
 let MEMORY = require('memory');
 
 
+
+
+
 StructureController.prototype.maxCreeps = function () {
     const x = this.pos.x;
     const y = this.pos.y;

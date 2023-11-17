@@ -28,7 +28,7 @@ class SpawnOrder {
  * @returns {BodyPartConstant[]}
  */
 function getBody(role, roomHeap) {
-
+    
     if (!roomHeap.bodies[role]) {
         roomHeap.bodies[role] = {
             body: [],
@@ -37,7 +37,7 @@ function getBody(role, roomHeap) {
     }
 
     if (Game.time >= roomHeap.bodies[role].resetTime) {
-        console.log('role',role)
+        console.log('role', role)
         roomHeap.bodies[role].body = generateBody[role](roomHeap);
         roomHeap.bodies[role].resetTime = Game.time + 500;
     }
@@ -47,11 +47,61 @@ function getBody(role, roomHeap) {
 }
 
 const generateBody = {
+
     /**
-        * Generates a body for a miner.
-        * @param {number} budget Energy budget.
-        * @returns {BodyPartConstant[]}
-        */
+     * Generates a body for a filler.
+     * @param {Object} roomHeap 
+     * @returns {BodyPartConstant[]}
+     */
+    filler: function (roomHeap) {
+
+        const budget = roomHeap.energyCapacityAvailable;
+
+        let carryParts = 2;
+        let moveParts = 1;
+        const blockCost = 150;
+
+        let targetCapacity = budget / 2;
+
+        if (roomHeap.links && roomHeap.links.spawn) {
+
+            if (room.controller.level === 8) {
+                targetCapacity = (budget - 3000 - (300 * roomHeap.structures[STRUCTURE_SPAWN].length)) / 5
+            }
+            if (room.controller.level === 7) {
+                targetCapacity = (budget - 1500 - (300 * roomHeap.structures[STRUCTURE_SPAWN].length)) / 5
+            } else {
+                targetCapacity = (budget - 750 - (300 * roomHeap.structures[STRUCTURE_SPAWN].length)) / 2
+            }
+        }
+        let cost = 150;
+        let capacity = 0;
+        let body = []
+
+        while (cost + blockCost <= budget && capacity < targetCapacity && carryParts + moveParts < 48) {
+            carryParts += 2
+            moveParts++;
+
+            cost += blockCost;
+            capacity += 100;
+        }
+
+        for (let i = 0; i < carryParts; i++) {
+            body.push(CARRY)
+        }
+        for (let i = 0; i < moveParts; i++) {
+            body.push(MOVE)
+        }
+
+        return body;
+
+    },
+
+    /**
+     * Generates a body for a miner.
+     * @param {Object} roomHeap 
+     * @returns {BodyPartConstant[]}
+     */
     miner: function (roomHeap) {
 
         const budget = roomHeap.energyAvailable
