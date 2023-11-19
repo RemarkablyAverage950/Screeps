@@ -12,7 +12,7 @@ class SO {
     }
 }
 
-const MAX_STORAGE_ENERGY = 5500000
+const MAX_STORAGE_ENERGY = 650000
 
 
 /**

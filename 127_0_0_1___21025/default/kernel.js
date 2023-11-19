@@ -1,4 +1,4 @@
-let MEMORY = require('memory')
+let MEMORY = require('memory');
 const roomManager = require('roomManager');
 
 const PROCESS_TYPES = {
@@ -7,7 +7,7 @@ const PROCESS_TYPES = {
     MANAGE_OWNED_ROOM: 'MANAGE_OWNED_ROOM',
     MANAGE_MISSIONS: 'MANAGE_MISSIONS',
     PLAN_ROOM: 'PLAN_ROOM',
-};
+}
 
 let nextPID = 0;
 
@@ -37,7 +37,7 @@ class ManageOwnedRoomProcess extends Process {
         super(PROCESS_TYPES.MANAGE_OWNED_ROOM);
         this.roomName = roomName;
         this.runEvery = 1;
-        this.priority = 1;
+        this.priority = 2;
         this.reqCPU = 5;
         this.reqBucket = 20;
     }
@@ -53,6 +53,7 @@ class ManageOwnedRoomProcess extends Process {
 
 /**
  * This is the entry point into the operating system and handles all tasks required by it.
+ * 
  * Kernel operation:
  * 1. Kill any processes no longer required.
  * 2. Initialize any new processes that are required.
@@ -73,7 +74,7 @@ function kernel() {
  * @returns {String[]}
  */
 function getMyRooms() {
-    let myRooms = []
+    let myRooms = [];
 
     for (const roomName in Game.rooms) {
         if (Game.rooms[roomName].controller && Game.rooms[roomName].controller.my) {
@@ -142,10 +143,9 @@ function scheduleProcesses() {
     let scheduled = []
     scheduled = MEMORY.processes.filter(p => Game.time >= p.runOnTick);
     if (scheduled.length) {
-        scheduled = scheduled.sort((a, b) => a.priority - b.priority, a.runOnTick - b.runOnTick);
+        scheduled = scheduled.sort((a, b) => a.priority - b.priority || a.runOnTick - b.runOnTick);
     }
     return scheduled;
 }
-
 
 module.exports = kernel;

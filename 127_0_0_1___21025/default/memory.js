@@ -1,4 +1,5 @@
 let MEMORY = {
+    creeps: {}, // Store creep memory data here. Path, tasks, moving, requests.
     processess: {},
     rooms: {},
     username: getUserName(),
