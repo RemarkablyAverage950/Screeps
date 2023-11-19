@@ -1,6 +1,6 @@
-// main.js (entry point)
-const { loop } = require('./scheduler'); // Adjust the path accordingly
+const kernel = require('kernel');
 const profiler = require('screeps-profiler');
+let MEMORY = require('memory');
 
 require('prototypes');
 require('RoomVisual');
@@ -9,7 +9,7 @@ require('RoomVisual');
 profiler.enable();
 // Main game loop
 module.exports.loop = function () {
-    profiler.wrap(function() {
-    loop();
+    profiler.wrap(function () {
+        kernel();
     })
 };

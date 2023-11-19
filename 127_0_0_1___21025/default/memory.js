@@ -1,7 +1,9 @@
 let MEMORY = {
+    processess: {},
     rooms: {},
     username: getUserName(),
 }
+
 
 function initializeMemory() {
     console.log('initializing MEMORY')
@@ -24,4 +26,4 @@ function getUserName() {
 
 }
 
-module.exports = { initializeMemory, MEMORY };
+module.exports =  MEMORY ;

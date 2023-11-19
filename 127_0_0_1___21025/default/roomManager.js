@@ -19,6 +19,9 @@ function roomManager(roomName) {
 
     spawnManager(room, roomHeap);
 
+    manageCreepTasks(room,roomHeap)
+    //assignCreepsTasks(room, roomHeap)
+
 
     // Set directives
 
@@ -32,7 +35,6 @@ function roomManager(roomName) {
     /* requests:
          Harvest sources
          Upgrade controllers
-         Defend
          Build
          Mine minerals
          Spawn creeps
@@ -247,6 +249,25 @@ function getStructuresCache(structures) {
     }
 
     return cache;
+
+}
+
+/**
+ * 
+ * @param {Room} room 
+ * @param {Object} roomHeap 
+ */
+function manageCreepTasks(room,roomHeap){
+
+    // Validate creep tasks
+    
+    // Check for directives here
+
+    // Creeps needing tasks
+
+    // Assign tasks
+
+    // Execute tasks
 
 }
 

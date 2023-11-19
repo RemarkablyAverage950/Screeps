@@ -1508,6 +1508,10 @@ return body;
             claimParts++;
             moveParts++;
         }
+        if (budget >= 1950) {
+            claimParts++;
+            moveParts++;
+        }
 
         for (let i = 0; i < claimParts; i++) {
             body.push(CLAIM)

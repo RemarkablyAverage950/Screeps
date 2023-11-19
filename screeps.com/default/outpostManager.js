@@ -12,6 +12,9 @@ class SO {
     }
 }
 
+const MAX_STORAGE_ENERGY = 5500000
+
+
 /**
  * 
  * @param {Room} homeRoom 
@@ -131,56 +134,57 @@ function outpostManager(homeRoom, creeps) {
     }
     if (Game.time % 10 === 0) {
 
-        // get haulersCount required;
-        let energyCapacityAvailable = homeRoom.energyCapacityAvailable;
-        let maxCapacity = Math.min(Math.floor(energyCapacityAvailable / 150) * 100, 1600);
-        let haulerCapacityReq = 0
-        for (let outpostName of outposts) {
+        if (!homeRoom.storage || (homeRoom.storage && homeRoom.storage.store[RESOURCE_ENERGY] < MAX_STORAGE_ENERGY)) {
+            // get haulersCount required;
+            let energyCapacityAvailable = homeRoom.energyCapacityAvailable;
+            let maxCapacity = Math.min(Math.floor(energyCapacityAvailable / 150) * 100, 1600);
+            let haulerCapacityReq = 0
+            for (let outpostName of outposts) {
 
 
-            if (MEMORY.rooms[homeRoom.name].outposts[outpostName] && MEMORY.rooms[homeRoom.name].outposts[outpostName].haulerCapacityReq) {
+                if (MEMORY.rooms[homeRoom.name].outposts[outpostName] && MEMORY.rooms[homeRoom.name].outposts[outpostName].haulerCapacityReq) {
 
-                haulerCapacityReq += MEMORY.rooms[homeRoom.name].outposts[outpostName].haulerCapacityReq
+                    haulerCapacityReq += MEMORY.rooms[homeRoom.name].outposts[outpostName].haulerCapacityReq
+                }
             }
-        }
 
-        let haulerCountRequired = Math.min(Math.ceil(haulerCapacityReq / maxCapacity), 10);
-        let capacityRequiredPerHauler = Math.min(maxCapacity, Math.ceil(haulerCapacityReq / haulerCountRequired))
-        let spawnTime = Math.ceil(1.5 * capacityRequiredPerHauler / 50) * 3
+            let haulerCountRequired = Math.min(Math.ceil(haulerCapacityReq / maxCapacity), 10);
+            let capacityRequiredPerHauler = Math.min(maxCapacity, Math.ceil(haulerCapacityReq / haulerCountRequired))
+            let spawnTime = Math.ceil(1.5 * capacityRequiredPerHauler / 50) * 3
 
-        // Find out how many haulers we have;
-        let haulerCount = 0;
-        for (let c of creeps) {
-            if (c.memory.role === 'remoteHauler' && c.memory.home === homeRoom.name && (c.spawning || c.ticksToLive > spawnTime)) {
+            // Find out how many haulers we have;
+            let haulerCount = 0;
+            for (let c of creeps) {
+                if (c.memory.role === 'remoteHauler' && c.memory.home === homeRoom.name && (c.spawning || c.ticksToLive > spawnTime)) {
+                    haulerCount++;
+                }
+            }
+            MEMORY.rooms[homeRoom.name].spawnQueue.forEach(spawnOrder => {
+
+                if (spawnOrder.options.memory.role === 'remoteHauler') {
+                    haulerCount++;
+                }
+
+            })
+
+            let body = [];
+            while (haulerCount < haulerCountRequired) {
+                if (body.length === 0) {
+
+                    body = getBody.remoteHauler(homeRoom.energyCapacityAvailable, capacityRequiredPerHauler)
+                }
+                options = {
+                    memory: {
+                        role: 'remoteHauler',
+                        home: homeRoom.name,
+
+                    },
+                };
+                MEMORY.rooms[homeRoom.name].spawnQueue.push(new SpawnOrder('remoteHauler', 5, body, options));
                 haulerCount++;
             }
+
         }
-        MEMORY.rooms[homeRoom.name].spawnQueue.forEach(spawnOrder => {
-
-            if (spawnOrder.options.memory.role === 'remoteHauler') {
-                haulerCount++;
-            }
-
-        })
-
-        let body = [];
-        while (haulerCount < haulerCountRequired) {
-            if (body.length === 0) {
-
-                body = getBody.remoteHauler(homeRoom.energyCapacityAvailable, capacityRequiredPerHauler)
-            }
-            options = {
-                memory: {
-                    role: 'remoteHauler',
-                    home: homeRoom.name,
-
-                },
-            };
-            MEMORY.rooms[homeRoom.name].spawnQueue.push(new SpawnOrder('remoteHauler', 5, body, options));
-            haulerCount++;
-        }
-
-
         for (let outpostName of outposts) {
 
             // Check if we are in the room.
@@ -292,7 +296,7 @@ function outpostManager(homeRoom, creeps) {
 
                 for (let s of sources) {
 
-                    
+
                     let length;
                     if (homeRoom.storage) {
                         length = getPath(undefined, homeRoom.storage.pos, s.pos, 1, 16).length
@@ -303,7 +307,7 @@ function outpostManager(homeRoom, creeps) {
                             length = getPath(undefined, spawn.pos, s.pos, 1, 16).length
                         }
                     }
-                  
+
                     if (length && length > 150) {
                         continue;
                     }
@@ -335,68 +339,68 @@ function outpostManager(homeRoom, creeps) {
 
                 }
             }
+            if (!homeRoom.storage || (homeRoom.storage && homeRoom.storage.store[RESOURCE_ENERGY] < MAX_STORAGE_ENERGY)) {
+                for (let s of Object.values(heap.sources)) {
 
-            for (let s of Object.values(heap.sources)) {
-
-                if (!s.distance) {
-                    s.distance = getRemoteSourceDistance(homeRoom, s)
-                }
-                let creepNeeded = false;
-                if (s.distance) {
-                    if (!creeps.some(c => c.memory.role === 'remoteMiner' && c.memory.assignedSource === s.id && (c.spawning || c.ticksToLive > 30 + s.distance))) {
-                        creepNeeded = true;
+                    if (!s.distance) {
+                        s.distance = getRemoteSourceDistance(homeRoom, s)
                     }
-                } else {
-                    if (!creeps.some(c => c.memory.role === 'remoteMiner' && c.memory.assignedSource === s.id && (c.spawning || c.ticksToLive > 30))) {
-                        creepNeeded = true;
-                    }
-                }
-
-
-
-
-                MEMORY.rooms[homeRoom.name].spawnQueue.forEach(spawnOrder => {
-
-                    if (spawnOrder.options.memory.assignedSource === s.id) {
-
-                        creepNeeded = false;
-                        return;
-                    }
-
-                })
-
-                /*if (Game.rooms[heap.name]) {
-                    let source = Game.getObjectById(s.id)
-                    let structures = Game.rooms[heap.name].find(FIND_STRUCTURES)
-                    for (let struct of structures) {
-                        if (struct.structureType === STRUCTURE_CONTAINER && struct.pos.isNearTo(source)) {
-                            if (struct.forecast(RESOURCE_ENERGY) === 2000) {
-                                creepNeeded = false;
-
-                            }
-                            break;
+                    let creepNeeded = false;
+                    if (s.distance) {
+                        if (!creeps.some(c => c.memory.role === 'remoteMiner' && c.memory.assignedSource === s.id && (c.spawning || c.ticksToLive > 30 + s.distance))) {
+                            creepNeeded = true;
+                        }
+                    } else {
+                        if (!creeps.some(c => c.memory.role === 'remoteMiner' && c.memory.assignedSource === s.id && (c.spawning || c.ticksToLive > 30))) {
+                            creepNeeded = true;
                         }
                     }
 
 
-                }*/
 
-                if (creepNeeded) {
-                    heap.sources[s.id].assignedMiner = undefined;
 
-                    // add miner to spawnQueue;
-                    let body = getBody.remoteMiner(homeRoom.energyCapacityAvailable)
-                    options = {
-                        memory: {
-                            role: 'remoteMiner',
-                            home: homeRoom.name,
-                            assignedRoom: outpostName,
-                            assignedSource: s.id,
-                        },
-                    };
-                    MEMORY.rooms[homeRoom.name].spawnQueue.push(new SpawnOrder('remoteMiner', 4, body, options));
+                    MEMORY.rooms[homeRoom.name].spawnQueue.forEach(spawnOrder => {
+
+                        if (spawnOrder.options.memory.assignedSource === s.id) {
+
+                            creepNeeded = false;
+                            return;
+                        }
+
+                    })
+
+                    /*if (Game.rooms[heap.name]) {
+                        let source = Game.getObjectById(s.id)
+                        let structures = Game.rooms[heap.name].find(FIND_STRUCTURES)
+                        for (let struct of structures) {
+                            if (struct.structureType === STRUCTURE_CONTAINER && struct.pos.isNearTo(source)) {
+                                if (struct.forecast(RESOURCE_ENERGY) === 2000) {
+                                    creepNeeded = false;
+    
+                                }
+                                break;
+                            }
+                        }
+    
+    
+                    }*/
+
+                    if (creepNeeded) {
+                        heap.sources[s.id].assignedMiner = undefined;
+
+                        // add miner to spawnQueue;
+                        let body = getBody.remoteMiner(homeRoom.energyCapacityAvailable)
+                        options = {
+                            memory: {
+                                role: 'remoteMiner',
+                                home: homeRoom.name,
+                                assignedRoom: outpostName,
+                                assignedSource: s.id,
+                            },
+                        };
+                        MEMORY.rooms[homeRoom.name].spawnQueue.push(new SpawnOrder('remoteMiner', 4, body, options));
+                    }
                 }
-
             }
 
             const sites = outpostRoom.find(FIND_CONSTRUCTION_SITES)

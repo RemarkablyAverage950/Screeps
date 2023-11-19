@@ -1,3 +1,5 @@
+let MEMORY = require('memory')
+
 const roomManager = require('roomManager');
 
 function* main() {
@@ -6,31 +8,45 @@ function* main() {
 }
 
 const loop = function () {
-    const generator = main();
+    let generator;
+    let iteration = 0;
+    const lastTick = MEMORY.lastTickData;
+    if (lastTick) {
+        iteration = lastTick.iteration;
+        generator = lastTick.generator;
+    } else {
+        generator = main();
+    }
 
-    function run(result) {
-        const { value, done } = generator.next(result);
+    function run(iteration) {
+        const { value, done } = generator.next(iteration);
 
-        if (!done) {
-            run(value);
+        if (value) {
+            MEMORY.lastTickData = {
+                generator: generator,
+                iteration: value.iteration,
+            };
+        } else if (!done) {
+            iteration++;
+            run(iteration);
         }
     }
 
-    run();
+    run(iteration);
 };
 
 function* roomManagerGenerator(myRooms) {
     for (const roomName of myRooms) {
-        if (limitReached(50)) {
-            return;
-        }
-        yield roomManager(roomName);
+
+        yield limitReached(50)
+
+        roomManager(roomName);
     }
 }
 
 function limitReached(requiredBucket = 0) {
 
-    if (Game.cpu.getUsed() / this.limit > 0.8 && this.bucket < requiredBucket) {
+    if (Game.cpu.getUsed() / Game.cpu.limit > 0.8 && Game.cpu.bucket < requiredBucket) {
         console.log('CPU limit reached.');
         return true;
     }

@@ -189,7 +189,7 @@ class ScanData {
             }
         }
 
-        if(this.dismantleTarget && this.distance > 2 && this.storeQty === 0){
+        if (this.dismantleTarget && this.distance > 2 && this.storeQty === 0) {
             this.dismantleTarget = false;
         }
 
@@ -405,7 +405,7 @@ class ScanData {
 
         this.structureHits = strucHits;
 
-        if(this.dismantleTarget && this.distance > 2 && this.storeQty === 0){
+        if (this.dismantleTarget && this.distance > 2 && this.storeQty === 0) {
             this.dismantleTarget = false;
         }
 
@@ -972,7 +972,7 @@ function executeMissions(myRooms) {
 
 
                 } else if (mission.type === 'CLAIM') {
-                    if (room && (room.controller.owner || room.controller.reservedBy)) {
+                    if (room && room.controller.owner === MEMORY.username) {
                         mission.complete = true;
                         console.log('Claim mission complete.')
                         continue;
@@ -1022,7 +1022,9 @@ function executeMissions(myRooms) {
                             dismantlerCount++;
                         }
 
-                    } else {
+                    } else if (Game.gcl.level > myRooms.length) {
+
+
 
                         let targetClaimerCount = 0;
                         let claimerCount = 0;
@@ -1058,6 +1060,107 @@ function executeMissions(myRooms) {
                                 MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('claimer', 4, body, options));
                                 claimerCount++;
                             }
+                        }
+                    } else {
+                        // Spawn reserver
+
+                        if (room
+                            && !data.owned
+                            && (!room.controller.reservation
+                                || (room.controller.reservation
+                                    && (room.controller.reservation.username === MEMORY.username
+                                        && room.controller.reservation.ticksToEnd < 4000)))
+                            && data.homeRoom === homeRoomName) {
+                            reserverCount = 0;
+                            targetReserverCount = 1;
+
+                            for (let creep of Object.values(Game.creeps)) {
+                                if (creep.memory.role === 'reserver' && creep.memory.assignedRoom === mission.roomName) {
+                                    reserverCount++;
+                                }
+                            }
+                            for (let roomName of myRooms) {
+                                for (let so of MEMORY.rooms[roomName].spawnQueue) {
+                                    if (so.role === 'reserver' && so.options.memory.assignedRoom === mission.roomName) {
+                                        reserverCount++
+                                    }
+                                }
+                            }
+
+
+                            body = [];
+                            while (reserverCount < targetReserverCount) {
+
+                                if (body.length === 0) {
+                                    body = getBody.reserver(Game.rooms[homeRoomName].energyCapacityAvailable) // budget, homeRoomName, mission                
+                                }
+
+                                options = {
+                                    memory: {
+                                        role: 'reserver',
+                                        home: homeRoomName,
+                                        assignedRoom: mission.roomName,
+                                    },
+                                };
+
+                                MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('reserver', 4, body, options));
+                                reserverCount++;
+                            }
+
+                        } else if ((room
+                            && data.owned
+                            && data.ownedBy !== MEMORY.username
+                            && data.homeRoom === homeRoomName
+                            && (!Game.rooms[mission.roomName].controller.upgradeBlocked || Game.rooms[mission.roomName].controller.upgradeBlocked < data.distance * 50))
+                            || (!room
+                                && data.owned
+                                && data.ownedBy !== MEMORY.username
+                                && data.homeRoom === homeRoomName
+                                && (!data.upgradeBlocked || data.upgradeBlocked - (Game.time - data.lastScan) < data.distance * 50))
+                        ) {
+
+
+                            let unclaimerCount = 0;
+                            let targetUnclaimerCount = 1;
+
+
+
+
+                            for (let creep of Object.values(Game.creeps)) {
+                                if (creep.memory.role === 'unclaimer' && creep.memory.assignedRoom === mission.roomName) {
+                                    unclaimerCount++;
+                                }
+                            }
+                            for (let so of MEMORY.rooms[homeRoomName].spawnQueue) {
+                                if (so.role === 'unclaimer' && so.options.memory.assignedRoom === mission.roomName) {
+                                    unclaimerCount++
+                                }
+                            }
+
+
+
+                            body = [];
+                            while (unclaimerCount < targetUnclaimerCount) {
+
+                                if (body.length === 0) {
+
+                                    body = getBody.unclaimer(Game.rooms[homeRoomName].energyCapacityAvailable)
+
+
+                                }
+
+                                options = {
+                                    memory: {
+                                        role: 'unclaimer',
+                                        home: homeRoomName,
+                                        assignedRoom: mission.roomName,
+                                    },
+                                };
+
+                                MEMORY.rooms[homeRoomName].spawnQueue.push(new SpawnOrder('unclaimer', 5, body, options));
+                                unclaimerCount++;
+                            }
+
                         }
                     }
                     if (room && room.find(FIND_HOSTILE_CREEPS).length > 0) {
@@ -1663,12 +1766,16 @@ function getMission(myRooms) {
                     availableRooms.push(roomName)
                 }
             }
-            let assignedRoom = _.min(availableRooms, r => Game.map.findRoute(r, targetRoomName).length)
-            if (assignedRoom) {
-                MEMORY.rooms[assignedRoom].missions.push(new ClaimMission(targetRoomName, true))
-                console.log(assignedRoom, 'claiming', targetRoomName, 'per flag')
-                flag.remove()
-                break;
+            if (availableRooms.length) {
+                let assignedRoom = _.min(availableRooms, r => Game.map.findRoute(r, targetRoomName).length)
+
+                if (assignedRoom) {
+                    console.log(assignedRoom, 'claiming', targetRoomName, 'per flag')
+                    MEMORY.rooms[assignedRoom].missions.push(new ClaimMission(targetRoomName, true))
+                    
+                    flag.remove()
+                    break;
+                }
             }
 
         } else if (flag.name == 'DISMANTLE' || flag.name == 'DISMANTLE1') {

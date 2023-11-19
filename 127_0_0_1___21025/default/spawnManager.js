@@ -1,7 +1,22 @@
 let MEMORY = require('memory');
 const { getBody, SPAWN_PRIORITY, } = require('lib.spawn');
-const { SpawnOrder } = require('./manageSpawns');
 
+class SpawnOrder {
+    /**
+     * @constructor
+     * @param {string} role 
+     * @param {number} priority 
+     * @param {BodyPartConstant[]} body 
+     * @param {object} options 
+     */
+    constructor(role, priority, body, options) {
+        this.role = role;
+        this.priority = priority;
+        this.body = body;
+        this.options = options;
+        this.boosts = {};
+    }
+}
 
 /**
  * Driving function for this module.
@@ -130,8 +145,13 @@ function getBootSpawnQueue(roomHeap) {
     let spawnQueue = [];
     const minersReq = roomHeap.creepsRequired.miner;
     const fillersReq = roomHeap.creepsRequired.filler;
+    const minerQty = roomHeap.creeps.miners.length;
+    const fillerQty = roomHeap.creeps.fillers.length;
+
     let so = getSpawnOrder('miner', roomHeap);
-    spawnQueue.push(so);
+    if (minerQty === 0) {
+        spawnQueue.push(so);
+    }
     so.priority = 3;
 
     for (let i = 1; i < minersReq; i++) {
@@ -139,15 +159,18 @@ function getBootSpawnQueue(roomHeap) {
         spawnQueue.push(so);
 
     }
+
     so = getSpawnOrder('filler', roomHeap);
-    spawnQueue.push(so);
-    so.priority = 4;
-
-
-    for (let i = 1; i < fillersReq; i++) {
+    if (fillerQty === 0) {
         spawnQueue.push(so);
     }
+    so.priority = 4;
 
+    if (roomHeap.creeps.fillers.length === 0) {
+        for (let i = 1; i < fillersReq; i++) {
+            spawnQueue.push(so);
+        }
+    }
     return spawnQueue;
 
 }
