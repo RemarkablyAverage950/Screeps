@@ -112,7 +112,7 @@ Creep.prototype.forecast = function (resourceType) {
     let forecast = this.store[resourceType]
 
     for (let creep of assigned) {
-        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0];
+        const task = MEMORY.creeps[creep.name].tasks[0];
         const type = task.type;
         if (task.resourceType != resourceType) {
             continue;
@@ -142,7 +142,7 @@ Resource.prototype.forecast = function () {
 
     for (let creep of assigned) {
 
-        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0];
+        const task = MEMORY.creeps[creep.name].tasks[0];
 
         forecast -= task.qty;
 
@@ -168,7 +168,7 @@ Ruin.prototype.forecast = function (resourceType) {
     let forecast = this.store[resourceType]
 
     for (let creep of assigned) {
-        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0];
+        const task = MEMORY.creeps[creep.name].tasks[0];
         const type = task.type;
         if (task.resourceType != resourceType) {
             continue;
@@ -203,7 +203,7 @@ Structure.prototype.forecast = function (resourceType) {
 
     for (let creep of assigned) {
 
-        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0];
+        const task = MEMORY.creeps[creep.name].tasks.find(t => t.id && t.id === this.id);
         const type = task.type;
         if (task.resourceType != resourceType) {
             continue;
@@ -237,7 +237,7 @@ Tombstone.prototype.forecast = function (resourceType) {
     let forecast = this.store[resourceType]
 
     for (let creep of assigned) {
-        const task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0];
+        const task = MEMORY.creeps[creep.name].tasks[0];
         const type = task.type;
         if (task.resourceType != resourceType) {
             continue;
@@ -260,19 +260,21 @@ Tombstone.prototype.forecast = function (resourceType) {
  * @param {string} target_id 
  * @returns {Creep[]}
  */
-function getAssignedCreeps(target_id) {
+function getAssignedCreeps(target_id, role = undefined) {
     let assigned = [];
 
-    for (let creep of Object.values(Game.creeps)) {
-
-        if (!MEMORY.rooms || !MEMORY.rooms[creep.memory.home] || !MEMORY.rooms[creep.memory.home].creeps[creep.name]) {
+    for (const creep of Object.values(Game.creeps)) {
+        if (role && creep.memory.role !== role) {
             continue;
         }
-        let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0];
+        if (!MEMORY.creeps[creep.name]) {
+            continue;
+        }
 
-        if (task && task.id && task.id === target_id) {
+        if (MEMORY.creeps[creep.name].tasks && MEMORY.creeps[creep.name].tasks.some(t => t.id && t.id == target_id)) {
             assigned.push(creep);
-        };
+        }
+
     }
 
     return assigned;

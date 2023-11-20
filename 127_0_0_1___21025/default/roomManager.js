@@ -1,3 +1,4 @@
+const assignTask = require('creepTask.assign')
 const { getTargetCount } = require('lib.spawn');
 let { MEMORY } = require('memory');
 const spawnManager = require('spawnManager');
@@ -16,17 +17,15 @@ function roomManager(roomName) {
     let roomHeap = MEMORY.rooms[room.name];
 
     updateRoomMemory(room, roomHeap);
-
     spawnManager(room, roomHeap);
-
-    manageCreepTasks(room,roomHeap)
+    manageCreepTasks(room, roomHeap)
     //assignCreepsTasks(room, roomHeap)
 
 
     // Set directives
 
 
-    if (!roomHeap.directive) {
+    if (!roomHeap.directives) {
         //roomHeap.directive = getDirective(room, roomHeap)
     }
 
@@ -47,7 +46,14 @@ function roomManager(roomName) {
 
 }
 
-
+class Request {
+    constructor(type, id, qty, resourceType) {
+        this.type = type;
+        this.id = id;
+        this.qty = qty;
+        this.resourceType = resourceType;
+    }
+}
 
 /**
  * Sets up room memory with static information.
@@ -66,7 +72,7 @@ function initializeRoomMemory(room) {
 
     }
 
-    MEMORY.rooms[room.name] = {
+    let roomHeap = {
         bodies: {},
         constructionSites: {},
         constructionSiteCount: 0,
@@ -74,13 +80,36 @@ function initializeRoomMemory(room) {
         creeps: {},
         creepsRequired: {},
         directives: {},
-        energyAvailable: room.energyAvailable,
+        energyAvailable: room.energyCapacityAvailable, // Set to max, will get actual checked against this value and generate fill tasks if needed.
         energyCapacityAvailable: room.energyCapacityAvailable,
         energyPerSource: 3000,
         hostileCreeps: [],
         interiorTiles: [],
         missions: [],
         outposts: {},
+        requests: {
+            fill: [],
+            transfer: {
+                // resourceConstant: [],
+            },
+            pickup: {
+                //resourceConstant: [],
+            },
+            build: {
+                queue: [],
+                target: undefined,
+            },
+            dismantle: {
+                queue: [],
+                target: undefined,
+            },
+            lab: {
+                boostQueue: [],
+                reactQueue: [],
+            }
+
+
+        },
         roomName: room.name,
         sources: sourceCache,
         spawnQueue: [],
@@ -89,6 +118,16 @@ function initializeRoomMemory(room) {
         structures: {},
     }
 
+    roomHeap.directives.harvest = [];
+    // Set up basic room directives.
+    for (const so of roomHeap.sources) {
+        roomHeap.directives.harvest.push({
+            id: so.id,
+            maxQty: 3000,
+        })
+    }
+
+    MEMORY.rooms[room.name] = roomHeap
 }
 
 function updateRoomMemory(room, roomHeap) {
@@ -121,6 +160,14 @@ function updateRoomMemory(room, roomHeap) {
         }
 
     }
+
+    if (room.energyAvailable < roomHeap.energyAvailable || roomHeap.requests.fill.length === 0 && roomHeap.energyAvailable < room.energyCapacityAvailable) {
+
+        getFillRequests(roomHeap);
+        roomHeap.energyCapacityAvailable = room.energyCapacityAvailable;
+
+    }
+    roomHeap.energyAvailable = room.energyAvailable;
 
 }
 
@@ -195,6 +242,9 @@ function getCreepsCache(room) {
 }
 
 function getDirectives(room, roomHeap) {
+
+
+
     if (Object.keys(roomHeap.constructionSites).length) {
         //roomHeap.directives.build 
     }
@@ -257,10 +307,33 @@ function getStructuresCache(structures) {
  * @param {Room} room 
  * @param {Object} roomHeap 
  */
-function manageCreepTasks(room,roomHeap){
+function manageCreepTasks(room, roomHeap) {
+
+    let roomCreeps = Game.creeps.filter(c => c.room.name === room.name)
+
+    for (const creep of roomCreeps) {
+        // Create tasks stack.
+        if (!MEMORY.creeps[creep.name].tasks) {
+            MEMORY.creeps[creep.name].tasks = [];
+        }
+
+        let tasks = MEMORY.creeps[creep.name].tasks;
+
+        if (tasks.length) {
+            // validate tasks
+        }
+
+
+        if (tasks.length === 0) {
+            assignTask(room, creep, roomCreeps)
+        }
+
+        //executeTasks
+
+    }
 
     // Validate creep tasks
-    
+
     // Check for directives here
 
     // Creeps needing tasks

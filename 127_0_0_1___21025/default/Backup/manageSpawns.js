@@ -1508,6 +1508,10 @@ return body;
             claimParts++;
             moveParts++;
         }
+        if (budget >= 1950) {
+            claimParts++;
+            moveParts++;
+        }
 
         for (let i = 0; i < claimParts; i++) {
             body.push(CLAIM)
@@ -1935,28 +1939,12 @@ const getTargetCount = {
 
     /**
      * Returns the target number of miners.
-     * @param {Object} roomHeap
+     * @param {Room} room 
      * @returns {number}
      */
-    miner: function (roomHeap) {
+    miner: function (room) {
 
-        let maxHarvesters = 0;
-        
-        for (const s in roomHeap.sources) {
-            maxHarvesters += s.maxCreeps;
-        }
-
-        // Largest size of harvester we can make.
-        let maxWorkParts = 2;
-        if (roomHeap.energyCapacityAvailable >= 650) {
-            maxWorkParts = 5;
-        } else if (roomHeap.energyCapacityAvailable >= 500) {
-            maxWorkParts = 4
-        } else if (roomHeap.energyCapacityAvailable >= 400) {
-            maxWorkParts = 3
-        }
-
-        return Math.min(maxHarvesters, Math.ceil(5 / maxWorkParts) * roomHeap.sources.length);
+        return room.find(FIND_SOURCES).length;
 
     },
 
@@ -2147,4 +2135,4 @@ function getWallHitsTarget(room) {
 };
 
 
-module.exports = { manageSpawns, getBody, getTargetCount, SpawnOrder };
+module.exports = { manageSpawns, getBody, SpawnOrder };
