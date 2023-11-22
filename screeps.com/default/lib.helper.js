@@ -29,14 +29,14 @@ let helper = {
      */
     pushCreep: function (creep, pushingCreep) {
         let role = creep.memory.role
-        if (role === 'miner' || role === 'remoteMiner' || role === 'claimer' || role === 'reserver' || role === 'hub') { // role === 'fastFiller
+        if (role === 'miner' || role === 'remoteMiner' || role === 'claimer' || role === 'reserver' || role === 'hub' || (role === 'dismantler' && pushingCreep.memory.role === 'dismantler')) { // role === 'fastFiller
             return false
         }
-        if(creep.fatigue){
-            
-            let timeToMove = Math.ceil(creep.fatigue/(2*creep.getActiveBodyparts(MOVE)))
-            if(timeToMove > 1){
-               
+        if (creep.fatigue) {
+
+            let timeToMove = Math.ceil(creep.fatigue / (2 * creep.getActiveBodyparts(MOVE)))
+            if (timeToMove > 1) {
+
                 return false;
             }
 
@@ -59,7 +59,7 @@ let helper = {
         let task = MEMORY.rooms[creep.memory.home].creeps[creep.name] && MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0]
         if (task) {
 
-            if (task.type === 'HARVEST' || task.type === 'DISMANTLE') {
+            if (task.type === 'HARVEST') {
                 return false;
             }
             let targetID = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0].id
@@ -104,7 +104,8 @@ let helper = {
                                 if (lookCreep.name === creep.name || lookCreep.name === pushingCreep.name) { // 
                                     valid = false;
                                     break;
-                                } else if (!MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving) {
+                                } else if (!MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving
+                                    || MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].pushing) {
                                     valid = false;
                                     break;
                                 }

@@ -3121,14 +3121,14 @@ const getTasks = {
         }
 
 
-        if (tasks.length === 0) {
+        /*if (tasks.length === 0) {
             let creeps = creep.room.find(FIND_MY_CREEPS).filter(c => (c.memory.role === 'upgrader' || c.memory.role === 'builder') && !MEMORY.rooms[c.memory.home].creeps[c.name].moving && c.store.getUsedCapacity() < .85 * c.store.getCapacity())
             if (creeps.length) {
                 let target = _.max(creeps, c => c.store.getFreeCapacity());
                 tasks.push(new TransferTask(target.id, RESOURCE_ENERGY, heldEnergy));
             }
 
-        }
+        }*/
 
         return tasks;
         /*const structures = room.find(FIND_STRUCTURES);

@@ -1,4 +1,4 @@
-let MEMORY = require('MEMORY')
+let MEMORY = require('memory')
 
 
 /**
@@ -8,8 +8,8 @@ let MEMORY = require('MEMORY')
  * @returns {boolean}
  */
 function validateTask(room, creep) {
-    const task = MEMORY.rooms[room.name].creeps[creep.name].tasks[0]
-
+    const task = MEMORY.creeps[creep.name].tasks[0]
+    console.log('validating',creep.name,JSON.stringify(task))
     if (!task || task === undefined) {
 
         return false
@@ -19,10 +19,10 @@ function validateTask(room, creep) {
 
     if (role === 'remoteHauler' || role === 'remoteMiner' || role === 'reserver' || role === 'remoteMaintainer' || role === 'remoteBuilder') {
         let assignedRoom = creep.memory.assignedRoom;
-        if (assignedRoom && MEMORY.rooms[room.name].outposts[assignedRoom] && MEMORY.rooms[room.name].outposts[assignedRoom].hostileOccupied) {
+        if (assignedRoom && MEMORY.outposts[assignedRoom] && MEMORY.outposts[assignedRoom].hostileOccupied) {
 
             if (creep.room.name !== creep.memory.home && (task.type !== 'MOVE_TO_ROOM' && task.roomName !== creep.memory.home)) {
-                MEMORY.rooms[room.name].creeps[creep.name].tasks = [new MoveToRoomTask(creep.memory.home)]
+                MEMORY.creeps[creep.name].tasks = [new MoveToRoomTask(creep.memory.home)]
 
                 return true;
             }
@@ -248,3 +248,5 @@ function validateTask(room, creep) {
 
     return true;
 }
+
+module.exports = validateTask;

@@ -4,8 +4,8 @@ getRequests = {
     fill: function (roomHeap) {
 
         let requests = [];
-        const spawns = roomHeap.structures.spawns;
-        const extensions = roomHeap.structures.extensions;
+        const spawns = roomHeap.structures.spawn;
+        const extensions = roomHeap.structures.extension;
 
         for (const spawn of spawns) {
             if (spawn.store[RESOURCE_ENERGY] < 300) {

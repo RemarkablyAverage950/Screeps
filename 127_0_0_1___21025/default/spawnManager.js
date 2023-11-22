@@ -55,7 +55,6 @@ function spawnManager(room, roomHeap) {
 
         let so = roomHeap.spawnQueue[roomHeap.spawnQueue.length - 1]
 
-        console.log('so:', JSON.stringify(so))
 
         // call spawn unit function here.
         let ret = spawnCreep(spawn, so)
@@ -99,35 +98,34 @@ function getName(so, roomName) {
  */
 function getSpawnQueue(roomHeap) {
     let spawnQueue = [];
-    console.log('Creeps Required:', JSON.stringify(roomHeap.creepsRequired))
     // Check startup case:
-    if ((!roomHeap.creeps.fillers || !roomHeap.creeps.fillers.length) && (!roomHeap.creeps.miners || !roomHeap.creeps.miners.length)) {
+    if ((!roomHeap.creeps.fillers || !roomHeap.creeps.fillers.length) || (!roomHeap.creeps.miners || !roomHeap.creeps.miners.length)) {
 
         spawnQueue = getBootSpawnQueue(roomHeap)
 
-    }
+    } else {
 
-    for (const role of Object.keys(roomHeap.creepsRequired)) {
+        for (const role of Object.keys(roomHeap.creepsRequired)) {
 
-        const queueAmount = roomHeap.creeps[role] ? roomHeap.creepsRequired[role] - Object.values(roomHeap.creeps[role]).length : roomHeap.creepsRequired[role];
-        if (queueAmount) {
-            const so = getSpawnOrder(role, roomHeap)
+            const queueAmount = roomHeap.creeps[role] ? roomHeap.creepsRequired[role] - Object.values(roomHeap.creeps[role]).length : roomHeap.creepsRequired[role];
+            if (queueAmount) {
+                const so = getSpawnOrder(role, roomHeap)
 
-            spawnQueue.push(so)
+                spawnQueue.push(so)
+            }
+
         }
-
     }
 
     if (spawnQueue.length) {
         spawnQueue = spawnQueue.sort((a, b) => b.priority - a.priority);
     }
-
-    console.log('generated spawnQueue', JSON.stringify(spawnQueue))
+    console.log('Setting spawnQueue:')
     roomHeap.spawnQueue = spawnQueue;
 
 }
 
-function getSpawnOrder(role, roomHeap) {
+function getSpawnOrder(role, roomHeap,) {
     const priority = SPAWN_PRIORITY[role]
     const body = getBody(role, roomHeap)
     const options = {
@@ -145,13 +143,16 @@ function getBootSpawnQueue(roomHeap) {
     let spawnQueue = [];
     const minersReq = roomHeap.creepsRequired.miner;
     const fillersReq = roomHeap.creepsRequired.filler;
-    const minerQty = roomHeap.creeps.miners.length;
-    const fillerQty = roomHeap.creeps.fillers.length;
-
+    const minerQty = roomHeap.creeps.miner.length;
+    const fillerQty = roomHeap.creeps.filler.length;
+    console.log('filletQty:', fillerQty)
     let so = getSpawnOrder('miner', roomHeap);
     if (minerQty === 0) {
         spawnQueue.push(so);
+        so = {...so}
+        
     }
+   
     so.priority = 3;
 
     for (let i = 1; i < minersReq; i++) {
@@ -163,14 +164,19 @@ function getBootSpawnQueue(roomHeap) {
     so = getSpawnOrder('filler', roomHeap);
     if (fillerQty === 0) {
         spawnQueue.push(so);
+        so = {...so}
+        
     }
+    
     so.priority = 4;
 
-    if (roomHeap.creeps.fillers.length === 0) {
+    if (fillerQty === 0) {
         for (let i = 1; i < fillersReq; i++) {
             spawnQueue.push(so);
         }
     }
+
+    console.log('Returning bootSpawnQueue:', JSON.stringify(spawnQueue))
     return spawnQueue;
 
 }

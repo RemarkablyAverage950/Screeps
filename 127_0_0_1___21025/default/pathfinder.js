@@ -67,30 +67,12 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
                 if (creep && avoidCreeps) {
                     let myCreeps = room.find(FIND_MY_CREEPS).filter(c => c.pos.getRangeTo(creep) < 5)
                     for (let c of myCreeps) {
-                        if (MEMORY.rooms[c.memory.home] && MEMORY.rooms[c.memory.home].creeps[c.name] && !MEMORY.rooms[c.memory.home].creeps[c.name].moving) {
+                        if (MEMORY.creeps[c.name] && !MEMORY.creeps[c.name].moving) {
                             m.set(c.pos.x, c.pos.y, 0xff)
                             continue;
                         }
                     }
-                    /*if (creep.memory.role === 'defender' || creep.memory.role === 'soldier') {
-                        m.set(creep.pos.x, creep.pos.y, 0xff)
-                        continue;
-                    }
- 
-                    if (MEMORY.rooms[creep.memory.home].creeps[creep.name]) {
-                        const moving = MEMORY.rooms[creep.memory.home].creeps[creep.name].moving;
- 
-                        if (moving === false) {
-                            let task = MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks[0]
-                            if (task && task.type === 'HARVEST') {
-                                m.set(creep.pos.x, creep.pos.y, 0xff);
-                            } else {
-                                m.set(creep.pos.x, creep.pos.y, m.get(creep.pos.x, creep.pos.y) + 5)
-                            }
-                        } else {
-                            m.set(creep.pos.x, creep.pos.y, m.get(creep.pos.x, creep.pos.y) + 2)
-                        }
-                    }*/
+                    
                 }
 
 
@@ -122,7 +104,7 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
                 if (avoidAllCreeps) {
                     let myCreeps = room.find(FIND_MY_CREEPS)
                     for (let c of myCreeps) {
-                        if (MEMORY.rooms[c.memory.home] && MEMORY.rooms[c.memory.home].creeps[c.name] && !MEMORY.rooms[c.memory.home].creeps[c.name].moving) {
+                        if (MEMORY && MEMORY.creeps[c.name] && !MEMORY.creeps[c.name].moving) {
                             m.set(c.pos.x, c.pos.y, 0xff)
                             continue;
                         }
@@ -166,10 +148,10 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
     if (creep.fatigue > 0) {
         return;
     }
-    MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = true;
+    MEMORY.creeps[creep.name].moving = true;
     // Pull the path from memory.
 
-    let path = MEMORY.rooms[creep.memory.home].creeps[creep.name].path;
+    let path = MEMORY.creeps[creep.name].path;
 
     if (path && path.length > 1 && creep.room.name !== path[0].roomName && creep.room.name === path[1].roomName) {
         path.shift()
@@ -184,9 +166,9 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
         path = getPath(creep, creep.pos, destination, range, maxRooms, false, false, allowedRooms);
         if (!path) {
 
-            //console.log('Failed to generate path for', creep.name, JSON.stringify(creep.pos), 'to', JSON.stringify(destination),'Tasks:',JSON.stringify(MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks));
-            MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
-            MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks = [];
+            //console.log('Failed to generate path for', creep.name, JSON.stringify(creep.pos), 'to', JSON.stringify(destination),'Tasks:',JSON.stringify(MEMORY.creeps[creep.name].tasks));
+            MEMORY.creeps[creep.name].moving = false;
+            MEMORY.creeps[creep.name].tasks = [];
             return;
         }
 
@@ -198,7 +180,7 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
         if (lookStructs.length) {
             for (let s of lookStructs) {
                 if (s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_CONTAINER && !(s.structureType === STRUCTURE_RAMPART && s.my)) {
-                    MEMORY.rooms[creep.memory.home].creeps[creep.name].path = [];
+                    MEMORY.creeps[creep.name].path = [];
                     path = getPath(creep, creep.pos, destination, range, maxRooms, false, true, allowedRooms)
                     break;
                 }
@@ -209,7 +191,7 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
     try {
         lookCreeps = path[0].lookFor(LOOK_CREEPS);
     } catch (e) {
-        MEMORY.rooms[creep.memory.home].creeps[creep.name].path = undefined;
+        MEMORY.creeps[creep.name].path = undefined;
         return;
     }
 
@@ -218,9 +200,9 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
         const lookCreep = lookCreeps[0]
         try {
             if (!lookCreep.my) {
-                MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks = [];
-            } else if (lookCreep.my && MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name] && (!MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving || (MEMORY.rooms[creep.memory.home].creeps[creep.name].blockingCreep && MEMORY.rooms[creep.memory.home].creeps[creep.name].blockingCreep === lookCreep.name))) {
-                MEMORY.rooms[creep.memory.home].creeps[creep.name].pushing = true;
+                MEMORY.creeps[creep.name].tasks = [];
+            } else if (lookCreep.my && MEMORY.creeps[lookCreep.name] && (!MEMORY.creeps[lookCreep.name].moving || (MEMORY.creeps[creep.name].blockingCreep && MEMORY.creeps[creep.name].blockingCreep === lookCreep.name))) {
+                MEMORY.creeps[creep.name].pushing = true;
                 let moving = helper.pushCreep(lookCreep, creep);
 
                 // Get a new path if there is.
@@ -229,12 +211,12 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
 
                     path = getPath(creep, creep.pos, destination, range, maxRooms, false, true, allowedRooms);
                     if (!path || path.length === 0) {
-                        MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
-                        MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks = [];
+                        MEMORY.creeps[creep.name].moving = false;
+                        MEMORY.creeps[creep.name].tasks = [];
                         return;
                     }
                 } else {
-                    MEMORY.rooms[lookCreep.memory.home].creeps[lookCreep.name].moving = true;
+                    MEMORY.creeps[lookCreep.name].moving = true;
                 }
 
             } else if (lookCreep.fatigue) {
@@ -248,15 +230,15 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
                 }
 
             } else {
-                MEMORY.rooms[creep.memory.home].creeps[creep.name].blockingCreep = lookCreep.name
+                MEMORY.creeps[creep.name].blockingCreep = lookCreep.name
             }
         } catch (e) { }
     }else{
-        MEMORY.rooms[creep.memory.home].creeps[creep.name].pushing = false;
+        MEMORY.creeps[creep.name].pushing = false;
     }
     if (!path || path.length === 0) {
-        MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
-        MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks = [];
+        MEMORY.creeps[creep.name].moving = false;
+        MEMORY.creeps[creep.name].tasks = [];
         //console.log('Failed to generate path for', creep.name, JSON.stringify(creep.pos), 'to', JSON.stringify(destination));
         return;
     }
@@ -276,10 +258,10 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
     //creep.say(directions[next])
     const ret = creep.move(next)
     if (ret !== 0) {
-        //MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
+        //MEMORY.creeps[creep.name].moving = false;
     }
-    MEMORY.rooms[creep.memory.home].creeps[creep.name].blockingCreep = undefined;
-    MEMORY.rooms[creep.memory.home].creeps[creep.name].path = path;
+    MEMORY.creeps[creep.name].blockingCreep = undefined;
+    MEMORY.creeps[creep.name].path = path;
 
 }
 
@@ -295,7 +277,7 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
 function moveCreepToRoom(creep, targetRoomName, targetPos = undefined, hostileRoomValue = 10) {
     let allowedRooms = false;
 
-    let nextRoom = MEMORY.rooms[creep.memory.home].creeps[creep.name].nextroom;
+    let nextRoom = MEMORY.creeps[creep.name].nextroom;
     let route = []
     if (!nextRoom) {
 

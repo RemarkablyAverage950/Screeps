@@ -60,6 +60,8 @@ class ManageOwnedRoomProcess extends Process {
  * 3. Schedule and run processes required this tick.
  */
 function kernel() {
+    const verbose = false;
+
 
     killProcesses();
     initializeProcesses();
@@ -92,11 +94,15 @@ function initializeProcesses() {
 
     const processes = _.groupBy(MEMORY.processes, p => p.type);
 
+
     _.forEach(getMyRooms(), roomName => {
-        if (!processes[PROCESS_TYPES.MANAGE_OWNED_ROOM].some(p => p.roomName === roomName)) {
+        if (!processes[PROCESS_TYPES.MANAGE_OWNED_ROOM]) {
+            MEMORY.processes.push(new ManageOwnedRoomProcess(roomName))
+        } else if (!processes[PROCESS_TYPES.MANAGE_OWNED_ROOM].some(p => p.roomName === roomName)) {
             MEMORY.processes.push(new ManageOwnedRoomProcess(roomName));
         }
     });
+
 
 }
 
@@ -141,6 +147,7 @@ function runProcesses(processes) {
  */
 function scheduleProcesses() {
     let scheduled = []
+
     scheduled = MEMORY.processes.filter(p => Game.time >= p.runOnTick);
     if (scheduled.length) {
         scheduled = scheduled.sort((a, b) => a.priority - b.priority || a.runOnTick - b.runOnTick);

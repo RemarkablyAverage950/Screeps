@@ -1,5 +1,6 @@
-const getAssignedCreeps = require('prototypes')
-let MEMORY = require('MEMORY');
+const getAssignedCreeps = require('prototypes');
+const helper = require('lib.helper');
+let MEMORY = require('memory');
 
 class Task {
     /**
@@ -225,7 +226,7 @@ function assignTask(room, creep, creeps, roomHeap) {
     let task = undefined;
     if ((role === 'remoteHauler' || role === 'remoteMiner' || role === 'reserver' || role === 'remoteMaintainer' || role === 'remoteBuilder' || role === 'longHauler')) {
         let assignedRoom = creep.memory.assignedRoom;
-        if (assignedRoom && MEMORY.rooms[room.name].outposts[assignedRoom] && MEMORY.rooms[room.name].outposts[assignedRoom].hostileOccupied) {
+        if (assignedRoom && MEMORY.outposts[assignedRoom] && MEMORY.outposts[assignedRoom].hostileOccupied) {
             if (creep.room.name != creep.memory.home) {
                 MEMORY.creeps[creep.name].tasks.push(new MoveToRoomTask(room.name))
                 creep.say('ESCAPE')
@@ -249,7 +250,7 @@ function assignTask(room, creep, creeps, roomHeap) {
             }
         }
     } else if (role === 'miner') {
-        task = getRoleTasks.miner(roomHeap);
+        task = getRoleTasks.miner(roomHeap, creep);
     } else if (role === 'filler') {
         availableTasks = getRoleTasks.filler(roomHeap, creep, creeps)
         // Best task is closest
@@ -354,7 +355,7 @@ function assignTask(room, creep, creeps, roomHeap) {
             let assignedRoom = creep.memory.assignedRoom
             if (!assignedRoom) {
                 for (let roomName of outpostNames) {
-                    if (MEMORY.rooms[room.name].outposts[roomName] && MEMORY.rooms[room.name].outposts[roomName].constructionComplete === false) {
+                    if (MEMORY.outposts[roomName] && MEMORY.outposts[roomName].constructionComplete === false) {
                         creep.memory.assignedRoom = roomName
                         assignedRoom = roomName
                         break;
@@ -379,8 +380,8 @@ function assignTask(room, creep, creeps, roomHeap) {
             let targetRoom = undefined;
             for (let outpostName of outpostNames) {
                 let lastMaintained = 0
-                if (MEMORY.rooms[room.name].outposts[outpostName])
-                    lastMaintained = MEMORY.rooms[room.name].outposts[outpostName].lastMaintained
+                if (MEMORY.outposts[outpostName])
+                    lastMaintained = MEMORY.outposts[outpostName].lastMaintained
                 if (lastMaintained < min) {
                     targetRoom = outpostName;
                     min = lastMaintained;
@@ -390,7 +391,7 @@ function assignTask(room, creep, creeps, roomHeap) {
                 return
             }
             creep.memory.assignedRoom = targetRoom
-            MEMORY.rooms[room.name].outposts[targetRoom].lastMaintained = Game.time;
+            MEMORY.outposts[targetRoom].lastMaintained = Game.time;
         }
         let assignedRoom = creep.memory.assignedRoom
         if (creep.room.name !== assignedRoom) {
@@ -436,7 +437,7 @@ function assignTask(room, creep, creeps, roomHeap) {
     } else if (role === 'healer') {
         task = getRoleTasks.healer(room, creep);
     }
-
+    console.log(creep.name, JSON.stringify(task))
     if (!task) {
         helper.parkTask(room, creep)
         return;
@@ -946,7 +947,7 @@ const getRoleTasks = {
     fastFiller: function (room, creep) {
         const creepName = creep.name;
         const fillerNumber = creepName[creepName.length - 1];
-        let spawnLink = Game.getObjectById(MEMORY.rooms[room.name].links.spawn);
+        let spawnLink = Game.getObjectById(MEMORY.links.spawn);
         let centerPos = undefined;
         if (spawnLink) {
             centerPos = spawnLink.pos;
@@ -991,7 +992,7 @@ const getRoleTasks = {
 
             return new MoveTask(pos)
         } else {
-            MEMORY.rooms[room.name].creeps[creep.name].moving = false;
+            MEMORY.creeps[creep.name].moving = false;
             let capacity = creep.store.getCapacity()
             const structures = room.find(FIND_STRUCTURES).filter(s => s.pos.isNearTo(creep) && s.structureType !== STRUCTURE_ROAD)
             let containers = []
@@ -1065,17 +1066,17 @@ const getRoleTasks = {
         ;
         if (creep.store.getFreeCapacity() > 0) {
 
-            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, false));
+            tasks.push(...getTasks.pickup(roomHeap, creep, RESOURCE_ENERGY, false));
 
-            if (room.storage && room.storage.store[RESOURCE_ENERGY] > creep.store.getFreeCapacity()) {
-                tasks.push(new WithdrawTask(room.storage.id, RESOURCE_ENERGY, creep.store.getFreeCapacity()))
+            if (roomHeap.storage && roomHeap.storage.length && roomHeap.storage[0].store[RESOURCE_ENERGY] > creep.store.getFreeCapacity()) {
+                tasks.push(new WithdrawTask(roomHeap.storage[0].id, RESOURCE_ENERGY, creep.store.getFreeCapacity()))
             } else {
-                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, true));
-                tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, true));
+                tasks.push(...getTasks.pickup(roomHeap, creep, RESOURCE_ENERGY, true));
+                tasks.push(...getTasks.withdraw(roomHeap, creep, RESOURCE_ENERGY, true));
 
                 if (tasks.length === 0) {
-                    tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, false));
-                    tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, false));
+                    tasks.push(...getTasks.pickup(roomHeap, creep, RESOURCE_ENERGY, false));
+                    tasks.push(...getTasks.withdraw(roomHeap, creep, RESOURCE_ENERGY, false));
                 }
 
             }
@@ -1154,9 +1155,9 @@ const getRoleTasks = {
         if (creep.pos.x !== pos.x || creep.pos.y !== pos.y) {
             return new MoveTask(pos);
         }
-        MEMORY.rooms[room.name].creeps[creep.name].moving = false;
+        MEMORY.creeps[creep.name].moving = false;
         let creepCapacity = creep.store.getFreeCapacity()
-        const hubLink = Game.getObjectById(MEMORY.rooms[room.name].links.hub)
+        const hubLink = Game.getObjectById(MEMORY.links.hub)
         let hubEnergyNeeded = 800 - hubLink.store[RESOURCE_ENERGY];
         if (hubEnergyNeeded > 0 && (storage.store[RESOURCE_ENERGY] > 0 || (terminal && terminal.store[RESOURCE_ENERGY] > 0))) {
 
@@ -1590,16 +1591,19 @@ const getRoleTasks = {
      * If there is an assigned source, it returns a harvest task array.
      * 
      * @param {Object} roomHeap 
+     * @param {Creep} creep
      * @returns {HarvestTask | undefined}
      */
-    miner: function (roomHeap) {
+    miner: function (roomHeap, creep) {
 
         if (!creep.memory.assignedSource) {
-            const sources = roomHeap.sources.map(s => s.obj);
-
+            const sources = Object.values(roomHeap.sources)
+            console.log(JSON.stringify(sources.map(s => s.ticksToRegeneration)))
             let availableSources = [];
             for (let s of sources) {
+                const source = s.obj;
                 const assignedMinerCount = getAssignedCreeps(s.id, 'miner').length
+                console.log(s.id, assignedMinerCount, s.maxCreeps)
                 if (assignedMinerCount < s.maxCreeps) {
                     availableSources.push({
                         source: s,
@@ -1607,15 +1611,15 @@ const getRoleTasks = {
                     })
                 }
             }
-
+            console.log('availableSources', JSON.stringify(availableSources))
             if (availableSources.length) {
                 // Pick source with least amount of creeps assigned.
                 let target = _.min(availableSources, so => so.assignedMinerCount);
                 creep.memory.assignedSource = target.source.id
-                return HarvestTask(target.source.id)
+                return new HarvestTask(target.source.id)
             }
         } else {
-            return HarvestTask(creep.memory.assignedSource)
+            return new HarvestTask(creep.memory.assignedSource)
         }
 
         return undefined;
@@ -2228,7 +2232,7 @@ const getRoleTasks = {
     upgrader: function (room, creep) {
 
         let tasks = [];
-        let controllerLink = Game.getObjectById(MEMORY.rooms[room.name].links.controller)
+        let controllerLink = Game.getObjectById(MEMORY.links.controller)
 
         if (creep.store.getUsedCapacity() === 0) {
             if (!controllerLink) {
@@ -2470,7 +2474,7 @@ const getTasks = {
                 for (let c of creeps) {
 
 
-                    if (c.pos.roomName === room.name && (c.memory.role === 'upgrader' || c.memory.role === 'worker' || c.memory.role === 'builder') && !MEMORY.rooms[room.name].creeps[c.name].moving && c.store[RESOURCE_ENERGY] < .8 * c.store.getCapacity()) {
+                    if (c.pos.roomName === room.name && (c.memory.role === 'upgrader' || c.memory.role === 'worker' || c.memory.role === 'builder') && !MEMORY.creeps[c.name].moving && c.store[RESOURCE_ENERGY] < .8 * c.store.getCapacity()) {
 
                         tasks.push(new TransferTask(c.id, RESOURCE_ENERGY, creep.store[RESOURCE_ENERGY]))
 
@@ -2525,8 +2529,8 @@ const getTasks = {
      */
     fill: function (roomHeap, creep) {
         let tasks = [];
-        let fillRequests = roomHeap.requests.fill;
-
+        let fillTargets = roomHeap.requests.fill.map(t => Game.getObjectById(t.id));
+        console.log('fillRequests:', JSON.stringify(fillRequests))
         if (fillRequests.length === 0) {
             return tasks;
         }
@@ -2535,15 +2539,16 @@ const getTasks = {
         let lastPos = creep.pos;
         let idx = undefined;
 
-        while (energy > 0 && fillRequests.length) {
+        while (energy > 0 && fillTargets.length) {
 
-            const closest = _.min(fillRequests, t => Game.getObjectById(t.id).pos.getRangeTo(lastPos));
+            const closest = _.min(fillTargets, t => t.pos.getRangeTo(lastPos));
+            console.log('closest:', JSON.stringify(closest))
             const forecast = closest.forecast(RESOURCE_ENERGY);
             const qtyNeeded = closest.store.getCapacity(RESOURCE_ENERGY) - closest.forecast(RESOURCE_ENERGY);
 
             if (qtyNeeded <= 0) {
-                idx = fillRequests.findIndex(r => r.id === closest.id)
-                fillRequests.splice(idx, 1);
+                idx = fillTargets.findIndex(r => r.id === closest.id)
+                fillTargets.splice(idx, 1);
                 continue;
             }
 
@@ -2551,10 +2556,10 @@ const getTasks = {
 
             tasks.push(new TransferTask(closest.id, RESOURCE_ENERGY, transferQty));
             lastPos = closest.pos;
-            
+
             if (forecast + Math.min(qty, energy) >= closest.store.getCapacity(RESOURCE_ENERGY)) {
-                idx = fillRequests.findIndex(r => r.id === closest.id)
-                fillRequests.splice(idx, 1);
+                idx = fillTargets.findIndex(r => r.id === closest.id)
+                fillTargets.splice(idx, 1);
             }
             energy -= transferQty;
         }
@@ -2914,12 +2919,12 @@ const getTasks = {
         if (!room.storage) {
             return []
         }
-        if (!MEMORY.rooms[room.name].labs) {
+        if (!MEMORY.labs) {
 
             return [];
         }
         let tasks = []
-        let reaction = MEMORY.rooms[room.name].labs.reaction
+        let reaction = MEMORY.labs.reaction
         if ((!reaction || reaction.complete)) {
             if (creep.store.getUsedCapacity() > 0) {
                 for (let r of Object.keys(creep.store)) {
@@ -3021,15 +3026,15 @@ const getTasks = {
 
     /**
      * 
-     * @param {Room} room 
+     * @param {Object} roomHeap 
      * @param {Creep} creep
      * @param {ResourceConstant} resourceType 
      * @returns {PickupTask[]}
      */
-    pickup: function (room, creep, resourceType, pickupCapacity) {
+    pickup: function (roomHeap, creep, resourceType, pickupCapacity) { // 
 
         const capacity = creep.store.getFreeCapacity()
-        const dropped = room.find(FIND_DROPPED_RESOURCES);
+        const dropped = roomHeap.droppedResources;
         let tasks = [];
 
         if (pickupCapacity) {
@@ -3172,13 +3177,13 @@ const getTasks = {
      * @param {ResourceConstant} resourceType 
      * @returns {WithdrawTask[]}
      */
-    withdraw: function (room, creep, resourceType, withdrawCapacity) {
+    withdraw: function (roomHeap, creep, resourceType, withdrawCapacity) {
 
 
         const capacity = creep.store.getFreeCapacity();
-        const structures = room.find(FIND_STRUCTURES);
-        const tombstones = room.find(FIND_TOMBSTONES);
-        const ruins = room.find(FIND_RUINS);
+        const structures = roomHeap.structures.container
+        const tombstones = [];
+        const ruins = [];
         let tasks = [];
         if (withdrawCapacity) {
             for (let s of structures) {
@@ -3192,7 +3197,7 @@ const getTasks = {
                         tasks.push(new WithdrawTask(s.id, resourceType, capacity));
 
                     };
-                } else if (s.structureType === STRUCTURE_LINK && (creep.memory.role === 'upgrader' && s.id === MEMORY.rooms[room.name].links.controller) || (creep.memory.role === 'fastFiller' && s.id === MEMORY.rooms[room.name].links.spawn)) {
+                } else if (s.structureType === STRUCTURE_LINK && (creep.memory.role === 'upgrader' && s.id === MEMORY.links.controller) || (creep.memory.role === 'fastFiller' && s.id === MEMORY.links.spawn)) {
 
                     const forecast = s.forecast(resourceType);
 
@@ -3233,7 +3238,7 @@ const getTasks = {
                         tasks.push(new WithdrawTask(s.id, resourceType, forecast));
 
                     };
-                } else if (s.structureType === STRUCTURE_LINK && (creep.memory.role === 'upgrader' && s.id === MEMORY.rooms[room.name].links.controller) || (creep.memory.role === 'fastFiller' && s.id === MEMORY.rooms[room.name].links.spawn)) {
+                } else if (s.structureType === STRUCTURE_LINK && (creep.memory.role === 'upgrader' && s.id === MEMORY.links.controller) || (creep.memory.role === 'fastFiller' && s.id === MEMORY.links.spawn)) {
 
 
                     tasks.push(new WithdrawTask(s.id, resourceType, capacity));

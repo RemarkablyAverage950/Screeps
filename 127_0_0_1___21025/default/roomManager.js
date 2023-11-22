@@ -1,7 +1,10 @@
-const assignTask = require('creepTask.assign')
+const assignTask = require('creepTask.assign');
+const validateTask = require('creepTask.validate');
 const { getTargetCount } = require('lib.spawn');
-let { MEMORY } = require('memory');
+let MEMORY = require('memory');
+const getRequests = require('roomManager.requests');
 const spawnManager = require('spawnManager');
+const executeTask = require('creepTask.execute');
 
 function roomManager(roomName) {
 
@@ -77,9 +80,17 @@ function initializeRoomMemory(room) {
         constructionSites: {},
         constructionSiteCount: 0,
         controller: controllerCache,
-        creeps: {},
+        creeps: {
+            builder: [],
+            filler: [],
+            hauler: [],
+            miner: [],
+            scout: [],
+            upgrader: [],
+        },
         creepsRequired: {},
         directives: {},
+        droppedResources: [],
         energyAvailable: room.energyCapacityAvailable, // Set to max, will get actual checked against this value and generate fill tasks if needed.
         energyCapacityAvailable: room.energyCapacityAvailable,
         energyPerSource: 3000,
@@ -120,7 +131,7 @@ function initializeRoomMemory(room) {
 
     roomHeap.directives.harvest = [];
     // Set up basic room directives.
-    for (const so of roomHeap.sources) {
+    for (const so of Object.values(roomHeap.sources)) {
         roomHeap.directives.harvest.push({
             id: so.id,
             maxQty: 3000,
@@ -134,10 +145,12 @@ function updateRoomMemory(room, roomHeap) {
 
     const structures = room.find(FIND_STRUCTURES);
     const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
+
     // Set creeps cache
-    roomHeap.creeps = getCreepsCache(room);
-
-
+    roomHeap.creeps = getCreepsCache(room, roomHeap);
+    roomHeap.structures = getStructuresCache(structures);
+    roomHeap.constructionSites = getConstructionSiteCache(sites)
+    roomHeap.droppedResources = room.find(FIND_DROPPED_RESOURCES);
 
     if (roomHeap.structureCount !== structures.length) {
 
@@ -147,7 +160,7 @@ function updateRoomMemory(room, roomHeap) {
 
         // Get interior tiles
 
-        roomHeap.structures = getStructuresCache(structures);
+
 
         roomHeap.structureCount = structures.length;
     }
@@ -156,14 +169,14 @@ function updateRoomMemory(room, roomHeap) {
 
         roomHeap.constructionSiteCount = sites.length
         if (constructionSites.length > 0) {
-            roomHeap.constructionSites = getConstructionSiteCache(constructionSites)
+
         }
 
     }
 
     if (room.energyAvailable < roomHeap.energyAvailable || roomHeap.requests.fill.length === 0 && roomHeap.energyAvailable < room.energyCapacityAvailable) {
 
-        getFillRequests(roomHeap);
+        getRequests.fill(roomHeap);
         roomHeap.energyCapacityAvailable = room.energyCapacityAvailable;
 
     }
@@ -219,23 +232,18 @@ function getControllerCache(room) {
 /**
  * Returns an object containing arrays of creeps, separated by role, to cache. Example: { role1: [creep0, creep1], role2: [creep2] }
  * @param {Room} room 
+ * @param {Object} roomHeap
  * @returns {Object}
  */
-function getCreepsCache(room) {
+function getCreepsCache(room, roomHeap) {
 
     const creeps = room.find(FIND_MY_CREEPS);
-    let cache = {};
+    let cache = roomHeap.creeps;
 
     for (const creep of creeps) {
 
         const role = creep.memory.role;
-
-        if (!cache[role]) {
-            cache[role] = [creep];
-        } else {
-            cache[role].push(creep);
-        }
-
+        cache[role].push(creep);
     }
 
     return cache;
@@ -249,6 +257,7 @@ function getDirectives(room, roomHeap) {
         //roomHeap.directives.build 
     }
 }
+
 
 /**
  * Returns an object of source(s) data to cache. Example: {source1: source1 data, source2: source2 data}
@@ -283,7 +292,13 @@ function getSourcesCache(room) {
  */
 function getStructuresCache(structures) {
 
-    let cache = {};
+    let cache = {
+        container: [],
+        extension: [],
+        spawn: [],
+        storage: [],
+        
+    };
 
     for (const s of structures) {
 
@@ -309,38 +324,38 @@ function getStructuresCache(structures) {
  */
 function manageCreepTasks(room, roomHeap) {
 
-    let roomCreeps = Game.creeps.filter(c => c.room.name === room.name)
+    let roomCreeps = Object.values(Game.creeps).filter(c => c.room.name === room.name)
 
     for (const creep of roomCreeps) {
         // Create tasks stack.
-        if (!MEMORY.creeps[creep.name].tasks) {
-            MEMORY.creeps[creep.name].tasks = [];
+        if (!MEMORY.creeps[creep.name]) {
+            MEMORY.creeps[creep.name] = {
+                tasks: [],
+            }
         }
 
         let tasks = MEMORY.creeps[creep.name].tasks;
 
         if (tasks.length) {
             // validate tasks
+            validateTask(room, creep)
+            tasks = MEMORY.creeps[creep.name].tasks;
         }
 
 
         if (tasks.length === 0) {
-            assignTask(room, creep, roomCreeps)
+            assignTask(room, creep, roomCreeps, roomHeap)
+            tasks = MEMORY.creeps[creep.name].tasks;
         }
 
         //executeTasks
+        if (tasks.length) {
+            // validate tasks
+            executeTask(room, creep)
+
+        }
 
     }
-
-    // Validate creep tasks
-
-    // Check for directives here
-
-    // Creeps needing tasks
-
-    // Assign tasks
-
-    // Execute tasks
 
 }
 

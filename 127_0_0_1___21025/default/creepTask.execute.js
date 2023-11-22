@@ -1,5 +1,5 @@
-let MEMORY = require('MEMORY')
-
+let MEMORY = require('memory');
+const {moveCreep} = require('pathfinder');
 
 /**
  * 
@@ -7,10 +7,11 @@ let MEMORY = require('MEMORY')
  * @param {Creep} creep 
  */
 function executeTask(room, creep) {
-    const task = MEMORY.rooms[room.name].creeps[creep.name].tasks[0]
+    const task = MEMORY.creeps[creep.name].tasks[0]
+    console.log(creep.name,JSON.stringify(task))
     let range;
     if (!task) {
-        MEMORY.rooms[room.name].creeps[creep.name].moving = false;
+        MEMORY.creeps[creep.name].moving = false;
         return false
     }
 
@@ -41,18 +42,18 @@ function executeTask(room, creep) {
             if (range > 1) {
                 if (getPath(creep, creep.pos, target.pos, 1, 1, true, false, false, true)) {
 
-                    MEMORY.rooms[room.name].creeps[creep.name].tasks[0].type = 'RANGED_ATTACK'
-                    MEMORY.rooms[room.name].creeps[creep.name].moving = false;
+                    MEMORY.creeps[creep.name].tasks[0].type = 'RANGED_ATTACK'
+                    MEMORY.creeps[creep.name].moving = false;
                 } else {
 
                     creep.moveTo(target)
-                    MEMORY.rooms[room.name].creeps[creep.name].moving = true;
+                    MEMORY.creeps[creep.name].moving = true;
                 }
             }
             if (range === 1 && creep.getActiveBodyparts(ATTACK)) {
                 creep.attack(target)
-                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].moving = false;
+                MEMORY.creeps[creep.name].path = undefined;
             }
 
             break;
@@ -64,8 +65,8 @@ function executeTask(room, creep) {
                 moveCreep(creep, target.pos, 1, 1)
             } else {
                 creep.attackController(target)
-                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].moving = false;
+                MEMORY.creeps[creep.name].path = undefined;
             }
 
             break;
@@ -78,8 +79,8 @@ function executeTask(room, creep) {
 
             } else {
 
-                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].moving = false;
+                MEMORY.creeps[creep.name].path = undefined;
 
             };
 
@@ -92,8 +93,8 @@ function executeTask(room, creep) {
 
             } else {
 
-                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].moving = false;
+                MEMORY.creeps[creep.name].path = undefined;
 
             };
             break;
@@ -106,8 +107,8 @@ function executeTask(room, creep) {
 
             } else {
 
-                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].moving = false;
+                MEMORY.creeps[creep.name].path = undefined;
 
             };
             break;
@@ -119,8 +120,8 @@ function executeTask(room, creep) {
 
             } else {
 
-                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].moving = false;
+                MEMORY.creeps[creep.name].path = undefined;
 
             };
 
@@ -132,15 +133,15 @@ function executeTask(room, creep) {
             } else if (!target.coolDown) {
 
                 creep.harvest(target)
-                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].moving = false;
+                MEMORY.creeps[creep.name].path = undefined;
 
             }
 
             if (target.lastCooldown >= 125) {
-                MEMORY.rooms[room.name].creeps[creep.name].renew = false;
+                MEMORY.creeps[creep.name].renew = false;
             } else {
-                MEMORY.rooms[room.name].creeps[creep.name].renew = true
+                MEMORY.creeps[creep.name].renew = true
             }
 
             break;
@@ -153,8 +154,8 @@ function executeTask(room, creep) {
 
             if (range < 2) {
                 creep.heal(target)
-                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].moving = false;
+                MEMORY.creeps[creep.name].path = undefined;
             } else {
                 creep.rangedHeal(target)
                 creep.moveTo(target)
@@ -176,7 +177,7 @@ function executeTask(room, creep) {
             } else {
 
 
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].path = undefined;
 
             };
 
@@ -195,7 +196,7 @@ function executeTask(room, creep) {
 
             } else {
 
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].path = undefined;
 
             };
             break;
@@ -206,7 +207,7 @@ function executeTask(room, creep) {
             if (raRet !== 0) {
                 moveCreep(creep, target.pos, 3, 1)
             } else {
-                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
+                MEMORY.creeps[creep.name].moving = false;
             }
 
             break;
@@ -219,8 +220,8 @@ function executeTask(room, creep) {
 
             } else {
 
-                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].moving = false;
+                MEMORY.creeps[creep.name].path = undefined;
 
             };
 
@@ -233,8 +234,8 @@ function executeTask(room, creep) {
 
             } else {
 
-                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].moving = false;
+                MEMORY.creeps[creep.name].path = undefined;
 
             };
             break;
@@ -244,7 +245,7 @@ function executeTask(room, creep) {
                 moveCreep(creep, target.pos, 1, 1);
             } else {
 
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].path = undefined;
             };
 
             break;
@@ -257,7 +258,7 @@ function executeTask(room, creep) {
 
             } else {
 
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].path = undefined;
                 MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks.shift();
 
             };
@@ -268,7 +269,7 @@ function executeTask(room, creep) {
             if (creep.pos.getRangeTo(target) > 3) {
                 moveCreep(creep, target.pos, 1, 1);
             } /*else if (creep.pos.lookFor(LOOK_STRUCTURES).length > 0) {
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].path = undefined;
                 let range = 0;
                 let xStart = creep.pos.x;
                 let yStart = creep.pos.y;
@@ -281,8 +282,8 @@ function executeTask(room, creep) {
                 }
 
                 let avoidPos = [];
-                if (creep.memory.home === room.name && MEMORY.rooms[room.name].links) {
-                    let spawnLink = Game.getObjectById(MEMORY.rooms[room.name].links.spawn)
+                if (creep.memory.home === room.name && MEMORY.links) {
+                    let spawnLink = Game.getObjectById(MEMORY.links.spawn)
                     if (spawnLink) {
                         let pos = spawnLink.pos
                         avoidPos.push([pos.x + 1, pos.y + 1])
@@ -361,8 +362,8 @@ function executeTask(room, creep) {
 
             } else {
 
-                MEMORY.rooms[room.name].creeps[creep.name].moving = false;
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].moving = false;
+                MEMORY.creeps[creep.name].path = undefined;
 
             };
 
@@ -377,8 +378,8 @@ function executeTask(room, creep) {
                 }
 
             } else {
-                MEMORY.rooms[room.name].creeps[creep.name].tasks.shift();
-                MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
+                MEMORY.creeps[creep.name].tasks.shift();
+                MEMORY.creeps[creep.name].path = undefined;
 
             };
 
@@ -386,3 +387,5 @@ function executeTask(room, creep) {
 
     };
 };
+
+module.exports = executeTask;
