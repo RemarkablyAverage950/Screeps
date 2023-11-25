@@ -82,7 +82,6 @@ function initializeRoomMemory(room) {
         controller: controllerCache,
         creeps: {
             builder: [],
-            filler: [],
             hauler: [],
             miner: [],
             scout: [],
@@ -126,7 +125,7 @@ function initializeRoomMemory(room) {
         spawnQueue: [],
         spawnQueueTimer: Game.time,
         structureCount: 0,
-        structures: {},
+        structures: undefined,
     }
 
     roomHeap.directives.harvest = [];
@@ -143,12 +142,12 @@ function initializeRoomMemory(room) {
 
 function updateRoomMemory(room, roomHeap) {
 
-    const structures = room.find(FIND_STRUCTURES);
+    const structures = undefined;
     const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
 
     // Set creeps cache
     roomHeap.creeps = getCreepsCache(room, roomHeap);
-    roomHeap.structures = getStructuresCache(structures);
+    //roomHeap.structures = getStructuresCache(structures);
     roomHeap.constructionSites = getConstructionSiteCache(sites)
     roomHeap.droppedResources = room.find(FIND_DROPPED_RESOURCES);
 
@@ -285,37 +284,7 @@ function getSourcesCache(room) {
 
 }
 
-/**
- * Returns an object of structures, seperated by structureType to cache. Example: {STRUCTURE_EXTENSION: [extension0, extension1], STRUCTURE_SPAWN: [spawn0]}
- * @param {Structure[]} structures 
- * @returns {Object}
- */
-function getStructuresCache(structures) {
 
-    let cache = {
-        container: [],
-        extension: [],
-        spawn: [],
-        storage: [],
-        
-    };
-
-    for (const s of structures) {
-
-        if (s.structureType === STRUCTURE_CONTROLLER) {
-            continue;
-        }
-
-        if (!cache[s.structureType]) {
-            cache[s.structureType] = [s];
-        } else {
-            cache[s.structureType].push(s)
-        }
-    }
-
-    return cache;
-
-}
 
 /**
  * 
@@ -338,14 +307,15 @@ function manageCreepTasks(room, roomHeap) {
 
         if (tasks.length) {
             // validate tasks
-            validateTask(room, creep)
-            tasks = MEMORY.creeps[creep.name].tasks;
+            if (!validateTask(room, creep)) {
+                MEMORY.creeps[creep.name].tasks.shift();
+            }
         }
 
 
         if (tasks.length === 0) {
             assignTask(room, creep, roomCreeps, roomHeap)
-            tasks = MEMORY.creeps[creep.name].tasks;
+            MEMORY.creeps[creep.name].tasks;
         }
 
         //executeTasks

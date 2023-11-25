@@ -1,5 +1,7 @@
 let MEMORY = require('memory');
-const {moveCreep} = require('pathfinder');
+const { moveCreep } = require('pathfinder');
+
+const DEBUG = 1;
 
 /**
  * 
@@ -8,7 +10,10 @@ const {moveCreep} = require('pathfinder');
  */
 function executeTask(room, creep) {
     const task = MEMORY.creeps[creep.name].tasks[0]
-    console.log(creep.name,JSON.stringify(task))
+    if (DEBUG) {
+        console.log(creep.name, JSON.stringify(task))
+        console.log('tasks:',JSON.stringify(MEMORY.creeps[creep.name].tasks))
+    }
     let range;
     if (!task) {
         MEMORY.creeps[creep.name].moving = false;
@@ -20,12 +25,14 @@ function executeTask(room, creep) {
     if (task.id) {
         target = Game.getObjectById(task.id)
     }
-
+    if (DEBUG) {
+        console.log('target', JSON.stringify(target))
+    }
     switch (task.type) {
 
         case 'ATTACK':
 
-            if(creep.room.name !== target.pos.roomName){
+            if (creep.room.name !== target.pos.roomName) {
                 moveCreep(creep, target.pos, 1, 16);
             }
             range = creep.pos.getRangeTo(target)
@@ -147,7 +154,7 @@ function executeTask(room, creep) {
             break;
 
         case 'HEAL':
-            if(creep.room.name !== target.pos.roomName){
+            if (creep.room.name !== target.pos.roomName) {
                 moveCreep(creep, target.pos, 1, 16);
             }
             range = creep.pos.getRangeTo(target);
@@ -183,10 +190,9 @@ function executeTask(room, creep) {
 
             break;
         case 'MOVE_TO_ROOM':
-            //try {
+           
             moveCreepToRoom(creep, task.roomName, task.targetPos)
-            //} catch (e) { console.log(creep.name, 'failed moveCreepToRoom', JSON.stringify(task)) }
-
+           
             break;
         case 'PICKUP':
 
@@ -259,7 +265,7 @@ function executeTask(room, creep) {
             } else {
 
                 MEMORY.creeps[creep.name].path = undefined;
-                MEMORY.rooms[creep.memory.home].creeps[creep.name].tasks.shift();
+                MEMORY.creeps[creep.name].tasks.shift();
 
             };
 
@@ -341,7 +347,7 @@ function executeTask(room, creep) {
                             if (valid) {
 
                                 if (range === 0) {
-                                    MEMORY.rooms[creep.memory.home].creeps[creep.name].moving = false;
+                                    MEMORY.creeps[creep.name].moving = false;
                                     return undefined;
                                 }
 

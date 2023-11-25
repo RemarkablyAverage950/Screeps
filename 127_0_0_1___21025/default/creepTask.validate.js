@@ -1,5 +1,6 @@
 let MEMORY = require('memory')
 
+const DEBUG = 1;
 
 /**
  * 
@@ -9,7 +10,9 @@ let MEMORY = require('memory')
  */
 function validateTask(room, creep) {
     const task = MEMORY.creeps[creep.name].tasks[0]
-    console.log('validating',creep.name,JSON.stringify(task))
+    if (DEBUG) {
+        console.log('validating', creep.name, JSON.stringify(task))
+    }
     if (!task || task === undefined) {
 
         return false
@@ -173,7 +176,8 @@ function validateTask(room, creep) {
             }
             break;
         case 'PICKUP':
-            if (!target) return false;
+
+            if (!target) { return false; }
 
             if (target.amount === 0 || creep.store.getFreeCapacity() === 0) {
                 return false;

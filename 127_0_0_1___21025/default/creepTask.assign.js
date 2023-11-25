@@ -2,6 +2,8 @@ const getAssignedCreeps = require('prototypes');
 const helper = require('lib.helper');
 let MEMORY = require('memory');
 
+const DEBUG = 0;
+
 class Task {
     /**
      * @constructor
@@ -437,7 +439,9 @@ function assignTask(room, creep, creeps, roomHeap) {
     } else if (role === 'healer') {
         task = getRoleTasks.healer(room, creep);
     }
-    console.log(creep.name, JSON.stringify(task))
+    if (DEBUG) {
+        console.log(creep.name, JSON.stringify(task))
+    }
     if (!task) {
         helper.parkTask(room, creep)
         return;
@@ -458,14 +462,14 @@ const getRoleTasks = {
      */
     builder: function (room, creep) {
         let tasks = [];
+        const freeCapacity = creep.store.getFreeCapacity()
+        if (freeCapacity > 0) {
 
-        if (creep.store.getFreeCapacity() > 0) {
-
-            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, true));
+            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, freeCapacity, true));
             tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, true));
 
             if (tasks.length === 0) {
-                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, false));
+                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, freeCapacity, false));
                 tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, false));
 
             }
@@ -924,16 +928,16 @@ const getRoleTasks = {
             }*/
             //return helper.parkTask(creep.room, creep)
             let dismantlerTargets = [];
-            console.log(creep.name, 'A')
+
             for (let mr of Object.values(MEMORY.monitoredRooms)) {
                 if (mr.dismantleTarget && mr.roomName !== creep.room.name) {
                     dismantlerTargets.push(mr.roomName)
                 }
             }
-            console.log(creep.name, dismantlerTargets)
+
             if (dismantlerTargets.length) {
                 let newTargetRoom = _.min(dismantlerTargets, name => Game.map.getRoomLinearDistance(creep.room.name, name))
-                console.log(creep.name, newTargetRoom)
+
                 if (newTargetRoom) {
                     creep.memory.assignedRoom = newTargetRoom;
                 }
@@ -1054,6 +1058,7 @@ const getRoleTasks = {
      */
     filler: function (roomHeap, creep, creeps) {
 
+        const freeCapacity = creep.store.getFreeCapacity()
 
         let tasks = [];
 
@@ -1064,18 +1069,16 @@ const getRoleTasks = {
 
         }
         ;
-        if (creep.store.getFreeCapacity() > 0) {
-
-            tasks.push(...getTasks.pickup(roomHeap, creep, RESOURCE_ENERGY, false));
+        if (freeCapacity > 0) {
 
             if (roomHeap.storage && roomHeap.storage.length && roomHeap.storage[0].store[RESOURCE_ENERGY] > creep.store.getFreeCapacity()) {
                 tasks.push(new WithdrawTask(roomHeap.storage[0].id, RESOURCE_ENERGY, creep.store.getFreeCapacity()))
             } else {
-                tasks.push(...getTasks.pickup(roomHeap, creep, RESOURCE_ENERGY, true));
+                tasks.push(...getTasks.pickup(roomHeap, creep, RESOURCE_ENERGY, freeCapacity, true));
                 tasks.push(...getTasks.withdraw(roomHeap, creep, RESOURCE_ENERGY, true));
 
                 if (tasks.length === 0) {
-                    tasks.push(...getTasks.pickup(roomHeap, creep, RESOURCE_ENERGY, false));
+                    tasks.push(...getTasks.pickup(roomHeap, creep, RESOURCE_ENERGY, freeCapacity, false));
                     tasks.push(...getTasks.withdraw(roomHeap, creep, RESOURCE_ENERGY, false));
                 }
 
@@ -1542,15 +1545,18 @@ const getRoleTasks = {
     },
 
     maintainer: function (room, creep) {
+        
+        const freeCapacity = creep.store.getFreeCapacity()
         let tasks = [];
 
-        if (creep.store.getFreeCapacity() > .5 * creep.store.getCapacity()) {
 
-            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, true));
+        if (creep.store.getFreeCapacity() > .5 * freeCapacity) {
+
+            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY,freeCapacity, true));
             tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, true));
 
             if (tasks.length === 0) {
-                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, false));
+                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY,freeCapacity, false));
                 tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, false));
             }
 
@@ -1598,12 +1604,12 @@ const getRoleTasks = {
 
         if (!creep.memory.assignedSource) {
             const sources = Object.values(roomHeap.sources)
-            console.log(JSON.stringify(sources.map(s => s.ticksToRegeneration)))
+
             let availableSources = [];
             for (let s of sources) {
                 const source = s.obj;
                 const assignedMinerCount = getAssignedCreeps(s.id, 'miner').length
-                console.log(s.id, assignedMinerCount, s.maxCreeps)
+
                 if (assignedMinerCount < s.maxCreeps) {
                     availableSources.push({
                         source: s,
@@ -1611,7 +1617,7 @@ const getRoleTasks = {
                     })
                 }
             }
-            console.log('availableSources', JSON.stringify(availableSources))
+
             if (availableSources.length) {
                 // Pick source with least amount of creeps assigned.
                 let target = _.min(availableSources, so => so.assignedMinerCount);
@@ -1826,11 +1832,11 @@ const getRoleTasks = {
         let tasks = [];
 
         if (creep.store.getFreeCapacity() > .5 * creep.store.getCapacity()) {
-            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, true));
+            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY,freeCapacity, true));
             tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, true));
 
             if (tasks.length === 0) {
-                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, false));
+                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, freeCapacity,false));
                 tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, false));
             }
 
@@ -1949,7 +1955,7 @@ const getRoleTasks = {
                 let closest = _.min(hostileSites, s => s.pos.getRangeTo(creep))
                 if (!getPath(creep, creep.pos, closest.pos, 0, 1, true)) {
 
-                    //console.log(creep.name, 'stomping enemy site at', JSON.stringify(closest.pos))
+
                     return new MoveTask(closest.pos)
                 }
             }
@@ -2237,11 +2243,11 @@ const getRoleTasks = {
         if (creep.store.getUsedCapacity() === 0) {
             if (!controllerLink) {
 
-                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, true));
+                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY,freeCapacity, true));
                 tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, true));
 
                 if (tasks.length === 0) {
-                    tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, false));
+                    tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY,freeCapacity, false));
                     tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, false));
                 }
                 if (tasks.length === 0) {
@@ -2304,11 +2310,11 @@ const getRoleTasks = {
 
         if (creep.store.getFreeCapacity() > 0) {
 
-            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, true));
+            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY,freeCapacity, true));
             tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, true));
 
             if (tasks.length === 0) {
-                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, false));
+                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY,freeCapacity, false));
                 tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, false));
             }
 
@@ -2341,11 +2347,11 @@ const getRoleTasks = {
 
 
 
-            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, true));
+            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY,freeCapacity, true));
             tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, true));
 
             if (tasks.length === 0) {
-                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, false));
+                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY,freeCapacity, false));
                 tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, false));
             }
 
@@ -2530,8 +2536,10 @@ const getTasks = {
     fill: function (roomHeap, creep) {
         let tasks = [];
         let fillTargets = roomHeap.requests.fill.map(t => Game.getObjectById(t.id));
-        console.log('fillRequests:', JSON.stringify(fillRequests))
-        if (fillRequests.length === 0) {
+        if (DEBUG) {
+            console.log('fillTargets:', JSON.stringify(fillTargets))
+        }
+        if (fillTargets.length === 0) {
             return tasks;
         }
 
@@ -2542,7 +2550,9 @@ const getTasks = {
         while (energy > 0 && fillTargets.length) {
 
             const closest = _.min(fillTargets, t => t.pos.getRangeTo(lastPos));
-            console.log('closest:', JSON.stringify(closest))
+            if (DEBUG) {
+                console.log('closest:', JSON.stringify(closest))
+            }
             const forecast = closest.forecast(RESOURCE_ENERGY);
             const qtyNeeded = closest.store.getCapacity(RESOURCE_ENERGY) - closest.forecast(RESOURCE_ENERGY);
 
@@ -2557,7 +2567,7 @@ const getTasks = {
             tasks.push(new TransferTask(closest.id, RESOURCE_ENERGY, transferQty));
             lastPos = closest.pos;
 
-            if (forecast + Math.min(qty, energy) >= closest.store.getCapacity(RESOURCE_ENERGY)) {
+            if (forecast + Math.min(qtyNeeded, energy) >= closest.store.getCapacity(RESOURCE_ENERGY)) {
                 idx = fillTargets.findIndex(r => r.id === closest.id)
                 fillTargets.splice(idx, 1);
             }
@@ -3031,11 +3041,26 @@ const getTasks = {
      * @param {ResourceConstant} resourceType 
      * @returns {PickupTask[]}
      */
-    pickup: function (roomHeap, creep, resourceType, pickupCapacity) { // 
+    pickup: function (roomHeap, creep, resourceType, targetQty, pickupCapacity) { // 
 
         const capacity = creep.store.getFreeCapacity()
-        const dropped = roomHeap.droppedResources;
+        let dropped = roomHeap.droppedResources;
         let tasks = [];
+        let scheduledQty = 0;
+        
+        // Check if any pickup locations can fill requested quantity.
+
+        // if none 
+
+        // Traveling salesman problem.
+        while(dropped.length && scheduledQty < targetQty){
+        
+
+
+
+
+
+        }
 
         if (pickupCapacity) {
             for (let r of dropped) {
