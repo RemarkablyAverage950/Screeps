@@ -653,7 +653,7 @@ function executeTask(room, creep) {
 
         case 'ATTACK':
 
-            if(creep.room.name !== target.pos.roomName){
+            if (creep.room.name !== target.pos.roomName) {
                 moveCreep(creep, target.pos, 1, 16);
             }
             range = creep.pos.getRangeTo(target)
@@ -775,7 +775,7 @@ function executeTask(room, creep) {
             break;
 
         case 'HEAL':
-            if(creep.room.name !== target.pos.roomName){
+            if (creep.room.name !== target.pos.roomName) {
                 moveCreep(creep, target.pos, 1, 16);
             }
             range = creep.pos.getRangeTo(target);
@@ -999,13 +999,16 @@ function executeTask(room, creep) {
 
         case 'WITHDRAW':
             let wRet = creep.withdraw(target, task.resourceType, Math.min(creep.store.getFreeCapacity(), target.store[task.resourceType], task.qty))
-
+            if (creep.name === 'W54S32_hauler_0') {
+                console.log('W54S32_hauler_0', wRet)
+            }
             if (wRet !== 0) {
                 if (creep.pos.getRangeTo(target) > 1) {
                     moveCreep(creep, target.pos, 1, 16);
                 }
 
             } else {
+
                 MEMORY.rooms[room.name].creeps[creep.name].tasks.shift();
                 MEMORY.rooms[room.name].creeps[creep.name].path = undefined;
 
@@ -1638,9 +1641,10 @@ const getRoleTasks = {
         ;
         if (creep.store.getFreeCapacity() > 0) {
 
-            tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, false));
+
 
             if (room.storage && room.storage.store[RESOURCE_ENERGY] > creep.store.getFreeCapacity()) {
+                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, true));
                 tasks.push(new WithdrawTask(room.storage.id, RESOURCE_ENERGY, creep.store.getFreeCapacity()))
             } else {
                 tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, true));

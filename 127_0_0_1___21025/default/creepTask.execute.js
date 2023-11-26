@@ -1,7 +1,7 @@
 let MEMORY = require('memory');
 const { moveCreep } = require('pathfinder');
 
-const DEBUG = 1;
+const DEBUG = 0;
 
 /**
  * 

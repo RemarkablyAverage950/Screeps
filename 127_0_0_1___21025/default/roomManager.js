@@ -82,6 +82,7 @@ function initializeRoomMemory(room) {
         controller: controllerCache,
         creeps: {
             builder: [],
+            filler: [],
             hauler: [],
             miner: [],
             scout: [],
@@ -89,7 +90,7 @@ function initializeRoomMemory(room) {
         },
         creepsRequired: {},
         directives: {},
-        droppedResources: [],
+        droppedResources: {},
         energyAvailable: room.energyCapacityAvailable, // Set to max, will get actual checked against this value and generate fill tasks if needed.
         energyCapacityAvailable: room.energyCapacityAvailable,
         energyPerSource: 3000,
@@ -142,44 +143,16 @@ function initializeRoomMemory(room) {
 
 function updateRoomMemory(room, roomHeap) {
 
-    const structures = undefined;
+
     const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
 
     // Set creeps cache
     roomHeap.creeps = getCreepsCache(room, roomHeap);
     //roomHeap.structures = getStructuresCache(structures);
     roomHeap.constructionSites = getConstructionSiteCache(sites)
-    roomHeap.droppedResources = room.find(FIND_DROPPED_RESOURCES);
-
-    if (roomHeap.structureCount !== structures.length) {
-
-        roomHeap.energyCapacityAvailable = room.energyCapacityAvailable;
-
-        roomHeap.creepsRequired.miner = getTargetCount.miner(roomHeap);
-
-        // Get interior tiles
 
 
 
-        roomHeap.structureCount = structures.length;
-    }
-
-    if (roomHeap.constructionSiteCount !== sites.length) {
-
-        roomHeap.constructionSiteCount = sites.length
-        if (constructionSites.length > 0) {
-
-        }
-
-    }
-
-    if (room.energyAvailable < roomHeap.energyAvailable || roomHeap.requests.fill.length === 0 && roomHeap.energyAvailable < room.energyCapacityAvailable) {
-
-        getRequests.fill(roomHeap);
-        roomHeap.energyCapacityAvailable = room.energyCapacityAvailable;
-
-    }
-    roomHeap.energyAvailable = room.energyAvailable;
 
 }
 

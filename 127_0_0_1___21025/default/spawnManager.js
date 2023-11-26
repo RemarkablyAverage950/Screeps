@@ -1,5 +1,6 @@
 let MEMORY = require('memory');
 const { getBody, SPAWN_PRIORITY, } = require('lib.spawn');
+const lib = require('lib');
 
 class SpawnOrder {
     /**
@@ -45,7 +46,7 @@ function spawnManager(room, roomHeap) {
         return
     }
 
-    const spawns = roomHeap.structures[STRUCTURE_SPAWN].filter(s => !s.spawning);
+    const spawns = lib.getStructures(room, [STRUCTURE_SPAWN]).filter(s => !s.spawning);
 
     if (!spawns.length) {
         return;
@@ -149,10 +150,10 @@ function getBootSpawnQueue(roomHeap) {
     let so = getSpawnOrder('miner', roomHeap);
     if (minerQty === 0) {
         spawnQueue.push(so);
-        so = {...so}
-        
+        so = { ...so }
+
     }
-   
+
     so.priority = 3;
 
     for (let i = 1; i < minersReq; i++) {
@@ -164,10 +165,10 @@ function getBootSpawnQueue(roomHeap) {
     so = getSpawnOrder('filler', roomHeap);
     if (fillerQty === 0) {
         spawnQueue.push(so);
-        so = {...so}
-        
+        so = { ...so }
+
     }
-    
+
     so.priority = 4;
 
     if (fillerQty === 0) {

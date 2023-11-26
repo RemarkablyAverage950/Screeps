@@ -1,6 +1,6 @@
 let MEMORY = require('memory')
 
-const DEBUG = 1;
+const DEBUG = 0;
 
 /**
  * 

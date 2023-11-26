@@ -1,9 +1,11 @@
 let MEMORY = require('memory');
+const initializeTick = require('initializeTick');
 const roomManager = require('roomManager');
 
 const PROCESS_TYPES = {
     SQUADS: 'SQUADS',
     ASSAULT_ROOM: 'ASSAULT_ROOM',
+    INITIALIZE_TICK: 'INITIALIZE_TICK',
     MANAGE_OWNED_ROOM: 'MANAGE_OWNED_ROOM',
     MANAGE_MISSIONS: 'MANAGE_MISSIONS',
     PLAN_ROOM: 'PLAN_ROOM',
@@ -30,6 +32,26 @@ class Process {
         return true;
     }
 
+}
+
+class InitializeTickProcess extends Process {
+    constructor() {
+        super(PROCESS_TYPES.INITIALIZE_TICK);
+        this.runEvery = 1;
+        this.priority = 0;
+        this.reqCPU = 0;
+        this.reqBucket = 0;
+    }
+    run() {
+        const successful = initializeTick();
+
+        if (successful) {
+            this.runOnTick = Game.time + this.runEvery; // Set next game time to run process.
+        } else {
+            throw error('Failed to initialize tick.');
+        }
+
+    }
 }
 
 class ManageOwnedRoomProcess extends Process {
@@ -94,6 +116,10 @@ function initializeProcesses() {
 
     const processes = _.groupBy(MEMORY.processes, p => p.type);
 
+
+    if (!processes.initializeTick) {
+        MEMORY.processes.push(new InitializeTickProcess())
+    }
 
     _.forEach(getMyRooms(), roomName => {
         if (!processes[PROCESS_TYPES.MANAGE_OWNED_ROOM]) {
