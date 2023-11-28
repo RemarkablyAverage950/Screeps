@@ -1555,7 +1555,7 @@ return body;
      */
     upgrader: function (budget, room, conserveEnergy) {
 
-        if ((room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] < 300000) || room.find(FIND_MY_CONSTRUCTION_SITES).length > 0 || (!room.storage && conserveEnergy) || (room.storage && room.storage.store[RESOURCE_ENERGY] < 10000)) {
+        if ((room.controller.level === 8 && conserveEnergy) || room.find(FIND_MY_CONSTRUCTION_SITES).length > 0 || (!room.storage && conserveEnergy) || (room.storage && room.storage.store[RESOURCE_ENERGY] < 10000)) {
             return [WORK, CARRY, MOVE]
         }
 
