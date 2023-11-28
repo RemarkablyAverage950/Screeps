@@ -1639,7 +1639,7 @@ return body;
             };
         };
 
-        if (conserveEnergy || (room.controller.level === 8 && room.storage && room.storage.store[RESOURCE_ENERGY] < 300000)) {
+        if (conserveEnergy) {
             bestBody[0] = Math.max(Math.floor(bestBody[0] / 2), 1)
             bestBody[1] = Math.max(Math.floor(bestBody[1] / 2), 1)
             bestBody[2] = Math.max(Math.floor(bestBody[2] / 2), 1)
