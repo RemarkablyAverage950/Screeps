@@ -43,16 +43,11 @@ const lib = {
      * @param {ResourceConstant} resourceType 
      * @returns {Resource[]}
      */
-    getDroppedResources: function (roomName, resourceType = false) {
+    getDroppedResources: function (room, resourceType = false) {
 
         let ret = [];
         let droppedCache = MEMORY.rooms[room.name].droppedResources;
-        let room = Game.rooms[roomName];
-
-        if (!room) {
-            console.log(`Failed to get dropped resources for room '${roomName}' on tick ${Game.time}`);
-            return [];
-        }
+    
 
         if (droppedCache === undefined) {
 

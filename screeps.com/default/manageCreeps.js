@@ -999,9 +999,7 @@ function executeTask(room, creep) {
 
         case 'WITHDRAW':
             let wRet = creep.withdraw(target, task.resourceType, Math.min(creep.store.getFreeCapacity(), target.store[task.resourceType], task.qty))
-            if (creep.name === 'W54S32_hauler_0') {
-                console.log('W54S32_hauler_0', wRet)
-            }
+            
             if (wRet !== 0) {
                 if (creep.pos.getRangeTo(target) > 1) {
                     moveCreep(creep, target.pos, 1, 16);

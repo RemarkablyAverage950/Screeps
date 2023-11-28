@@ -12,6 +12,7 @@ const managePowerSpawn = require('managePowerSpawn')
 const manageNukes = require('manageNukes');
 let MEMORY = require('memory');
 const manageObserver = require('manageObserver');
+const manageMarket = require('manageMarket')
 require('prototypes');
 require('RoomVisual');
 
@@ -64,7 +65,7 @@ module.exports.loop = function () {
     const myRooms = getMyRooms()
     //console.log('Getting Rooms',Game.cpu.getUsed()-cpuStart)
     //cpuStart = Game.cpu.getUsed()
-
+    manageMarket(myRooms);
     manageTerminals(myRooms);
     //console.log('Managing terminals',Game.cpu.getUsed()-cpuStart)
     //cpuStart = Game.cpu.getUsed()

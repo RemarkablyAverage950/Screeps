@@ -1,5 +1,7 @@
 let MEMORY = require('memory');
 
+const DEBUG = 1;
+
 class SpawnOrder {
     /**
      * @constructor
@@ -28,21 +30,21 @@ class SpawnOrder {
  * @returns {BodyPartConstant[]}
  */
 function getBody(role, roomHeap) {
-    
-    if (!roomHeap.bodies[role]) {
-        roomHeap.bodies[role] = {
+
+    if (!roomHeap.spawnData.bodies[role]) {
+        roomHeap.spawnData.bodies[role] = {
             body: [],
             resetTime: Game.time,
         }
     }
 
-    if (Game.time >= roomHeap.bodies[role].resetTime) {
+    if (Game.time >= roomHeap.spawnData.bodies[role].resetTime) {
         console.log('role', role)
-        roomHeap.bodies[role].body = generateBody[role](roomHeap);
-        roomHeap.bodies[role].resetTime = Game.time + 500;
+        roomHeap.spawnData.bodies[role].body = generateBody[role](roomHeap);
+        roomHeap.spawnData.bodies[role].resetTime = Game.time + 500;
     }
 
-    return roomHeap.bodies[role].body
+    return roomHeap.spawnData.bodies[role].body
 
 }
 
@@ -141,10 +143,39 @@ const generateBody = {
 
 }
 
+
+function getTargetCounts(room, roomHeap) {
+
+    if (DEBUG) {
+        console.log('Entering getTargetCounts')
+    }
+
+    if (!roomHeap.spawnData.targetCounts) {
+        roomHeap.spawnData.targetCounts = {
+            miner: getTargetCount.miner(roomHeap),
+            filler: getTargetCount.filler(),
+        }
+
+    }
+
+    let targetCounts = roomHeap.spawnData.targetCounts;
+
+
+
+    return targetCounts
+
+}
+
+
 /**
  * Returns target counts, seperated by role.
  */
 getTargetCount = {
+
+    filler: function () {
+        return 1;
+    },
+
     /**
         * Returns the target number of miners.
         * @param {Object} roomHeap
@@ -185,4 +216,4 @@ SPAWN_PRIORITY = {
     'upgrader': 5,
 }
 
-module.exports = { getBody, getTargetCount, SPAWN_PRIORITY, SpawnOrder };
+module.exports = { getBody, getTargetCounts, SPAWN_PRIORITY, SpawnOrder };

@@ -34,7 +34,7 @@ const TARGET_RESOURCE_AMOUNT = 10000;
  * @param {string[]} myRooms 
  */
 function manageTerminals(myRooms) {
-    if (Game.time % 10 !== 5) { return; }
+    if (Game.time % 10 !== 3) { return; }
     let data = [];
     let requests = [];
     let surplus = [];

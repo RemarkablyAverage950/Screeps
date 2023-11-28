@@ -76,19 +76,9 @@ function initializeRoomMemory(room) {
     }
 
     let roomHeap = {
-        bodies: {},
         constructionSites: {},
         constructionSiteCount: 0,
         controller: controllerCache,
-        creeps: {
-            builder: [],
-            filler: [],
-            hauler: [],
-            miner: [],
-            scout: [],
-            upgrader: [],
-        },
-        creepsRequired: {},
         directives: {},
         droppedResources: {},
         energyAvailable: room.energyCapacityAvailable, // Set to max, will get actual checked against this value and generate fill tasks if needed.
@@ -123,10 +113,15 @@ function initializeRoomMemory(room) {
         },
         roomName: room.name,
         sources: sourceCache,
-        spawnQueue: [],
-        spawnQueueTimer: Game.time,
+        spawnData: {
+            targetCounts: undefined,
+            bodies: {},
+            spawnQueueTimer: Game.time,
+            spawnQueue: [],
+        },
         structureCount: 0,
         structures: undefined,
+
     }
 
     roomHeap.directives.harvest = [];
@@ -144,14 +139,13 @@ function initializeRoomMemory(room) {
 function updateRoomMemory(room, roomHeap) {
 
 
-    const sites = room.find(FIND_MY_CONSTRUCTION_SITES);
-
     // Set creeps cache
     roomHeap.creeps = getCreepsCache(room, roomHeap);
-    //roomHeap.structures = getStructuresCache(structures);
-    roomHeap.constructionSites = getConstructionSiteCache(sites)
 
-
+    if (room.energyCapacityAvailable !== roomHeap.energyCapacityAvailable) {
+        roomHeap.spawnData.targetCounts = undefined;
+        roomHeap.spawnData.bodies = {};
+    }
 
 
 }
@@ -204,13 +198,19 @@ function getControllerCache(room) {
 /**
  * Returns an object containing arrays of creeps, separated by role, to cache. Example: { role1: [creep0, creep1], role2: [creep2] }
  * @param {Room} room 
- * @param {Object} roomHeap
  * @returns {Object}
  */
-function getCreepsCache(room, roomHeap) {
+function getCreepsCache(room) {
 
     const creeps = room.find(FIND_MY_CREEPS);
-    let cache = roomHeap.creeps;
+    let cache = {
+        builder: [],
+        filler: [],
+        hauler: [],
+        miner: [],
+        scout: [],
+        upgrader: [],
+    };
 
     for (const creep of creeps) {
 

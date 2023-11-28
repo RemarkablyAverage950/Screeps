@@ -11,6 +11,7 @@ function initializeTick() {
         const roomHeap = MEMORY.rooms[roomName];
         roomHeap.structures = undefined;
         roomHeap.droppedResources = undefined;
+        roomHeap.creeps = undefined;
     }
 
     for (const name in Memory.creeps) {

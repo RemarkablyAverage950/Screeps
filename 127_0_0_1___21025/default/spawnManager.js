@@ -1,6 +1,8 @@
 let MEMORY = require('memory');
-const { getBody, SPAWN_PRIORITY, } = require('lib.spawn');
+const { getBody, SPAWN_PRIORITY, getTargetCounts } = require('lib.spawn');
 const lib = require('lib');
+
+const DEBUG = 1;
 
 class SpawnOrder {
     /**
@@ -19,6 +21,17 @@ class SpawnOrder {
     }
 }
 
+/*
+    spawnData object structure:
+
+       spawnData: {
+            targetCounts: {},
+            bodies: {},
+            spawnQueueTimer: Game.time,
+            spawnQueue: [],
+        },
+*/
+
 /**
  * Driving function for this module.
  * 
@@ -33,16 +46,16 @@ class SpawnOrder {
  */
 function spawnManager(room, roomHeap) {
 
-    if (Game.time >= roomHeap.spawnQueueTimer) {
-        getSpawnQueue(roomHeap);
-        if (!roomHeap.spawnQueue.length) {
-            roomHeap.spawnQueueTimer = Game.time + 10;
+    if (Game.time >= roomHeap.spawnData.spawnQueueTimer) {
+        getSpawnQueue(room, roomHeap);
+        if (!roomHeap.spawnData.spawnQueue.length) {
+            roomHeap.spawnData.spawnQueueTimer = Game.time + 10;
         } else {
-            roomHeap.spawnQueueTimer = Game.time + 100;
+            roomHeap.spawnData.spawnQueueTimer = Game.time + 100;
         }
     }
 
-    if (!roomHeap.spawnQueue.length) {
+    if (!roomHeap.spawnData.spawnQueue.length) {
         return
     }
 
@@ -54,7 +67,7 @@ function spawnManager(room, roomHeap) {
 
     for (const spawn of spawns) {
 
-        let so = roomHeap.spawnQueue[roomHeap.spawnQueue.length - 1]
+        let so = roomHeap.spawnData.spawnQueue[roomHeap.spawnData.spawnQueue.length - 1]
 
 
         // call spawn unit function here.
@@ -63,7 +76,7 @@ function spawnManager(room, roomHeap) {
         if (ret !== 0) {
             return;
         }
-        roomHeap.spawnQueue.pop()
+        roomHeap.spawnData.spawnQueue.pop()
     }
 }
 
@@ -97,18 +110,26 @@ function getName(so, roomName) {
  * Generates a new spawnQueue for the room based on target counts.
  * @param {Object} roomHeap 
  */
-function getSpawnQueue(roomHeap) {
+function getSpawnQueue(room, roomHeap) {
     let spawnQueue = [];
     // Check startup case:
-    if ((!roomHeap.creeps.fillers || !roomHeap.creeps.fillers.length) || (!roomHeap.creeps.miners || !roomHeap.creeps.miners.length)) {
+    if (!roomHeap.creeps.filler.length || !roomHeap.creeps.miner.length) {
 
-        spawnQueue = getBootSpawnQueue(roomHeap)
-
+        spawnQueue = getBootSpawnQueue(roomHeap);
+        if (DEBUG) {
+            console.log('Got boot spawnQueue:', JSON.stringify(spawnQueue))
+        }
     } else {
 
-        for (const role of Object.keys(roomHeap.creepsRequired)) {
+        const targetCounts = getTargetCounts(room, roomHeap);
+        if (DEBUG) {
+            console.log('Got targetCounts', JSON.stringify(targetCounts))
+        }
 
-            const queueAmount = roomHeap.creeps[role] ? roomHeap.creepsRequired[role] - Object.values(roomHeap.creeps[role]).length : roomHeap.creepsRequired[role];
+
+        for (const role of Object.keys(targetCounts)) {
+
+            const queueAmount = roomHeap.creeps[role] ? targetCounts[role] - Object.values(roomHeap.creeps[role]).length : targetCounts[role];
             if (queueAmount) {
                 const so = getSpawnOrder(role, roomHeap)
 
@@ -121,8 +142,8 @@ function getSpawnQueue(roomHeap) {
     if (spawnQueue.length) {
         spawnQueue = spawnQueue.sort((a, b) => b.priority - a.priority);
     }
-    console.log('Setting spawnQueue:')
-    roomHeap.spawnQueue = spawnQueue;
+
+    roomHeap.spawnData.spawnQueue = spawnQueue;
 
 }
 

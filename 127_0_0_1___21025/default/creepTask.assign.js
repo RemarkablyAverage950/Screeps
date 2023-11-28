@@ -1,8 +1,9 @@
 const getAssignedCreeps = require('prototypes');
 const helper = require('lib.helper');
+const lib = require('lib')
 let MEMORY = require('memory');
 
-const DEBUG = 0;
+const DEBUG = 1;
 
 class Task {
     /**
@@ -215,20 +216,24 @@ function assignTask(room, creep, creeps, roomHeap) {
 
 
     tasks = getRoleTasks[role](room, creep, creeps, roomHeap)
-
+    if (DEBUG) {
+        console.log(creep.name, 'tasks A:', JSON.stringify(tasks))
+    }
 
 
     if (!tasks.length) {
-        tasks.push(helper.parkTask(room, creep));
+        helper.parkTask(room, creep);
     }
 
     if (DEBUG) {
-        console.log(creep.name, JSON.stringify(tasks));
+        console.log(creep.name, 'tasks B:', JSON.stringify(tasks));
     }
 
 
     MEMORY.creeps[creep.name].tasks = tasks;
-    creep.say(tasks[0].type)
+    if (tasks.length) {
+        creep.say(tasks[0].type)
+    }
 
 }
 
@@ -245,7 +250,6 @@ const getRoleTasks = {
 
         const freeCapacity = creep.store.getFreeCapacity()
 
-        let availableTasks = [];
         let tasks = [];
 
         if (creep.store[RESOURCE_ENERGY] > 0) {
@@ -256,10 +260,10 @@ const getRoleTasks = {
 
         if (tasks.length === 0 && freeCapacity > 0) {
 
-            tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, freeCapacity))
+            tasks.push(...getTasks.withdraw(room, creep, RESOURCE_ENERGY, freeCapacity));
 
             if (tasks.length === 0) {
-                tasks.push(...getTasks.pickup(roomHeap, creep, RESOURCE_ENERGY, freeCapacity));
+                tasks.push(...getTasks.pickup(room, creep, RESOURCE_ENERGY, freeCapacity));
             }
 
         }
@@ -398,34 +402,38 @@ const getTasks = {
 
     /**
      * 
-     * @param {Object} roomHeap 
+     * @param {Room} room 
      * @param {Creep} creep
      * @param {ResourceConstant} resourceType 
      * @returns {PickupTask[]}
      */
-    pickup: function (roomHeap, creep, resourceType, targetQty, pickupCapacity) { // 
+    pickup: function (room, creep, resourceType, targetQty) { // 
 
         const capacity = creep.store.getFreeCapacity()
-        let dropped = roomHeap.droppedResources;
+        let dropped = lib.getDroppedResources(room, resourceType);
         let tasks = [];
         let scheduledQty = 0;
-
+        if (dropped.length === 0) {
+            return tasks;
+        }
         // Check if any pickup locations can fill requested quantity.
-        let bestTargets = dropped.filter(r => r.amount >= pickupCapacity)
+        let bestTargets = dropped.filter(r => r.amount >= targetQty)
 
         if (bestTargets.length) {
             const closest = _.min(bestTargets, r => r.pos.getRangeTo(creep))
 
-            tasks.push(new PickupTask(closest.id, pickupCapacity))
+            tasks.push(new PickupTask(closest.id, targetQty))
             return tasks
 
         }
 
-
-        // if none 
+        let lastPos = creep.pos;
 
         // Traveling salesman problem.
         while (dropped.length && scheduledQty < targetQty) {
+
+            const closest = _.min(dropped, r => r.pos.getRangeTo(creep));
+
 
 
 

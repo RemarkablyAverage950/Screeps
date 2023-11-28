@@ -237,10 +237,11 @@ let helper = {
 
                         if (range === 0) {
                             MEMORY.creeps[creep.name].moving = false;
-                            return undefined;
+                            return;
                         }
 
-                        return new MoveTask(pos);
+                        MEMORY.creeps[creep.name].tasks.unshift(new MoveTask(pos))
+                        return;
 
                     }
 
