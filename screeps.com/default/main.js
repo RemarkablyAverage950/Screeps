@@ -63,18 +63,18 @@ module.exports.loop = function () {
     //cpuStart = Game.cpu.getUsed()
 
     const myRooms = getMyRooms()
-    //console.log('Getting Rooms',Game.cpu.getUsed()-cpuStart)
+    //console.log('Getting Rooms', Game.cpu.getUsed() - cpuStart)
     //cpuStart = Game.cpu.getUsed()
     manageMarket(myRooms);
     manageTerminals(myRooms);
-    //console.log('Managing terminals',Game.cpu.getUsed()-cpuStart)
+    //console.log('Managing terminals', Game.cpu.getUsed() - cpuStart)
     //cpuStart = Game.cpu.getUsed()
     expansionManager(myRooms);
-    //console.log('Expansion Manager',Game.cpu.getUsed()-cpuStart)
+    //console.log('Expansion Manager', Game.cpu.getUsed() - cpuStart)
     manageNukes(myRooms)
 
     for (const roomName of myRooms) {
-        //console.log('Room',roomName)
+        //console.log('Room', roomName)
         if (Game.cpu.bucket < 100) {
             console.log('Breaking out of main for CPU Bucket')
             break;
@@ -86,7 +86,10 @@ module.exports.loop = function () {
         if (Game.time % 20 === 0 && room.controller.level < 2 || room.find(FIND_MY_SPAWNS).length === 0) {
 
             let closest = _.min(myRooms.filter(r => r != roomName && Game.rooms[r].controller.level > 3), r => Game.map.findRoute(roomName, r).length)
-
+            //Patched in fix 
+            if (room.name === 'W58S25') {
+                closest = 'W59S29'
+            }
             if (closest !== Infinity) {
                 let targetRemoteBuilderCount = 5;
 
@@ -116,60 +119,35 @@ module.exports.loop = function () {
             }
 
         }
-        /*
-        let structures = room.find(FIND_STRUCTURES)
-        let energy = 0;
-        let dropped = room.find(FIND_DROPPED_RESOURCES)
-        for (let s of structures) {
-            if (s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_STORAGE) {
-                energy += s.store[RESOURCE_ENERGY]
-                if (energy > 5000) {
-                    break;
-                }
-            }
-        }
-        if (energy < 5000) {
-            for (let d of dropped) {
-                if (d.resourceType === RESOURCE_ENERGY) {
-                    energy += d.amount
-                }
-            }
-        }
 
-        if (energy < 5000) {
-            // Request energy be brought over.
-            MEMORY.rooms[roomName].needEnergy = true;
-        } else {
-            MEMORY.rooms[roomName].needEnergy = false;
-        }
-        */
 
         //cpuStart = Game.cpu.getUsed()
         manageMemory(room, creeps);
-        //console.log('manageMemory',Game.cpu.getUsed()-cpuStart)
+        //console.log('manageMemory', Game.cpu.getUsed() - cpuStart)
         //cpuStart = Game.cpu.getUsed()
         manageRoomDefense(room);
-        //console.log('manageRoomDefense',Game.cpu.getUsed()-cpuStart)
+        //console.log('manageRoomDefense', Game.cpu.getUsed() - cpuStart)
         //cpuStart = Game.cpu.getUsed()
         outpostManager(room, creeps);
-        //console.log('outpostManager',Game.cpu.getUsed()-cpuStart)
+        //console.log('outpostManager', Game.cpu.getUsed() - cpuStart)
         //cpuStart = Game.cpu.getUsed()
         manageLinks(room);
-        //console.log('manageLinks',Game.cpu.getUsed()-cpuStart)
-        //cpuStart = Game.cpu.getUsed()
+       // console.log('manageLinks', Game.cpu.getUsed() - cpuStart)
+       // cpuStart = Game.cpu.getUsed()
         roomPlanner(room);
-        //console.log('roomPlanner',Game.cpu.getUsed()-cpuStart)
-        //cpuStart = Game.cpu.getUsed()
+        //console.log('roomPlanner', Game.cpu.getUsed() - cpuStart)
+       // cpuStart = Game.cpu.getUsed()
         manageTowers(room);
-        //console.log('manageTowers',Game.cpu.getUsed()-cpuStart)
-        //cpuStart = Game.cpu.getUsed()
+       // console.log('manageTowers', Game.cpu.getUsed() - cpuStart)
+      //  cpuStart = Game.cpu.getUsed()
         manageSpawns(room, creeps);
-        //console.log('manageSpawns',Game.cpu.getUsed()-cpuStart)
-        //cpuStart = Game.cpu.getUsed()
+       // console.log('manageSpawns', Game.cpu.getUsed() - cpuStart)
+        
         manageLabs(room)
         managePowerSpawn(room)
+        //cpuStart = Game.cpu.getUsed()
         manageCreeps(room, creeps);
-        //console.log('manageCreeps',Game.cpu.getUsed()-cpuStart)
+        //console.log('manageCreeps', Game.cpu.getUsed() - cpuStart)
 
         if (room.controller.level === 8) {
             manageObserver(room)

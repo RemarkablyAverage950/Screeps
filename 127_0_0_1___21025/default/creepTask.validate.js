@@ -250,6 +250,9 @@ function validateTask(room, creep) {
             break;
     };
 
+    if(DEBUG){
+        console.log('returning true')
+    }
     return true;
 }
 

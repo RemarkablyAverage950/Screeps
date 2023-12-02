@@ -999,7 +999,7 @@ function executeTask(room, creep) {
 
         case 'WITHDRAW':
             let wRet = creep.withdraw(target, task.resourceType, Math.min(creep.store.getFreeCapacity(), target.store[task.resourceType], task.qty))
-            
+
             if (wRet !== 0) {
                 if (creep.pos.getRangeTo(target) > 1) {
                     moveCreep(creep, target.pos, 1, 16);
@@ -1695,10 +1695,17 @@ const getRoleTasks = {
     healer: function (room, creep) {
 
         let healTargets = creep.room.find(FIND_MY_CREEPS).filter(c => c.hits < c.hitsMax)
+        let closeHealTargets = healTargets.filter(c => c.pos.getRangeTo(creep) < 4)
+        if (closeHealTargets.length > 1) {
+            let lowest = _.min(closeHealTargets, c => c.hits)
+            if (lowest) {
+                return new HealTask(lowest.id);
+            }
+        }
         if (healTargets.length) {
             let closest = _.min(healTargets, c => c.pos.getRangeTo(creep))
             if (closest) {
-                return new HealTask(closest.id)
+                return new HealTask(closest.id);
             }
         }
 
@@ -2657,7 +2664,8 @@ const getRoleTasks = {
 
             if (creep.room.name === creep.memory.assignedRoom && (!creep.room.controller || (creep.room.controller && !creep.room.controller.my))) {
 
-                hostileStructures = creep.room.find(FIND_HOSTILE_STRUCTURES).filter(s => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_TOWER)
+                hostileStructures = creep.room.find(FIND_HOSTILE_STRUCTURES)
+                    .filter(s => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_TOWER)
                 if (hostileStructures.length) {
                     hostileStructures = hostileStructures.sort((a, b) => b.pos.getRangeTo(creep) - a.pos.getRangeTo(creep))
 
@@ -2677,8 +2685,6 @@ const getRoleTasks = {
                             return new AttackTask(targetStructure.id)
 
 
-                        } else if (!getPath(creep, creep.pos, targetStructure.pos, 3, 1, true, false, false, true)) {
-                            return new RangedAttackTask(targetStructure.id)
                         }
                     }
                 }

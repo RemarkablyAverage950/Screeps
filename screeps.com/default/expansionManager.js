@@ -1886,7 +1886,7 @@ function getMission(myRooms) {
                     availableRooms.splice(idx, 1)
 
                     console.log(homeRoomName, 'Creating dismantle mission for', data.roomName)
-                    MEMORY.rooms[homeRoomName].missions.push(new DismantleMission(data.roomName))
+                //    MEMORY.rooms[homeRoomName].missions.push(new DismantleMission(data.roomName))
                 }
 
             }
@@ -1968,7 +1968,7 @@ function getMission(myRooms) {
             if (r.lastScan === 0) {
                 continue;
             }
-
+            /*
             if (r.powerBank) {
                 // Find closest room > RCL 6
                 let availableRooms = myRooms.filter(roomName => Game.rooms[roomName].controller.level > 6
@@ -1979,13 +1979,13 @@ function getMission(myRooms) {
                     // If we do not have any missions comming out of this room:
                     if (MEMORY.rooms[closestRoomName] && !MEMORY.rooms[closestRoomName].missions.length) {
                         console.log('Creating power bank mission for', closestRoomName, 'at', r.roomName)
-                        MEMORY.rooms[closestRoomName].missions.push(new PowerBankMission(r.roomName, r.powerBankPos))
+                        //MEMORY.rooms[closestRoomName].missions.push(new PowerBankMission(r.roomName, r.powerBankPos))
 
                     }
 
                 }
             }
-
+            */
             // Skip this target room if it is an outpost for one of my rooms
             let next = false;
 
@@ -2023,7 +2023,7 @@ function getMission(myRooms) {
 
         // Generate a claim mission if criteria met
 
-        //console.log('Potential Settlements for', homeRoomName + ':', JSON.stringify(potentialSettlements), potentialSettlements.length)
+        console.log('Potential Settlements:', JSON.stringify(potentialSettlements.filter(s=> s.score >900)), potentialSettlements.length)
         let potentialSettlementCount = 0
         for (let s of potentialSettlements) {
 
@@ -2032,7 +2032,7 @@ function getMission(myRooms) {
             }
         }
 
-        if (potentialSettlementCount >= Math.min(myRooms.length, 5)) {
+        if (potentialSettlementCount >= Math.min(myRooms.length, 4)) {
 
             let bestTarget = _.max(potentialSettlements, s => s.score)
 

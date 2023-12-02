@@ -24,7 +24,7 @@ function getPath(creep = undefined, origin, destination, range, maxRooms, incomp
         swampCost: 10,
         maxRooms: maxRooms,
         ignoreCreeps: true,
-        maxOps: 50000,
+        maxOps: 70000,
         roomCallback: function (roomName) {
             if (Game.map.getRoomStatus(roomName).status !== 'normal') return false;
 
@@ -251,7 +251,7 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
                 MEMORY.rooms[creep.memory.home].creeps[creep.name].blockingCreep = lookCreep.name
             }
         } catch (e) { }
-    }else{
+    } else {
         MEMORY.rooms[creep.memory.home].creeps[creep.name].pushing = false;
     }
     if (!path || path.length === 0) {
@@ -292,7 +292,7 @@ function moveCreep(creep, destination, range, maxRooms, allowedRooms = false) {
  * @param {boolean} returnRoute 
  * @returns 
  */
-function moveCreepToRoom(creep, targetRoomName, targetPos = undefined, hostileRoomValue = 10) {
+function moveCreepToRoom(creep, targetRoomName, targetPos = undefined, hostileRoomValue = 5) {
     let allowedRooms = false;
 
     let nextRoom = MEMORY.rooms[creep.memory.home].creeps[creep.name].nextroom;
@@ -343,8 +343,9 @@ function moveCreepToRoom(creep, targetRoomName, targetPos = undefined, hostileRo
 
 
         })
-
-
+        if (creep.memory.role === 'claimer') {
+            console.log(creep.name, 'moving to room via route', JSON.stringify(route))
+        }
         if (!route.length) {
             return;
         }

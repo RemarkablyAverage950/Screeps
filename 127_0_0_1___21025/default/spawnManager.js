@@ -11,13 +11,15 @@ class SpawnOrder {
      * @param {number} priority 
      * @param {BodyPartConstant[]} body 
      * @param {object} options 
+     * @param {boolean} allowMinimum
      */
-    constructor(role, priority, body, options) {
+    constructor(role, priority, body, options, allowMinimum) {
         this.role = role;
         this.priority = priority;
         this.body = body;
         this.options = options;
         this.boosts = {};
+        this.allowMinimum = allowMinimum;
     }
 }
 
@@ -46,6 +48,10 @@ class SpawnOrder {
  */
 function spawnManager(room, roomHeap) {
 
+    if (DEBUG) {
+        //console.log('Entering spawnManager')
+    }
+
     if (Game.time >= roomHeap.spawnData.spawnQueueTimer) {
         getSpawnQueue(room, roomHeap);
         if (!roomHeap.spawnData.spawnQueue.length) {
@@ -54,7 +60,9 @@ function spawnManager(room, roomHeap) {
             roomHeap.spawnData.spawnQueueTimer = Game.time + 100;
         }
     }
-
+    if (DEBUG) {
+        //console.log(room.name, 'spawnData', JSON.stringify(roomHeap.spawnData))
+    }
     if (!roomHeap.spawnData.spawnQueue.length) {
         return
     }
@@ -76,7 +84,10 @@ function spawnManager(room, roomHeap) {
         if (ret !== 0) {
             return;
         }
+
         roomHeap.spawnData.spawnQueue.pop()
+        console.log(spawn.name, 'spawning new', so.role);
+
     }
 }
 
@@ -90,7 +101,59 @@ function spawnManager(room, roomHeap) {
 function spawnCreep(spawn, so) {
 
     const name = getName(so, spawn.room.name)
+    if (so.allowMinimum) {
+        if (spawn.spawnCreep(so.body, name, so.options) === 0) {
+            return 0;
+        }
+        const energyAvailable = spawn.room.energyAvailable;
+        let canReduce = true;
+
+        const newSo = { ...so }
+        while (canReduce) {
+            let cost = 0;
+            for (let part of newSo.body) {
+                cost += BODYPART_COST[part]
+            }
+            if (cost <= energyAvailable) {
+                spawn.spawnCreep(newSo.body, name, newSo.options)
+                so.allowMinimum = false;
+                console.log(spawn.name, 'spawning new', newSo.role);
+                return 98;
+            } else {
+                let workParts = newSo.body.filter(p => p === WORK).length;
+                let moveParts = newSo.body.filter(p => p === MOVE).length;
+                let carryParts = newSo.body.filter(p => p === CARRY).length;
+                let body = [];
+                if (workParts <= 1 && carryParts <= 1 && moveParts <= 1) {
+                    canReduce = false
+                    return 99;
+                }
+
+                if (workParts > 1) {
+                    workParts = Math.ceil(workParts / 2);
+                }
+                if (carryParts > 1) {
+                    carryParts = Math.ceil(carryParts / 2);
+                } if (moveParts > 1) {
+                    moveParts = Math.ceil(moveParts / 2);
+                }
+                for (let i = 0; i < workParts; i++) {
+                    body.push(WORK)
+                }
+                for (let i = 0; i < carryParts; i++) {
+                    body.push(CARRY)
+                }
+                for (let i = 0; i < moveParts; i++) {
+                    body.push(MOVE)
+                }
+                newSo.body = body;
+            }
+
+
+        }
+    }
     return spawn.spawnCreep(so.body, name, so.options)
+
 
 }
 
@@ -111,31 +174,47 @@ function getName(so, roomName) {
  * @param {Object} roomHeap 
  */
 function getSpawnQueue(room, roomHeap) {
-    let spawnQueue = [];
+
+    if (DEBUG) {
+        //console.log('Entering getSpawnQueue')
+    }
+
+    let spawnQueue = roomHeap.spawnData.spawnQueue;
+    const targetCounts = getTargetCounts(room, roomHeap);
     // Check startup case:
+
     if (!roomHeap.creeps.filler.length || !roomHeap.creeps.miner.length) {
 
-        spawnQueue = getBootSpawnQueue(roomHeap);
+        spawnQueue.push(...getBootSpawnQueue(roomHeap, targetCounts));
         if (DEBUG) {
             console.log('Got boot spawnQueue:', JSON.stringify(spawnQueue))
         }
     } else {
 
-        const targetCounts = getTargetCounts(room, roomHeap);
+
         if (DEBUG) {
             console.log('Got targetCounts', JSON.stringify(targetCounts))
         }
 
+        const spawnQueueCounts = _.countBy(spawnQueue, s => s.role)
 
         for (const role of Object.keys(targetCounts)) {
+            let so;
+            let spawnQueueCount = spawnQueueCounts[role] || 0;
+            let queueAmount = (roomHeap.creeps[role] ? targetCounts[role] - roomHeap.creeps[role].length : targetCounts[role]) - spawnQueueCount;
 
-            const queueAmount = roomHeap.creeps[role] ? targetCounts[role] - Object.values(roomHeap.creeps[role]).length : targetCounts[role];
-            if (queueAmount) {
-                const so = getSpawnOrder(role, roomHeap)
-
-                spawnQueue.push(so)
+            if (DEBUG) {
+                console.log('checking role', role, '- spawnQueueCounts:', spawnQueueCount, '- queueAmount', queueAmount);
             }
 
+            if (queueAmount > 0) {
+                so = getSpawnOrder(role, room, roomHeap)
+            }
+
+            while (queueAmount > 0) {
+                spawnQueue.push(so)
+                queueAmount--;
+            }
         }
     }
 
@@ -143,13 +222,18 @@ function getSpawnQueue(room, roomHeap) {
         spawnQueue = spawnQueue.sort((a, b) => b.priority - a.priority);
     }
 
+    if (DEBUG) {
+        console.log('spawnQueue:', JSON.stringify(spawnQueue));
+        console.log('spawnQueueCounts:', JSON.stringify(spawnQueue.map(s => s.role)));
+    }
+
     roomHeap.spawnData.spawnQueue = spawnQueue;
 
 }
 
-function getSpawnOrder(role, roomHeap,) {
+function getSpawnOrder(role, room, roomHeap, allowMinimum = false) {
     const priority = SPAWN_PRIORITY[role]
-    const body = getBody(role, roomHeap)
+    const body = getBody(role, roomHeap, room)
     const options = {
         memory: {
             role: role,
@@ -157,48 +241,24 @@ function getSpawnOrder(role, roomHeap,) {
         }
     }
     const boosts = {} // Need a function to figure out if we want to boost creep.
-    return new SpawnOrder(role, priority, body, options)
+    return new SpawnOrder(role, priority, body, options, allowMinimum)
 }
 
 function getBootSpawnQueue(roomHeap) {
 
     let spawnQueue = [];
-    const minersReq = roomHeap.creepsRequired.miner;
-    const fillersReq = roomHeap.creepsRequired.filler;
+
     const minerQty = roomHeap.creeps.miner.length;
     const fillerQty = roomHeap.creeps.filler.length;
-    console.log('filletQty:', fillerQty)
-    let so = getSpawnOrder('miner', roomHeap);
+
     if (minerQty === 0) {
-        spawnQueue.push(so);
-        so = { ...so }
-
+        spawnQueue.push(getSpawnOrder('miner', room, roomHeap, true));
     }
-
-    so.priority = 3;
-
-    for (let i = 1; i < minersReq; i++) {
-
-        spawnQueue.push(so);
-
-    }
-
-    so = getSpawnOrder('filler', roomHeap);
-    if (fillerQty === 0) {
-        spawnQueue.push(so);
-        so = { ...so }
-
-    }
-
-    so.priority = 4;
 
     if (fillerQty === 0) {
-        for (let i = 1; i < fillersReq; i++) {
-            spawnQueue.push(so);
-        }
+        spawnQueue.push(getSpawnOrder('filler', room, roomHeap, true));
     }
 
-    console.log('Returning bootSpawnQueue:', JSON.stringify(spawnQueue))
     return spawnQueue;
 
 }

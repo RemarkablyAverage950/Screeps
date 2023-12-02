@@ -47,7 +47,7 @@ const lib = {
 
         let ret = [];
         let droppedCache = MEMORY.rooms[room.name].droppedResources;
-    
+
 
         if (droppedCache === undefined) {
 
@@ -71,7 +71,29 @@ const lib = {
         return ret;
     },
 
-
+    /**
+     * Checks cache for the available resource quantity of a resourceType.
+     * If no cache exists, sums and returns the dropped and stored quantity of a resourceType.
+     * @param {Room} room 
+     * @param {ResourceConstant} resourceType 
+     * @returns {number}
+     */
+    getResourceQtyAvailable: function (room, resourceType) {
+        let qtyAvailable = MEMORY.rooms[room.name].availableResourceQuantities[resourceType];
+        if (!qtyAvailable) {
+            qtyAvailable = 0;
+            const dropped = this.getDroppedResources(room, [resourceType]);
+            dropped.forEach(r => qtyAvailable += r.amount);
+            const storeStructues = this.getStructures(room, [STRUCTURE_STORAGE, STRUCTURE_CONTAINER]);
+            for (const s of storeStructues) {
+                if (s.store[resourceType]) {
+                    qtyAvailable += s.store[resourceType]
+                }
+            }
+            MEMORY.rooms[room.name].availableResourceQuantities[resourceType] = qtyAvailable;
+        }
+        return qtyAvailable;
+    },
 
     /**
      * Checks a room's memory for structures listed in StructureTypeArr.

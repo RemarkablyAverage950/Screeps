@@ -12,6 +12,7 @@ function initializeTick() {
         roomHeap.structures = undefined;
         roomHeap.droppedResources = undefined;
         roomHeap.creeps = undefined;
+        roomHeapavailableResourceQuantities = {};
     }
 
     for (const name in Memory.creeps) {

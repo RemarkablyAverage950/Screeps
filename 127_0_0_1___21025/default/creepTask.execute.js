@@ -10,9 +10,10 @@ const DEBUG = 0;
  */
 function executeTask(room, creep) {
     const task = MEMORY.creeps[creep.name].tasks[0]
+
     if (DEBUG) {
         console.log(creep.name, JSON.stringify(task))
-        console.log('tasks:',JSON.stringify(MEMORY.creeps[creep.name].tasks))
+        console.log('tasks:', JSON.stringify(MEMORY.creeps[creep.name].tasks))
     }
     let range;
     if (!task) {
@@ -190,9 +191,9 @@ function executeTask(room, creep) {
 
             break;
         case 'MOVE_TO_ROOM':
-           
+
             moveCreepToRoom(creep, task.roomName, task.targetPos)
-           
+
             break;
         case 'PICKUP':
 

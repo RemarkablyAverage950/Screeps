@@ -76,6 +76,7 @@ function initializeRoomMemory(room) {
     }
 
     let roomHeap = {
+        availableResourceQuantities: {},
         constructionSites: {},
         constructionSiteCount: 0,
         controller: controllerCache,

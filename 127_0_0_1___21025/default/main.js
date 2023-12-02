@@ -6,7 +6,7 @@ require('prototypes');
 require('RoomVisual');
 
 // Initialization code, if needed
-profiler.enable();
+//profiler.enable();
 // Main game loop
 module.exports.loop = function () {
     profiler.wrap(function () {

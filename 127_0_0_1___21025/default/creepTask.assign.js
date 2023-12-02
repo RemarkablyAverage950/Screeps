@@ -207,17 +207,18 @@ class WithdrawTask extends Task {
  */
 function assignTask(room, creep, creeps, roomHeap) {
 
+    if (DEBUG) {
+        //console.log('Entering assignTask for', creep.name)
+    }
     const role = creep.memory.role;
 
     let availableTasks = [];
 
     let tasks = [];
 
-
-
     tasks = getRoleTasks[role](room, creep, creeps, roomHeap)
     if (DEBUG) {
-        console.log(creep.name, 'tasks A:', JSON.stringify(tasks))
+        //console.log(creep.name, 'tasks A:', JSON.stringify(tasks))
     }
 
 
@@ -226,7 +227,7 @@ function assignTask(room, creep, creeps, roomHeap) {
     }
 
     if (DEBUG) {
-        console.log(creep.name, 'tasks B:', JSON.stringify(tasks));
+        //console.log(creep.name, 'tasks B:', JSON.stringify(tasks));
     }
 
 
@@ -285,12 +286,16 @@ const getRoleTasks = {
 
         if (!creep.memory.assignedSource) {
             const sources = Object.values(roomHeap.sources)
-
+            if (DEBUG) {
+                console.log('Assigning source to', creep.name)
+            }
             let availableSources = [];
             for (let s of sources) {
 
                 const assignedMinerCount = getAssignedCreeps(s.id, 'miner').length
-
+                if (DEBUG) {
+                    console.log(s.id, 'assignedMinerCount:', assignedMinerCount, 'maxCreeps:', s.maxCreeps)
+                }
                 if (assignedMinerCount < s.maxCreeps) {
                     availableSources.push({
                         source: s.obj,
@@ -298,7 +303,9 @@ const getRoleTasks = {
                     })
                 }
             }
-
+            if (DEBUG) {
+                console.log('availableSources:', JSON.stringify(availableSources.map(s => s.source.id)))
+            }
             if (availableSources.length) {
                 // Pick source with least amount of creeps assigned.
                 let target = _.min(availableSources, so => so.assignedMinerCount);
@@ -336,7 +343,7 @@ const getTasks = {
         }
 
         if (DEBUG) {
-            console.log('fillRequests:', JSON.stringify(fillRequests))
+            //console.log('fillRequests:', JSON.stringify(fillRequests))
         }
 
         if (!fillRequests.length) {
@@ -353,7 +360,7 @@ const getTasks = {
 
             const closest = _.min(fillStructures, t => t.pos.getRangeTo(lastPos));
             if (DEBUG) {
-                console.log('closest:', JSON.stringify(closest))
+                //console.log('closest:', JSON.stringify(closest))
             }
             const forecast = closest.forecast(RESOURCE_ENERGY); 300
             const qtyNeeded = closest.store.getCapacity(RESOURCE_ENERGY) - forecast;
