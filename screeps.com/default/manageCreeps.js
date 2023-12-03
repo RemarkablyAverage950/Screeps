@@ -1244,18 +1244,22 @@ const getRoleTasks = {
             let path;
             let controller = creep.room.controller
 
-            let spawn = creep.room.find(FIND_HOSTILE_SPAWNS)[0]
+            let primaryTargets = creep.room.find(FIND_HOSTILE_STRUCTURES).filter(s => s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_TOWER)
+            let target = _.min(primaryTargets, t => t.pos.getRangeTo(creep));
+            console.log(creep.name, 'target:', target.pos)
+            if (primaryTargets.length && target) {
 
-            if (spawn) {
-                if (getPath(creep, creep.pos, spawn.pos, 1, 1, true, false, false, true)) {
+                if (getPath(creep, creep.pos, target.pos, 0, 1, true, false, true, true)) {
+                    // path to target blocked
+                    console.log('path to target blocked')
                     ret = PathFinder.search(
-                        spawn.pos, { pos: creep.pos, range: 1 },
+                        creep.pos, { pos: target.pos, range: 0 },
                         {
                             // We need to set the defaults costs higher so that we
                             // can set the road cost lower in `roomCallback`
                             plainCost: 1,
                             swampCost: 1,
-                            ignoreCreeps: true,
+                            ignoreCreeps: false,
 
                             roomCallback: function (roomName) {
 
@@ -1265,12 +1269,14 @@ const getRoleTasks = {
                                 // you should be careful!
                                 if (!room) return;
                                 let costs = new PathFinder.CostMatrix;
-                                room.find(FIND_CREEPS).forEach(c => costs.set(c.pos.x, c.pos.y, 0xff))
+                                room.find(FIND_CREEPS).forEach(c => { if (creep.name !== c.name) costs.set(c.pos.x, c.pos.y, 0xff) })
 
                                 room.find(FIND_STRUCTURES).forEach(function (struct) {
                                     if (struct.structureType === STRUCTURE_CONTROLLER) {
                                         costs.set(struct.pos.x, struct.pos.y, 0xff)
 
+                                    } else if ((struct.structureType === STRUCTURE_STORAGE || struct.structureType === STRUCTURE_TERMINAL) && struct.store.getUsedCapacity() > 0) {
+                                        costs.set(struct.pos.x, struct.pos.y, 0xff)
                                     } else if (struct.structureType !== STRUCTURE_CONTAINER &&
                                         struct.structureType !== STRUCTURE_ROAD) {
                                         // Can't walk through non-walkable buildings
@@ -1286,18 +1292,19 @@ const getRoleTasks = {
                             },
                         }
                     );
-
+                    console.log(creep.name, 'Pathing to target', JSON.stringify(target))
+                    console.log(!ret.incomplete, JSON.stringify(ret.path))
                     if (!ret.incomplete) {
 
                         path = ret.path;
-                        for (let i = 0; i < path.length; i++) {
+                        for (let i = path.length - 1; i >= 0; i--) {
 
                             if (!getPath(creep, creep.pos, path[i], 1, 1, true, false, false, true)) {
 
                                 let targetPos = path[i];
 
 
-                                let target = creep.room.lookForAt(LOOK_STRUCTURES, targetPos)[0]
+                                target = creep.room.lookForAt(LOOK_STRUCTURES, targetPos)[0]
                                 if (target)
 
                                     return new DismantleTask(target.id)
@@ -1305,6 +1312,8 @@ const getRoleTasks = {
                         }
 
                     }
+                } else {
+                    return new DismantleTask(target.id)
                 }
             }
 
@@ -1334,6 +1343,8 @@ const getRoleTasks = {
                                 if (struct.structureType === STRUCTURE_CONTROLLER) {
                                     costs.set(struct.pos.x, struct.pos.y, 0xff)
 
+                                } else if ((struct.structureType === STRUCTURE_STORAGE || struct.structureType === STRUCTURE_TERMINAL) && struct.store.getUsedCapacity() > 0) {
+                                    costs.set(struct.pos.x, struct.pos.y, 0xff)
                                 } else if (struct.structureType !== STRUCTURE_CONTAINER &&
                                     struct.structureType !== STRUCTURE_ROAD) {
                                     // Can't walk through non-walkable buildings
@@ -1680,8 +1691,6 @@ const getRoleTasks = {
         if (tasks.length === 0) {
 
         }
-
-
 
         return tasks;
 
@@ -2681,7 +2690,7 @@ const getRoleTasks = {
                     while (hostileStructures.length) {
                         let targetStructure = hostileStructures.pop()
 
-                        if (!getPath(creep, creep.pos, targetStructure.pos, 1, 1, true, false, false, true)) {
+                        if (!getPath(creep, creep.pos, targetStructure.pos, 1, 1, true, false, true, true)) {
                             return new AttackTask(targetStructure.id)
 
 
@@ -2701,14 +2710,21 @@ const getRoleTasks = {
 
                     while (hostileStructures.length) {
                         let targetStructure = hostileStructures.pop()
+                        if (targetStructure.structureType !== STRUCTURE_RAMPART) {
+                            let look = targetStructure.pos.lookFor(LOOK_STRUCTURES);
+                            if (look.some(lo => lo.structureType === STRUCTURE_RAMPART)) {
+                                continue;
+                            }
+                        }
                         if (targetStructure.store && (targetStructure.store[RESOURCE_ENERGY] > 0 || targetStructure.store.getUsedCapacity() > 0)) {
                             continue;
                         }
-                        if (!getPath(creep, creep.pos, targetStructure.pos, 1, 1, true, false, false, true)) {
+                        if (!getPath(creep, creep.pos, targetStructure.pos, 1, 1, true, false, true, true)) {
                             return new AttackTask(targetStructure.id)
-                        } else if (!getPath(creep, creep.pos, targetStructure.pos, 3, 1, true, false, false, true)) {
-                            return new RangedAttackTask(targetStructure.id)
                         }
+                        /*else if (!getPath(creep, creep.pos, targetStructure.pos, 3, 1, true, false, false, true)) {
+                            return new RangedAttackTask(targetStructure.id)
+                        }*/
                     }
                 }
 
@@ -3836,7 +3852,9 @@ function validateTask(room, creep) {
             let hostiles = creep.room.find(FIND_HOSTILE_CREEPS).filter(c => c.pos.getRangeTo(creep) < 5)
 
             if (hostiles.length && target != _.min(hostiles, h => h.pos.getRangeTo(creep))) {
+
                 return false;
+
             }
 
             break;
