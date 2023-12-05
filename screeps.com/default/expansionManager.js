@@ -1772,7 +1772,7 @@ function getMission(myRooms) {
                 if (assignedRoom) {
                     console.log(assignedRoom, 'claiming', targetRoomName, 'per flag')
                     MEMORY.rooms[assignedRoom].missions.push(new ClaimMission(targetRoomName, true))
-                    
+
                     flag.remove()
                     break;
                 }
@@ -1877,7 +1877,7 @@ function getMission(myRooms) {
             }
             if (!myOutpost && data.ownedBy !== MEMORY.username && data.dismantleTarget && (!data.reservedBy || data.reservedBy === MEMORY.username) && data.structureCount > 1 && data.controller_id && data.distance < 6) {
 
-                let nearbyRooms = availableRooms.filter(hr => Game.map.findRoute(hr, data.roomName).length < 10)
+                let nearbyRooms = availableRooms.filter(hr => Game.map.findRoute(hr, data.roomName).length < 3)
 
                 while (nearbyRooms.length > 0) {
 
@@ -1886,7 +1886,7 @@ function getMission(myRooms) {
                     availableRooms.splice(idx, 1)
 
                     console.log(homeRoomName, 'Creating dismantle mission for', data.roomName)
-                //    MEMORY.rooms[homeRoomName].missions.push(new DismantleMission(data.roomName))
+                    MEMORY.rooms[homeRoomName].missions.push(new DismantleMission(data.roomName))
                 }
 
             }
@@ -2023,7 +2023,7 @@ function getMission(myRooms) {
 
         // Generate a claim mission if criteria met
 
-        console.log('Potential Settlements:', JSON.stringify(potentialSettlements.filter(s=> s.score >900)), potentialSettlements.length)
+        console.log('Potential Settlements:', JSON.stringify(potentialSettlements.filter(s => s.score > 900)), potentialSettlements.length)
         let potentialSettlementCount = 0
         for (let s of potentialSettlements) {
 
